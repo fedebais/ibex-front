@@ -42,7 +42,7 @@ const NewFlightLog = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Canvas para firma
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // const [hasSignature, setHasSignature] = useState(false)
+  const [hasSignature, setHasSignature] = useState(false)
 
   // Calcular horas de vuelo cuando cambian los tiempos
   useEffect(() => {
@@ -758,6 +758,11 @@ const NewFlightLog = ({ darkMode = false }: NewFlightLogProps) => {
               </button>
             </div>
           </div>
+
+          {hasSignature && (
+  <p className="text-sm text-green-500 mt-1">✔ Firma registrada</p>
+)}
+
 
           {/* Botón de envío */}
           <div className="mt-8">
