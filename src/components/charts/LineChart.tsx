@@ -78,7 +78,7 @@ const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkM
                 beginAtZero: true,
                 grid: {
                   display: true,
-                  drawBorder: false,
+                  borderColor: "transparent", // ✅ en lugar de drawBorder
                   color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
                 },
                 ticks: {
@@ -92,7 +92,7 @@ const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkM
               x: {
                 grid: {
                   display: false,
-                  drawBorder: false,
+                  borderColor: "transparent", // ✅ en lugar de drawBorder
                 },
                 ticks: {
                   font: {
