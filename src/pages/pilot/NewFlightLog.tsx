@@ -1,7 +1,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { useUser } from "../../context/UserContext"
+// import { useUser } from "../../context/UserContext"
 import { mockHelicopters, mockLocations } from "../../data/mockData"
 
 interface NewFlightLogProps {
