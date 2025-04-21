@@ -14,7 +14,7 @@ interface AddHelicopterModalProps {
   darkMode: boolean
 }
 
-const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter, darkMode }: AddHelicopterModalProps) => {
+const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: Omit<AddHelicopterModalProps, 'darkMode'>) => {
   const [model, setModel] = useState("")
   const [registration, setRegistration] = useState("")
   const [yearManufactured, setYearManufactured] = useState("")
