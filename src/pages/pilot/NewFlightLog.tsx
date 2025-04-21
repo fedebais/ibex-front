@@ -9,7 +9,7 @@ interface NewFlightLogProps {
 }
 
 const NewFlightLog = ({ darkMode = false }: NewFlightLogProps) => {
-  const { user } = useUser()
+ // const { user } = useUser()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
@@ -42,7 +42,7 @@ const NewFlightLog = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Canvas para firma
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [hasSignature, setHasSignature] = useState(false)
+  // const [hasSignature, setHasSignature] = useState(false)
 
   // Calcular horas de vuelo cuando cambian los tiempos
   useEffect(() => {
