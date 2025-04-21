@@ -83,7 +83,7 @@ const AdminDashboard = () => {
             darkMode={darkMode}
             toggleDarkMode={toggleDarkMode}
             isSidebarCollapsed={isSidebarCollapsed}
-            toggleSidebar={toggleSidebar}
+            
           />
 
           {/* Botón flotante para móvil (visible siempre en móvil) */}

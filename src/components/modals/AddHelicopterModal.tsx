@@ -14,7 +14,8 @@ interface AddHelicopterModalProps {
   darkMode: boolean
 }
 
-const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: Omit<AddHelicopterModalProps, 'darkMode'>) => {
+const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter, darkMode }: AddHelicopterModalProps) => {
+
   const [model, setModel] = useState("")
   const [registration, setRegistration] = useState("")
   const [yearManufactured, setYearManufactured] = useState("")
@@ -59,6 +60,9 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: Omit<AddHelico
     setTotalFlightHours("")
     setImageUrl("")
   }
+
+  console.log("Modo oscuro en modal:", darkMode)
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Añadir Nuevo Helicóptero" maxWidth="max-w-lg">
