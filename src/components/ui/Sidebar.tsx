@@ -18,7 +18,7 @@ interface SidebarProps {
 const Sidebar = ({ items, isCollapsed, toggleCollapse }: SidebarProps) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useUser()
+  const {  logout } = useUser()
   const { darkMode } = useTheme()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 

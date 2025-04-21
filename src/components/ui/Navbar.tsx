@@ -7,10 +7,10 @@ interface NavbarProps {
   darkMode: boolean
   toggleDarkMode: () => void
   isSidebarCollapsed: boolean
-  toggleSidebar: () => void
+  
 }
 
-const Navbar = ({ darkMode, toggleDarkMode, isSidebarCollapsed, toggleSidebar }: NavbarProps) => {
+const Navbar = ({ darkMode, toggleDarkMode, isSidebarCollapsed }: NavbarProps) => {
   const { user, logout } = useUser()
   const navigate = useNavigate()
   const [showDropdown, setShowDropdown] = useState(false)
