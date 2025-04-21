@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
-import { useUser } from "../../context/UserContext"
+// import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
 import Navbar from "../../components/ui/Navbar"
 import Sidebar from "../../components/ui/Sidebar"
@@ -14,7 +14,7 @@ import AdminSettings from "./AdminSettings"
 import { LayoutDashboard, Users, Plane, FileText, Building2, Clock, Settings, Menu } from "lucide-react"
 
 const AdminDashboard = () => {
-  const { user } = useUser()
+  // const { user } = useUser()
   const { darkMode, toggleDarkMode } = useTheme()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
