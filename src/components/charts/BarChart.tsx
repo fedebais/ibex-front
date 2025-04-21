@@ -75,7 +75,7 @@ const BarChart = ({ data, labels, title, color = "#f97316", darkMode = false }: 
                 beginAtZero: true,
                 grid: {
                   display: true,
-                  borderColor: "transparent", // ✅ en lugar de drawBorder
+                  //drawBorder: false,
                   color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
                 },
                 ticks: {
@@ -89,7 +89,7 @@ const BarChart = ({ data, labels, title, color = "#f97316", darkMode = false }: 
               x: {
                 grid: {
                   display: false,
-                  borderColor: "transparent", // ✅ en lugar de drawBorder
+                  //drawBorder: false,
                 },
                 ticks: {
                   font: {
