@@ -17,16 +17,17 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
   const [email, setEmail] = useState("")
   const [licenseNumber, setLicenseNumber] = useState("")
   const [flightHours, setFlightHours] = useState("")
-  const [licenseExpiry, setLicenseExpiry] = useState("")
+ // const [licenseExpiry, setLicenseExpiry] = useState("")
   const [medicalExpiry, setMedicalExpiry] = useState("")
   const [lastTraining, setLastTraining] = useState("")
   const [certifications, setCertifications] = useState<string[]>(["VFR"])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Añadir al inicio del componente, después de los otros estados
-  const [aircraftCertifications, setAircraftCertifications] = useState<{ model: string; date: string }>([
-    { model: "", date: "" },
+  const [aircraftCertifications, setAircraftCertifications] = useState<{ model: string; date: string }[]>([
+    { model: "", date: "" }
   ])
+  
 
   // Lista de modelos de helicópteros disponibles
   const helicopterModels = ["Bell 407", "Airbus H125", "Robinson R44", "Sikorsky S-76"]
