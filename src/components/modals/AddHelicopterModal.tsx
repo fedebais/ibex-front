@@ -5,13 +5,16 @@ import type React from "react"
 import { useState } from "react"
 import Modal from "../ui/Modal"
 
+
+
 interface AddHelicopterModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddHelicopter: (helicopterData: any) => void
+  onAddHelicopter: (newHelicopter: any) => void
+  darkMode: boolean
 }
 
-const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterModalProps) => {
+const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter, darkMode }: AddHelicopterModalProps) => {
   const [model, setModel] = useState("")
   const [registration, setRegistration] = useState("")
   const [yearManufactured, setYearManufactured] = useState("")
