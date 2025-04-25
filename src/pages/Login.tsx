@@ -117,23 +117,7 @@ const Login = () => {
               </div>
             </form>
 
-            <div className="mt-8 text-center text-sm text-gray-500">
-              <p>Usuarios de prueba:</p>
-              <div className="mt-2 grid grid-cols-1 gap-2">
-                <div className="text-xs bg-gray-50 p-2 rounded">
-                  <strong>Piloto:</strong> piloto@ibexheli.com
-                </div>
-                <div className="text-xs bg-gray-50 p-2 rounded">
-                  <strong>Operador:</strong> operador@ibexheli.com
-                </div>
-                <div className="text-xs bg-gray-50 p-2 rounded">
-                  <strong>Administrador:</strong> admin@ibexheli.com
-                </div>
-                <div className="text-xs bg-gray-50 p-2 rounded">
-                  <strong>Contraseña para todos:</strong> 123456
-                </div>
-              </div>
-            </div>
+       
           </div>
         </div>
       </div>
