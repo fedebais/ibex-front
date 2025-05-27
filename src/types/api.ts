@@ -173,6 +173,7 @@ export interface NewFlightLog {
   fuelEnd?: number
   hookUsed?: boolean
   remarks?: string
+  odometerPhotoUrl?: string
 }
 
 // Tipos para clientes
