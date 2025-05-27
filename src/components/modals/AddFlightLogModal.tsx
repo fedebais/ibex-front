@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
-import { createFlightLog, getPilots, getHelicopters, getClients, getDestinations } from "../../services/api"
+import { createFlightLog, getPilots, getHelicopters, getClients, getDestinations, createDestination } from "../../services/api"
 import type { NewFlightLog, FlightStatus, PaymentStatus, Pilot, Client, Destination, Helicopter } from "../../types/api"
 import Modal from "../ui/Modal"
 
@@ -367,7 +367,7 @@ const handleOriginSelect = (origin: Destination) => {
         throw new Error("Debe ingresar los tiempos de puesta en marcha y corte")
       }
 
-    let finalOriginId = originId
+   let finalOriginId = originId
 if (customOrigin && originInput) {
   const originPayload = {
     name: originInput.trim(),
@@ -377,14 +377,7 @@ if (customOrigin && originInput) {
     active: true,
   }
 
-  const res = await fetch("/api/destinations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(originPayload),
-  })
-
-  if (!res.ok) throw new Error("Error al crear origen personalizado")
-  const newOrigin = await res.json()
+  const newOrigin = await createDestination(originPayload, accessToken)
   finalOriginId = newOrigin.id
 }
 
@@ -398,14 +391,7 @@ if (customDestination && destinationInput) {
     active: true,
   }
 
-  const res = await fetch("/api/destinations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(destinationPayload),
-  })
-
-  if (!res.ok) throw new Error("Error al crear destino personalizado")
-  const newDestination = await res.json()
+  const newDestination = await createDestination(destinationPayload, accessToken)
   finalDestinationId = newDestination.id
 }
 
@@ -415,7 +401,7 @@ if (customDestination && destinationInput) {
         pilotId: Number(selectedPilot),
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
-        originId: finalOriginId ? Number(finalOriginId) : undefined,
+       originId: finalOriginId ? Number(finalOriginId) : undefined,
 destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
 
         date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
