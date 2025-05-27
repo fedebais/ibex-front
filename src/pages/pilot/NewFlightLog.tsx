@@ -13,6 +13,7 @@ interface NewFlightLogProps {
 
 const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const { accessToken, user } = useUser()
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState<string>("")
@@ -64,6 +65,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Estados para foto de odómetro final
   const [finalOdometerPhoto, setFinalOdometerPhoto] = useState<File | null>(null)
+  console.log(finalOdometerPhoto)
   const [finalOdometerPhotoPreview, setFinalOdometerPhotoPreview] = useState<string>("")
 
   const [isDrawing, setIsDrawing] = useState(false)
@@ -80,6 +82,8 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const getAccessToken = (): string | null => {
     return accessToken || localStorage.getItem("ibex_access_token")
   }
+
+  
 
   // Cargar datos desde la API
   useEffect(() => {
@@ -387,6 +391,7 @@ const handleOriginSelect = (origin: Destination) => {
           altitude: 0,
           active: true,
         }
+        if (!accessToken) return 
       
         const newOrigin = await createDestination(originPayload, accessToken)
         finalOriginId = newOrigin.id
@@ -401,6 +406,7 @@ const handleOriginSelect = (origin: Destination) => {
           altitude: 0,
           active: true,
         }
+        if (!accessToken) return 
       
         const newDestination = await createDestination(destinationPayload, accessToken)
         finalDestinationId = newDestination.id
@@ -421,7 +427,7 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
         notes: notes.trim() || undefined,
         status: status,
         paymentStatus: "PENDING_INVOICE" as PaymentStatus,
-          odometerPhotoUrl: finalOdometerPhotoPreview || "https://via.placeholder.com/600x400", // o la que prefieras
+        odometerPhotoUrl: finalOdometerPhotoPreview || "https://via.placeholder.com/600x400", // o la que prefieras
        
        
         odometer: finalOdometer ? Number(finalOdometer) : undefined,

@@ -69,12 +69,12 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
 
     return (
       fullName.includes(searchLower) ||
-      pilot.email.toLowerCase().includes(searchLower) ||
+      pilot.user.email.toLowerCase().includes(searchLower) ||
       pilot.license.toLowerCase().includes(searchLower)
     )
   })
 
-  const handleAddPilot = (newPilot: any) => {
+  const handleAddPilot = () => {
     loadPilots() // Recargar la lista completa después de añadir un piloto
   }
 
@@ -311,7 +311,7 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
                               {pilot.user.firstName} {pilot.user.lastName}
                             </div>
                             <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                              {pilot.email}
+                              {pilot.user.email}
                             </div>
                           </div>
                         </div>
