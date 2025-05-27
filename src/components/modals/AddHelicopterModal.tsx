@@ -6,7 +6,7 @@ import Modal from "../ui/Modal"
 import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
 import { createHelicopter, getHelicopterModels } from "../../services/api"
-import type { CreateHelicopterInput, HelicopterModel } from "../../types/api"
+import type { CreateHelicopterInput, HelicopterModel, HelicopterStatus } from "../../types/api"
 
 interface AddHelicopterModalProps {
   isOpen: boolean
@@ -24,7 +24,7 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
   const [manufactureYear, setManufactureYear] = useState("")
   const [lastMaintenance, setLastMaintenance] = useState("")
   const [totalFlightHours, setTotalFlightHours] = useState("")
-  const [status, setStatus] = useState("ACTIVE")
+  const [status, setStatus] = useState<HelicopterStatus>("ACTIVE")
   const [imageUrl, setImageUrl] = useState("")
   const [capacity, setCapacity] = useState("")
   const [speedKmh, setSpeedKmh] = useState("")
