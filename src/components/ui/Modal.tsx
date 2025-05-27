@@ -10,6 +10,7 @@ interface ModalProps {
   title: string
   children: React.ReactNode
   maxWidth?: string
+  darkMode?: boolean
 }
 
 const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-md" }: ModalProps) => {

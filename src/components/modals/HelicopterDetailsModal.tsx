@@ -76,7 +76,7 @@ const HelicopterDetailsModal = ({
   }, [helicopter])
 
   const loadMaintenanceHistory = async () => {
-    if (!helicopterId || !user?.accessToken) return
+    if (!helicopterId || !accessToken) return
 
     setIsLoading(true)
     setError(null)
@@ -145,7 +145,7 @@ const lastMaintenanceDate = helicopter.lastMaintenance
       return
     }
 
-    if (!user?.accessToken) {
+    if (!accessToken) {
       setFormError("No se pudo verificar la autenticación. Por favor, inicie sesión de nuevo.")
       return
     }
@@ -193,12 +193,13 @@ const lastMaintenanceDate = helicopter.lastMaintenance
       setEditFormError("El año de fabricación debe ser válido (posterior a 1950)")
       return
     }
-    if (editHelicopterData.totalFlightHours < 0) {
+    if (editHelicopterData.totalFlightHours === null || editHelicopterData.totalFlightHours < 0)
+{
       setEditFormError("Las horas de vuelo no pueden ser negativas")
       return
     }
 
-    if (!user?.accessToken) {
+    if (!accessToken) {
       setEditFormError("No se pudo verificar la autenticación. Por favor, inicie sesión de nuevo.")
       return
     }
@@ -216,7 +217,8 @@ const lastMaintenanceDate = helicopter.lastMaintenance
         imageUrl: editHelicopterData.imageUrl,
       }
 
-      await updateHelicopter(helicopterId, updatedHelicopter, accessToken)
+      await updateHelicopter(helicopterId!, updatedHelicopter, accessToken)
+
 
       if (onUpdateHelicopter) {
         onUpdateHelicopter(updatedHelicopter)
@@ -238,7 +240,7 @@ const lastMaintenanceDate = helicopter.lastMaintenance
       return
     }
 
-    const token = user?.accessToken || localStorage.getItem("ibex_access_token")
+    const token = accessToken || localStorage.getItem("ibex_access_token")
     if (!token) {
       setDeleteError("No se pudo verificar la autenticación. Por favor, inicie sesión de nuevo.")
       return
@@ -348,7 +350,8 @@ const lastMaintenanceDate = helicopter.lastMaintenance
   type="number"
   id="manufactureYear"
   name="manufactureYear"
-  value={editHelicopterData.manufactureYear}
+  value={editHelicopterData.manufactureYear ?? ""}
+
   onChange={(e) =>
     setEditHelicopterData({
       ...editHelicopterData,
