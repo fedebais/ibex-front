@@ -1,43 +1,127 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useUser } from "../../context/UserContext"
-import { mockFlights, getHelicopterInfo, getLocationName } from "../../data/mockData"
+import FlightDetailsModal from "../../components/modals/FlightDetailsModal"
+import { getFlightLogsByPilotId, getPilots } from "../../services/api"
+import type { FlightLog, Pilot } from "../../types/api"
 
 interface FlightHistoryProps {
   darkMode: boolean
 }
 
 const FlightHistory = ({ darkMode = false }: FlightHistoryProps) => {
-  const { user } = useUser()
+  const { user, accessToken } = useUser()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedFlightId, setSelectedFlightId] = useState(null)
+
+  const [flightLogs, setFlightLogs] = useState<FlightLog[]>([])
+  const [filteredFlights, setFilteredFlights] = useState<FlightLog[]>([])
+  const [currentPilotId, setCurrentPilotId] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedFlightLog, setSelectedFlightLog] = useState<FlightLog | null>(null)
 
   // Filtrar vuelos del piloto actual
-  const pilotFlights = mockFlights.filter((flight) => flight.pilotId === user?.id)
+  // const pilotFlights = mockFlights.filter((flight) => flight.pilotId === user?.id)
 
   // Aplicar filtros
-  const filteredFlights = pilotFlights
-    .filter((flight) => {
-      if (filterStatus === "all") return true
-      return flight.status === filterStatus
-    })
-    .filter((flight) => {
-      if (!searchTerm) return true
+  // const filteredFlights = pilotFlights
+  //   .filter((flight) => {
+  //     if (filterStatus === "all") return true
+  //     return flight.status === filterStatus
+  //   })
+  //   .filter((flight) => {
+  //     if (!searchTerm) return true
 
-      const originName = getLocationName(flight.originId).toLowerCase()
-      const destinationName = getLocationName(flight.destinationId).toLowerCase()
-      const helicopterInfo = getHelicopterInfo(flight.helicopterId).toLowerCase()
+  //     const originName = getLocationName(flight.originId).toLowerCase()
+  //     const destinationName = getLocationName(flight.destinationId).toLowerCase()
+  //     const helicopterInfo = getHelicopterInfo(flight.helicopterId).toLowerCase()
+  //     const searchLower = searchTerm.toLowerCase()
+
+  //     return (
+  //       originName.includes(searchLower) ||
+  //       destinationName.includes(searchLower) ||
+  //       helicopterInfo.includes(searchLower) ||
+  //       flight.date.includes(searchLower)
+  //     )
+  //   })
+  //   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  useEffect(() => {
+    const loadFlightData = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        if (!accessToken) {
+          setError("Token de acceso no encontrado")
+          return
+        }
+
+        // Obtener pilotos para encontrar el pilotId del usuario actual
+        const pilots = await getPilots(accessToken)
+        const currentPilot = pilots.find((pilot: Pilot) => pilot.userId === user?.id)
+
+        if (!currentPilot) {
+          setError("No se encontró información del piloto para este usuario")
+          return
+        }
+
+        setCurrentPilotId(currentPilot.id)
+
+        // Obtener los flight logs del piloto
+        const logs = await getFlightLogsByPilotId(currentPilot.id, accessToken)
+        setFlightLogs(logs)
+        setFilteredFlights(logs)
+      } catch (err) {
+        console.error("Error cargando datos de vuelos:", err)
+        setError("Error al cargar los datos de vuelos")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (user?.id) {
+      loadFlightData()
+    }
+  }, [user?.id, accessToken])
+
+  useEffect(() => {
+    let filtered = flightLogs
+
+    // Filtro por estado
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((flight) => flight.status.toLowerCase() === filterStatus)
+    }
+
+    // Filtro por búsqueda
+    if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
+      filtered = filtered.filter((flight) => {
+        return (
+          flight.destination?.name?.toLowerCase().includes(searchLower) ||
+          flight.helicopter?.registration?.toLowerCase().includes(searchLower) ||
+          flight.client?.name?.toLowerCase().includes(searchLower) ||
+          flight.date.includes(searchLower) ||
+          flight.notes?.toLowerCase().includes(searchLower)
+        )
+      })
+    }
 
-      return (
-        originName.includes(searchLower) ||
-        destinationName.includes(searchLower) ||
-        helicopterInfo.includes(searchLower) ||
-        flight.date.includes(searchLower)
-      )
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    // Ordenar por fecha (más recientes primero)
+    filtered = filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    setFilteredFlights(filtered)
+  }, [flightLogs, filterStatus, searchTerm])
+
+  const handleFlightClick = (flightId: string) => {
+    const flight = flightLogs.find((f) => f.id.toString() === flightId)
+    setSelectedFlightLog(flight || null)
+    setIsModalOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -154,9 +238,28 @@ const FlightHistory = ({ darkMode = false }: FlightHistoryProps) => {
             <tbody
               className={`${darkMode ? "bg-gray-800 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}`}
             >
-              {filteredFlights.length > 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className={`px-6 py-4 text-center text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Cargando vuelos...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={6} className={`px-6 py-4 text-center text-sm text-red-500`}>
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredFlights.length > 0 ? (
                 filteredFlights.map((flight) => (
-                  <tr key={flight.id} className={darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"}>
+                  <tr
+                    key={flight.id}
+                    className={`${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"} cursor-pointer transition-colors duration-150`}
+                    onClick={() => handleFlightClick(flight.id.toString())}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
                         {new Date(flight.date).toLocaleDateString("es-ES", {
@@ -168,32 +271,43 @@ const FlightHistory = ({ darkMode = false }: FlightHistoryProps) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {getLocationName(flight.originId).split(" ")[0]} →{" "}
-                        {getLocationName(flight.destinationId).split(" ")[0]}
+                        {flight.destination?.name || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {getHelicopterInfo(flight.helicopterId)}
+                        {flight.helicopter?.registration || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {flight.departureTime} - {flight.arrivalTime}
+                        {flight.startTime
+                          ? new Date(flight.startTime).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "N/A"}{" "}
+                        -
+                        {flight.landingTime
+                          ? new Date(flight.landingTime).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {flight.flightHours}
+                        {flight.duration ? `${flight.duration} min` : "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          flight.status === "completed" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                          flight.status === "COMPLETED" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {flight.status === "completed" ? "Completado" : "Programado"}
+                        {flight.status === "COMPLETED" ? "Completado" : "Programado"}
                       </span>
                     </td>
                   </tr>
@@ -212,6 +326,17 @@ const FlightHistory = ({ darkMode = false }: FlightHistoryProps) => {
           </table>
         </div>
       </div>
+
+      {/* Modal de detalles del vuelo */}
+      <FlightDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedFlightLog(null)
+        }}
+        flightLog={selectedFlightLog}
+        darkMode={darkMode}
+      />
     </div>
   )
 }

@@ -1,20 +1,17 @@
 "use client"
 
 import Modal from "../ui/Modal"
-import { mockFlights, getPilotName, getHelicopterInfo, getLocationName } from "../../data/mockData"
+import type { FlightLog } from "../../types/api"
 
 interface FlightDetailsModalProps {
   isOpen: boolean
   onClose: () => void
-  flightId: string | null
+  flightLog: FlightLog | null
   darkMode?: boolean
 }
 
-const FlightDetailsModal = ({ isOpen, onClose, flightId, darkMode = false }: FlightDetailsModalProps) => {
-  if (!flightId) return null
-
-  const flight = mockFlights.find((f) => f.id === flightId)
-  if (!flight) return null
+const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: FlightDetailsModalProps) => {
+  if (!flightLog) return null
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Detalles del Vuelo" maxWidth="max-w-2xl" darkMode={darkMode}>
@@ -25,7 +22,7 @@ const FlightDetailsModal = ({ isOpen, onClose, flightId, darkMode = false }: Fli
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Fecha</p>
               <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {new Date(flight.date).toLocaleDateString("es-ES", {
+                {new Date(flightLog.date).toLocaleDateString("es-ES", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
@@ -36,10 +33,10 @@ const FlightDetailsModal = ({ isOpen, onClose, flightId, darkMode = false }: Fli
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Estado</p>
               <p
                 className={`text-base font-medium ${
-                  flight.status === "completed" ? "text-blue-600" : "text-green-600"
+                  flightLog.status === "COMPLETED" ? "text-blue-600" : "text-green-600"
                 }`}
               >
-                {flight.status === "completed" ? "Completado" : "Programado"}
+                {flightLog.status === "COMPLETED" ? "Completado" : "Programado"}
               </p>
             </div>
           </div>
@@ -53,143 +50,223 @@ const FlightDetailsModal = ({ isOpen, onClose, flightId, darkMode = false }: Fli
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Piloto</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{getPilotName(flight.pilotId)}</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.pilot?.user ? `${flightLog.pilot.user.firstName} ${flightLog.pilot.user.lastName}` : "N/A"}
+              </p>
             </div>
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Helicóptero</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {getHelicopterInfo(flight.helicopterId)}
+                {flightLog.helicopter?.registration || "N/A"}
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Origen</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Cliente</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {getLocationName(flight.originId)}
+                {flightLog.client?.name || "N/A"}
               </p>
             </div>
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Destino</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {getLocationName(flight.destinationId)}
+                {flightLog.destination?.name || "N/A"}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Información del Piloto */}
+        {flightLog.pilot && (
+          <div>
+            <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+              Información del Piloto
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Licencia</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.pilot.license || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas de Vuelo</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.pilot.flightHours || 0} hrs
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Email</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.pilot.user?.email || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Información del Helicóptero */}
+        {flightLog.helicopter && (
+          <div>
+            <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+              Información del Helicóptero
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Capacidad</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.helicopter.capacity || "N/A"} pasajeros
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Velocidad</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.helicopter.speedKmh || "N/A"} km/h
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas Totales</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.helicopter.totalFlightHours || 0} hrs
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Información del Cliente */}
+        {flightLog.client && (
+          <div>
+            <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+              Información del Cliente
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Contacto</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.client.contact || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Email</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.client.email || "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</p>
+                <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {flightLog.client.phone || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tiempos y horas */}
         <div>
           <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>Tiempos y Horas</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Puesta en Marcha</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Inicio</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flight.startupTime || "No registrado"}
+                {flightLog.startTime
+                  ? new Date(flightLog.startTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+                  : "No registrado"}
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Corte</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Aterrizaje</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flight.shutdownTime || "No registrado"}
+                {flightLog.landingTime
+                  ? new Date(flightLog.landingTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
+                  : "No registrado"}
               </p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Run Time (SNMF)</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.runTime}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Salida</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.departureTime}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Llegada</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.arrivalTime}</p>
             </div>
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Duración</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.flightHours}</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.duration ? `${flightLog.duration} min` : "N/A"}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Odómetro y Flight Time */}
+        {/* Odómetro y combustible */}
         <div>
           <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-            Odómetro y Flight Time
+            Odómetro y Combustible
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro Inicial</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flight.initialOdometer || "No registrado"}
+                {flightLog.odometer || "No registrado"}
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro Final</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Inicial</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flight.finalOdometer || "No registrado"}
+                {flightLog.fuelStart ? `${flightLog.fuelStart} L` : "No registrado"}
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Flight Time</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.flightTime}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Contadores y Gacho */}
-        <div>
-          <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-            Contadores y Gacho
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Starts</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.starts}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Aterrizajes (ATE)</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.landings}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Lanzamientos</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.launches}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>RIN</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.rin}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Gacho</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Final</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flight.gachoTime || "No registrado"}
+                {flightLog.fuelEnd ? `${flightLog.fuelEnd} L` : "No registrado"}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Pasajeros y combustible */}
+        {/* Pasajeros y estado de pago */}
         <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Pasajeros</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.passengers}</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flightLog.passengers || 0}</p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Consumido</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flight.fuelConsumed} litros</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Estado de Pago</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.paymentStatus === "PAID"
+                  ? "Pagado"
+                  : flightLog.paymentStatus === "PENDING_INVOICE"
+                    ? "Factura Pendiente"
+                    : flightLog.paymentStatus === "PENDING_PAYMENT"
+                      ? "Pago Pendiente"
+                      : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Gacho Usado</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.hookUsed ? "Sí" : "No"}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Notas */}
+        {/* Notas y observaciones */}
         <div>
           <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Notas</p>
           <p
             className={`text-base ${darkMode ? "bg-gray-700" : "bg-gray-50"} p-3 rounded-md mt-1 ${darkMode ? "text-white" : "text-gray-900"}`}
           >
-            {flight.notes || "Sin notas adicionales"}
+            {flightLog.notes || "Sin notas adicionales"}
           </p>
         </div>
+
+        {/* Observaciones técnicas */}
+        {flightLog.remarks && (
+          <div>
+            <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Observaciones Técnicas</p>
+            <p
+              className={`text-base ${darkMode ? "bg-gray-700" : "bg-gray-50"} p-3 rounded-md mt-1 ${darkMode ? "text-white" : "text-gray-900"}`}
+            >
+              {flightLog.remarks}
+            </p>
+          </div>
+        )}
 
         {/* Botones de acción */}
         <div className="flex justify-end space-x-3 pt-2">
@@ -203,7 +280,7 @@ const FlightDetailsModal = ({ isOpen, onClose, flightId, darkMode = false }: Fli
           >
             Descargar PDF
           </button>
-          {flight.status === "scheduled" && (
+          {flightLog.status === "SCHEDULED" && (
             <button
               type="button"
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"

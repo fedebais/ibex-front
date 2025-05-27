@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { mockClients, getClientFlights } from "../../data/mockData"
+import { useState, useEffect } from "react"
+import { getClients, type Client } from "../../services/api"
+import { getClientFlights } from "../../data/mockData"
 import AddClientModal from "../../components/modals/AddClientModal"
 import ClientDetailsModal from "../../components/modals/ClientDetailsModal"
 import { Building2, User, Phone, Mail, MapPin } from "lucide-react"
+import { useUser } from "../../context/UserContext"
 
 interface ClientsListProps {
   darkMode: boolean
@@ -13,10 +15,84 @@ interface ClientsListProps {
 const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
-  const [clients, setClients] = useState(mockClients)
+  const [clients, setClients] = useState<Client[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+
+  const { user, accessToken, isAuthenticated } = useUser()
+
+  const getAccessToken = (): string | null => {
+    // Primero intentar obtener del contexto
+    if (accessToken) {
+      console.log("✅ Token obtenido del contexto para ClientsList")
+      return accessToken
+    }
+
+    // Si no está en el contexto, obtener de localStorage
+    const tokenFromStorage = localStorage.getItem("ibex_access_token")
+    if (tokenFromStorage) {
+      console.log("✅ Token obtenido de localStorage para ClientsList")
+      return tokenFromStorage
+    }
+
+    console.log("❌ No se encontró token para ClientsList")
+    return null
+  }
+
+  const loadClients = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const token = getAccessToken()
+
+      if (!token) {
+        throw new Error("No hay token de autenticación disponible")
+      }
+
+      console.log("=== CARGANDO CLIENTES ===")
+      console.log("Token disponible:", !!token)
+      console.log("isAuthenticated:", isAuthenticated)
+
+      const data = await getClients(token)
+      console.log("✅ Clientes cargados:", data.length)
+      setClients(data)
+    } catch (err: any) {
+      console.error("❌ Error al cargar clientes:", err)
+
+      if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+        setError("Sesión expirada. Por favor, inicia sesión nuevamente.")
+        // Limpiar localStorage si el token es inválido
+        localStorage.removeItem("ibex_access_token")
+        localStorage.removeItem("ibex_user")
+        localStorage.removeItem("ibex_user_id")
+      } else if (err.message.includes("403") || err.message.includes("Forbidden")) {
+        setError("No tienes permisos para ver los clientes.")
+      } else if (err.message.includes("Can't reach database")) {
+        setError("Error de conexión con la base de datos. Inténtalo más tarde.")
+      } else {
+        setError("Error al cargar los clientes: " + (err.message || "Error desconocido"))
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    console.log("=== ClientsList useEffect ===")
+    console.log("isAuthenticated:", isAuthenticated)
+    console.log("accessToken exists:", !!accessToken)
+
+    if (isAuthenticated || localStorage.getItem("ibex_access_token")) {
+      loadClients()
+    } else {
+      setIsLoading(false)
+      setError("No estás autenticado. Por favor, inicia sesión.")
+    }
+  }, [isAuthenticated, accessToken])
 
   // Aplicar filtros
   const filteredClients = clients
@@ -30,24 +106,31 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       const searchLower = searchTerm.toLowerCase()
       return (
         client.name.toLowerCase().includes(searchLower) ||
-        client.contactPerson.toLowerCase().includes(searchLower) ||
-        client.email.toLowerCase().includes(searchLower) ||
-        client.phone.includes(searchLower) ||
-        client.address.toLowerCase().includes(searchLower)
+        (client.contact && client.contact.toLowerCase().includes(searchLower)) ||
+        (client.email && client.email.toLowerCase().includes(searchLower)) ||
+        (client.phone && client.phone.includes(searchLower)) ||
+        (client.address && client.address.toLowerCase().includes(searchLower))
       )
     })
 
-  const handleAddClient = (newClient: any) => {
-    setClients([...clients, newClient])
+  const handleAddClient = async (newClient: any) => {
+    console.log("Cliente agregado, recargando lista...")
+    await loadClients() // Recargar la lista después de agregar
   }
 
-  const handleViewClient = (clientId: string) => {
-    setSelectedClientId(clientId)
+  const handleViewClient = (clientId: number) => {
+    setSelectedClientId(clientId.toString())
     setIsDetailsModalOpen(true)
   }
 
+  const handleRetry = () => {
+    console.log("Reintentando cargar clientes...")
+    loadClients()
+  }
+
   // Función para obtener el ícono según el tipo de cliente
-  const getClientTypeIcon = (type: string) => {
+  const getClientTypeIcon = (type: string | null) => {
+    if (!type) return <Building2 className="h-5 w-5 text-gray-500" />
     switch (type) {
       case "corporate":
         return <Building2 className="h-5 w-5 text-blue-500" />
@@ -61,7 +144,8 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   }
 
   // Función para obtener el texto del tipo de cliente
-  const getClientTypeText = (type: string) => {
+  const getClientTypeText = (type: string | null) => {
+    if (!type) return "Sin especificar"
     switch (type) {
       case "corporate":
         return "Corporativo"
@@ -70,17 +154,18 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       case "government":
         return "Gubernamental"
       default:
-        return "Desconocido"
+        return "Otros"
     }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <h1 className="text-2xl font-semibold">Clientes</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+          disabled={!isAuthenticated && !localStorage.getItem("ibex_access_token")}
+          className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg
             className="h-5 w-5 mr-2"
@@ -157,92 +242,123 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       </div>
 
       {/* Lista de clientes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClients.length > 0 ? (
-          filteredClients.map((client) => {
-            const clientFlights = getClientFlights(client.id)
-            return (
-              <div
-                key={client.id}
-                className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow rounded-lg overflow-hidden border`}
-              >
-                <div className="p-5">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className={`text-lg font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {client.name}
-                      </h3>
-                      <div className="flex items-center mt-1">
-                        {getClientTypeIcon(client.type)}
-                        <span className={`ml-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                          {getClientTypeText(client.type)}
-                        </span>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        client.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {client.status === "active" ? "Activo" : "Inactivo"}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center">
-                      <User className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
-                      <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                        {client.contactPerson}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
-                      <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{client.email}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
-                      <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{client.phone}</span>
-                    </div>
-                    <div className="flex items-start">
-                      <MapPin className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2 mt-0.5`} />
-                      <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                        {client.address}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow rounded-lg overflow-hidden border animate-pulse`}
+            >
+              <div className="p-5">
+                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-300 rounded w-1/2 mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-300 rounded w-full"></div>
+                  <div className="h-3 bg-gray-300 rounded w-full"></div>
+                  <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div
+          className={`${darkMode ? "bg-red-900 border-red-700 text-red-300" : "bg-red-50 border-red-200 text-red-700"} p-6 text-center rounded-lg border`}
+        >
+          <p className="font-medium">Error al cargar clientes</p>
+          <p className="text-sm mt-1">{error}</p>
+          <button
+            onClick={handleRetry}
+            className="mt-3 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredClients.length > 0 ? (
+            filteredClients.map((client) => {
+              const clientFlights = getClientFlights(client.id.toString())
+              return (
+                <div
+                  key={client.id}
+                  className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow rounded-lg overflow-hidden border`}
+                >
+                  <div className="p-5">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <span className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vuelos:</span>
-                        <span className={`ml-1 font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                          {clientFlights.length}
+                        <h3 className={`text-lg font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                          {client.name}
+                        </h3>
+                        <div className="flex items-center mt-1">
+                          {getClientTypeIcon(client.type)}
+                          <span className={`ml-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                            {getClientTypeText(client.type)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center">
+                        <User className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
+                        <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                          {client.contact || "Sin contacto"}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleViewClient(client.id)}
-                        className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
-                          darkMode
-                            ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                            : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                        } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
-                      >
-                        Ver Detalles
-                      </button>
+                      <div className="flex items-center">
+                        <Mail className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
+                        <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                          {client.email || "Sin email"}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <Phone className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
+                        <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                          {client.phone || "Sin teléfono"}
+                        </span>
+                      </div>
+                      <div className="flex items-start">
+                        <MapPin className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2 mt-0.5`} />
+                        <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                          {client.address || "Sin dirección"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vuelos:</span>
+                          <span className={`ml-1 font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                            {clientFlights.length}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleViewClient(client.id)}
+                          className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
+                            darkMode
+                              ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
+                              : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                        >
+                          Ver Detalles
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )
-          })
-        ) : (
-          <div
-            className={`col-span-full ${darkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-white text-gray-500 border-gray-200"} p-6 text-center rounded-lg shadow border`}
-          >
-            No se encontraron clientes con los filtros seleccionados.
-          </div>
-        )}
-      </div>
+              )
+            })
+          ) : (
+            <div
+              className={`col-span-full ${darkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-white text-gray-500 border-gray-200"} p-6 text-center rounded-lg shadow border`}
+            >
+              No se encontraron clientes con los filtros seleccionados.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal para añadir cliente */}
       <AddClientModal

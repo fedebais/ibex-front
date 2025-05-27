@@ -1,5 +1,3 @@
-"use client"
-
 import { useUser } from "../../context/UserContext"
 import { mockFlights, getPilotMonthlyHours, getSettings } from "../../data/mockData"
 

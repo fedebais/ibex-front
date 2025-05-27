@@ -5,9 +5,22 @@ import { mockFlights, mockHelicopters, getPilotName } from "../../data/mockData"
 
 interface HoursAnalysisProps {
   darkMode: boolean
+  selectedMonth: number
+  selectedYear: number
 }
 
-const HoursAnalysis = ({ darkMode = false }: HoursAnalysisProps) => {
+// Actualicemos el componente HoursAnalysis para que acepte los props de mes y año
+const HoursAnalysis = ({ darkMode = false, selectedMonth, selectedYear }: HoursAnalysisProps) => {
+  // Usar los props selectedMonth y selectedYear para filtrar los datos
+  // Resto del componente se mantiene igual
+
+  // Si necesitas usar estos props, puedes implementar la lógica de filtrado aquí
+  // Por ejemplo:
+  // useEffect(() => {
+  //   // Filtrar datos por mes y año seleccionados
+  //   // ...
+  // }, [selectedMonth, selectedYear]);
+
   const uniqueDates = useMemo(() => {
     const dates = [...new Set(mockFlights.map((flight) => flight.date))]
     return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())

@@ -4,6 +4,9 @@ import type React from "react"
 
 import { useState } from "react"
 import Modal from "../ui/Modal"
+import { useUser } from "../../context/UserContext"
+import { createPilot } from "../../services/api"
+import type { CreatePilotInput } from "../../types/api"
 
 interface AddPilotModalProps {
   isOpen: boolean
@@ -13,34 +16,35 @@ interface AddPilotModalProps {
 }
 
 const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPilotModalProps) => {
-  const [name, setName] = useState("")
+  const { accessToken } = useUser()
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
-  const [licenseNumber, setLicenseNumber] = useState("")
+  const [phone, setPhone] = useState("")
+  const [password, setPassword] = useState("")
+  const [license, setLicense] = useState("")
   const [flightHours, setFlightHours] = useState("")
- // const [licenseExpiry, setLicenseExpiry] = useState("")
   const [medicalExpiry, setMedicalExpiry] = useState("")
   const [lastTraining, setLastTraining] = useState("")
   const [certifications, setCertifications] = useState<string[]>(["VFR"])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Añadir al inicio del componente, después de los otros estados
-  const [aircraftCertifications, setAircraftCertifications] = useState<{ model: string; date: string }[]>([
-    { model: "", date: "" }
+  const [aircraftCertifications, setAircraftCertifications] = useState<{ model: string; certificationDate: string }[]>([
+    { model: "", certificationDate: "" },
   ])
-  
 
   // Lista de modelos de helicópteros disponibles
   const helicopterModels = ["Bell 407", "Airbus H125", "Robinson R44", "Sikorsky S-76"]
 
   // Funciones para manejar las certificaciones por aeronave
-  const handleAircraftCertChange = (index: number, field: "model" | "date", value: string) => {
+  const handleAircraftCertChange = (index: number, field: "model" | "certificationDate", value: string) => {
     const newCerts = [...aircraftCertifications]
     newCerts[index][field] = value
     setAircraftCertifications(newCerts)
   }
 
   const addAircraftCert = () => {
-    setAircraftCertifications([...aircraftCertifications, { model: "", date: "" }])
+    setAircraftCertifications([...aircraftCertifications, { model: "", certificationDate: "" }])
   }
 
   const removeAircraftCert = (index: number) => {
@@ -71,69 +75,122 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar que todos los campos requeridos estén completos
+    if (!firstName || !lastName || !email || !phone || !password || !license) {
+      console.error("Faltan campos requeridos")
+      return
+    }
+
+    if (!accessToken) {
+      console.error("No access token available")
+      return
+    }
+
     setIsSubmitting(true)
 
-    // Simulación de envío de datos
-    setTimeout(() => {
-      // En la función handleSubmit, actualizar el objeto newPilot
-      const newPilot = {
-        id: Date.now().toString(),
-        name,
-        email,
-        role: "pilot",
-        licenseNumber,
+    try {
+      const pilotData: CreatePilotInput = {
+        user: {
+          firstName,
+          lastName,
+          email,
+          phone,
+          password,
+          profileImage: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? "men" : "women"}/${Math.floor(Math.random() * 100)}.jpg`,
+        },
+        license,
         flightHours: Number.parseInt(flightHours) || 0,
         medicalExpiry,
         lastTraining,
         certifications,
-        aircraftCertifications: aircraftCertifications.filter((cert) => cert.model && cert.date),
-        avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? "men" : "women"}/${Math.floor(
-          Math.random() * 100,
-        )}.jpg`,
+        aircraftCertifications: aircraftCertifications
+          .filter((cert) => cert.model && cert.certificationDate)
+          .map((cert) => ({
+            model: cert.model,
+            certificationDate: cert.certificationDate,
+          })),
       }
 
+      console.log("Enviando datos del piloto:", pilotData)
+      console.log("PilotData JSON:", JSON.stringify(pilotData))
+
+
+      const newPilot = await createPilot(pilotData, accessToken)
+      console.log("Piloto creado exitosamente:", newPilot)
+
       onAddPilot(newPilot)
-      setIsSubmitting(false)
       resetForm()
       onClose()
-    }, 1000)
+    } catch (error) {
+      console.error("Error al crear piloto:", error)
+      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const resetForm = () => {
-    setName("")
+    setFirstName("")
+    setLastName("")
     setEmail("")
-    setLicenseNumber("")
+    setPhone("")
+    setPassword("")
+    setLicense("")
     setFlightHours("")
     setMedicalExpiry("")
     setLastTraining("")
     setCertifications(["VFR"])
-    setAircraftCertifications([{ model: "", date: "" }])
+    setAircraftCertifications([{ model: "", certificationDate: "" }])
   }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Añadir Nuevo Piloto" maxWidth="max-w-lg" darkMode={darkMode}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="name"
-            className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-          >
-            Nombre Completo
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md ${
-              darkMode
-                ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-            }`}
-            required
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="firstName"
+              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+            >
+              Nombre
+            </label>
+            <input
+              type="text"
+              id="firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+              }`}
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="lastName"
+              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+            >
+              Apellido
+            </label>
+            <input
+              type="text"
+              id="lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+              }`}
+              required
+            />
+          </div>
         </div>
 
         <div>
@@ -157,20 +214,20 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
           />
         </div>
 
-        {/* Quitar el campo de vencimiento de licencia */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
-              htmlFor="licenseNumber"
+              htmlFor="phone"
               className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
             >
-              Número de Licencia
+              Teléfono
             </label>
             <input
-              type="text"
-              id="licenseNumber"
-              value={licenseNumber}
-              onChange={(e) => setLicenseNumber(e.target.value)}
+              type="tel"
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+54 9 2944 123456"
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
@@ -182,22 +239,23 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
 
           <div>
             <label
-              htmlFor="medicalExpiry"
+              htmlFor="password"
               className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
             >
-              Vencimiento Médico
+              Contraseña
             </label>
             <input
-              type="date"
-              id="medicalExpiry"
-              value={medicalExpiry}
-              onChange={(e) => setMedicalExpiry(e.target.value)}
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
                   : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
               }`}
               required
+              minLength={6}
             />
           </div>
         </div>
@@ -205,16 +263,16 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
-              htmlFor="lastTraining"
+              htmlFor="license"
               className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
             >
-              Último Entrenamiento
+              Número de Licencia
             </label>
             <input
-              type="date"
-              id="lastTraining"
-              value={lastTraining}
-              onChange={(e) => setLastTraining(e.target.value)}
+              type="text"
+              id="license"
+              value={license}
+              onChange={(e) => setLicense(e.target.value)}
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
@@ -242,6 +300,50 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
                   : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
               }`}
               min="0"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="medicalExpiry"
+              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+            >
+              Vencimiento Médico
+            </label>
+            <input
+              type="date"
+              id="medicalExpiry"
+              value={medicalExpiry}
+              onChange={(e) => setMedicalExpiry(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+              }`}
+              required
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="lastTraining"
+              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+            >
+              Último Entrenamiento
+            </label>
+            <input
+              type="date"
+              id="lastTraining"
+              value={lastTraining}
+              onChange={(e) => setLastTraining(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+              }`}
               required
             />
           </div>
@@ -303,8 +405,8 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
                 </select>
                 <input
                   type="date"
-                  value={cert.date}
-                  onChange={(e) => handleAircraftCertChange(index, "date", e.target.value)}
+                  value={cert.certificationDate}
+                  onChange={(e) => handleAircraftCertChange(index, "certificationDate", e.target.value)}
                   className={`flex-1 px-3 py-2 border rounded-md ${
                     darkMode
                       ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"

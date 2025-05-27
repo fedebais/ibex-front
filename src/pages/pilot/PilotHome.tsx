@@ -1,28 +1,40 @@
+"use client"
+
 import { useUser } from "../../context/UserContext"
 import { mockFlights, getHelicopterInfo, getLocationName } from "../../data/mockData"
 
 interface PilotHomeProps {
   darkMode: boolean
+  selectedMonth: number
 }
 
-const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
+const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
   const { user } = useUser()
 
   // Filtrar vuelos del piloto actual
   const pilotFlights = mockFlights.filter((flight) => flight.pilotId === user?.id)
 
+  // Filtrar por mes si se ha seleccionado un mes específico (0 = todos los meses)
+  const filteredFlights =
+    selectedMonth === 0
+      ? pilotFlights
+      : pilotFlights.filter((flight) => {
+          const flightDate = new Date(flight.date)
+          return flightDate.getMonth() === selectedMonth - 1 // Restamos 1 porque en el selector 0 es "Todos"
+        })
+
   // Obtener próximos vuelos (programados)
-  const upcomingFlights = pilotFlights.filter((flight) => flight.status === "scheduled")
+  const upcomingFlights = filteredFlights.filter((flight) => flight.status === "scheduled")
 
   // Obtener vuelos recientes (completados)
-  const recentFlights = pilotFlights
+  const recentFlights = filteredFlights
     .filter((flight) => flight.status === "completed")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3)
 
   // Calcular estadísticas
-  const totalFlights = pilotFlights.length
-  const totalFlightHours = pilotFlights
+  const totalFlights = filteredFlights.length
+  const totalFlightHours = filteredFlights
     .reduce((total, flight) => {
       const [hours, minutes] = flight.flightHours.split(":").map(Number)
       return total + hours + minutes / 60
@@ -33,6 +45,24 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
   const cardClass = darkMode
     ? "bg-gray-800 text-white border border-gray-700"
     : "bg-white text-gray-900 border border-gray-200"
+
+  // Obtener el nombre del mes para mostrar en los títulos
+  const months = [
+    "todos los meses",
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ]
+  const monthName = months[selectedMonth]
 
   return (
     <div className="space-y-6">
@@ -160,7 +190,9 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
                 <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
                   Vuelos Completados
                 </dt>
-                <dd className="text-lg font-semibold">{pilotFlights.filter((f) => f.status === "completed").length}</dd>
+                <dd className="text-lg font-semibold">
+                  {filteredFlights.filter((f) => f.status === "completed").length}
+                </dd>
               </dl>
             </div>
           </div>
@@ -170,7 +202,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
       {/* Próximos vuelos */}
       <div className={`${cardClass} shadow rounded-lg overflow-hidden`}>
         <div className={`px-4 py-5 sm:px-6 border-b ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
-          <h3 className="text-lg font-medium leading-6">Próximos Vuelos</h3>
+          <h3 className="text-lg font-medium leading-6">Próximos Vuelos {selectedMonth !== 0 && `(${monthName})`}</h3>
         </div>
         <div className={cardClass}>
           {upcomingFlights.length > 0 ? (
@@ -202,7 +234,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
             </ul>
           ) : (
             <div className={`px-4 py-5 sm:px-6 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              No tienes vuelos programados próximamente.
+              No tienes vuelos programados {selectedMonth !== 0 && `para ${monthName}`}.
             </div>
           )}
         </div>
@@ -211,7 +243,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
       {/* Vuelos recientes */}
       <div className={`${cardClass} shadow rounded-lg overflow-hidden`}>
         <div className={`px-4 py-5 sm:px-6 border-b ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
-          <h3 className="text-lg font-medium leading-6">Vuelos Recientes</h3>
+          <h3 className="text-lg font-medium leading-6">Vuelos Recientes {selectedMonth !== 0 && `(${monthName})`}</h3>
         </div>
         <div className={cardClass}>
           {recentFlights.length > 0 ? (
@@ -243,7 +275,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
             </ul>
           ) : (
             <div className={`px-4 py-5 sm:px-6 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              No tienes vuelos recientes.
+              No tienes vuelos recientes {selectedMonth !== 0 && `en ${monthName}`}.
             </div>
           )}
         </div>

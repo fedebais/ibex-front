@@ -1,257 +1,500 @@
-import { useState } from "react"
-import { mockFlights, getPilotName, getHelicopterInfo, getLocationName } from "../../data/mockData"
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { getFlightLogs } from "../../services/api"
 import FlightDetailsModal from "../../components/modals/FlightDetailsModal"
+import { Search } from "lucide-react"
+import AddFlightLogModal from "../../components/modals/AddFlightLogModal"
+import { useUser } from "../../context/UserContext"
+import type { FlightLog, FlightStatus, PaymentStatus } from "../../types/api"
 
 interface FlightLogsProps {
   darkMode: boolean
+  selectedMonth?: number
+  selectedYear?: number
 }
 
-const FlightLogs = ({ darkMode = false }: FlightLogsProps) => {
+const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) => {
+  const [allFlights, setAllFlights] = useState<FlightLog[]>([]) // Datos originales de la API
+  const [filteredFlights, setFilteredFlights] = useState<FlightLog[]>([]) // Datos filtrados
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [billingFilter, setBillingFilter] = useState<string>("all")
+  const [pilotFilter, setPilotFilter] = useState("all")
+  const [selectedFlightLog, setSelectedFlightLog] = useState<FlightLog | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const isMounted = useRef(true)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { accessToken, isLoading: userLoading } = useUser()
+  // Remover la función loadPilots y el estado pilots
+  // En su lugar, obtener pilotos únicos de los vuelos cargados
+  const uniquePilots = allFlights
+    .filter((flight) => flight.pilot?.user)
+    .reduce((acc, flight) => {
+      if (flight.pilot?.user && !acc.find((p) => p.id === flight.pilot.id)) {
+        acc.push({
+          id: flight.pilot.id,
+          firstName: flight.pilot.user.firstName,
+          lastName: flight.pilot.user.lastName,
+        })
+      }
+      return acc
+    }, [] as any[])
 
-  // Aplicar filtros
-  const filteredFlights = mockFlights
-    .filter((flight) => {
-      if (filterStatus === "all") return true
-      return flight.status === filterStatus
+  // Función para obtener el texto del estado del vuelo
+  const getStatusText = (status: FlightStatus) => {
+    switch (status) {
+      case "COMPLETED":
+        return "Completado"
+      case "SCHEDULED":
+        return "Programado"
+      case "CANCELLED":
+        return "Cancelado"
+      default:
+        return "Desconocido"
+    }
+  }
+
+  // Función para obtener la clase CSS según el estado del vuelo
+  const getStatusClass = (status: FlightStatus) => {
+    switch (status) {
+      case "COMPLETED":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+      case "SCHEDULED":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      case "CANCELLED":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+    }
+  }
+
+  const getPaymentStatusText = (status: PaymentStatus) => {
+    switch (status) {
+      case "PENDING_INVOICE":
+        return "Pendiente facturación"
+      case "INVOICED":
+        return "Facturado"
+      case "PENDING_PAYMENT":
+        return "Pendiente pago"
+      case "PAID":
+        return "Pagado"
+      default:
+        return "Desconocido"
+    }
+  }
+
+  const getPaymentStatusClass = (status: PaymentStatus) => {
+    switch (status) {
+      case "PENDING_INVOICE":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+      case "INVOICED":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+      case "PENDING_PAYMENT":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+      case "PAID":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+    }
+  }
+
+  // Función para cargar pilotos
+  /*
+  const loadPilots = async () => {
+    if (!accessToken) return
+
+    try {
+      const pilotsData = await getPilots(accessToken)
+      setPilots(pilotsData)
+    } catch (err) {
+      console.error("Error al cargar pilotos:", err)
+    }
+  }
+  */
+
+  // Cargar todos los vuelos al inicio
+  useEffect(() => {
+    const loadFlights = async () => {
+      if (userLoading) return
+
+      if (!accessToken) {
+        setError("No se pudo obtener el token de autenticación")
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        setError(null)
+        console.log("FlightLogs: Cargando vuelos desde API...")
+
+        const data = await getFlightLogs(accessToken)
+        console.log("FlightLogs: Vuelos cargados:", data.length)
+        console.log("getFlightLogs raw (primeros 3):", data.slice(0, 3))
+
+        setAllFlights(data)
+        setFilteredFlights(data) // Inicialmente mostrar todos
+        //loadPilots()
+      } catch (err) {
+        console.error("Error al cargar vuelos:", err)
+        setError("Error al cargar los vuelos")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadFlights()
+  }, [accessToken, userLoading])
+
+  // Filtrar vuelos cuando cambian los filtros
+  useEffect(() => {
+    if (!isMounted.current) return
+
+    // Validación protectora
+    if (!Array.isArray(allFlights) || allFlights.length === 0) {
+      console.log("FlightLogs: allFlights está vacío o no es array")
+      setFilteredFlights([])
+      return
+    }
+
+    console.log("FlightLogs: Aplicando filtros", {
+      searchTerm,
+      statusFilter,
+      billingFilter,
+      pilotFilter,
+      selectedMonth,
+      selectedYear,
+      totalFlights: allFlights.length,
     })
-    .filter((flight) => {
-      if (!searchTerm) return true
 
-      const pilotName = getPilotName(flight.pilotId).toLowerCase()
-      const originName = getLocationName(flight.originId).toLowerCase()
-      const destinationName = getLocationName(flight.destinationId).toLowerCase()
-      const helicopterInfo = getHelicopterInfo(flight.helicopterId).toLowerCase()
-      const searchLower = searchTerm.toLowerCase()
-
-      return (
-        pilotName.includes(searchLower) ||
-        originName.includes(searchLower) ||
-        destinationName.includes(searchLower) ||
-        helicopterInfo.includes(searchLower) ||
-        flight.date.includes(searchLower)
-      )
+    // Debug de valores de filtros
+    console.log("Valores de filtros actuales:", {
+      statusFilter,
+      billingFilter,
+      pilotFilter,
+      statusFilterType: typeof statusFilter,
+      billingFilterType: typeof billingFilter,
+      pilotFilterType: typeof pilotFilter,
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
+    let filtered = [...allFlights] // Siempre filtrar desde los datos originales
+
+    // Debug del primer vuelo antes de filtrar
+    if (filtered.length > 0) {
+      console.log("Ejemplo de flight[0] antes de filtrar:", filtered[0])
+      console.log("flight.status:", filtered[0]?.status, "tipo:", typeof filtered[0]?.status)
+      console.log("flight.paymentStatus:", filtered[0]?.paymentStatus, "tipo:", typeof filtered[0]?.paymentStatus)
+      console.log("flight.pilotId:", filtered[0]?.pilotId, "tipo:", typeof filtered[0]?.pilotId)
+    }
+
+    // Filtrar por mes y año si están definidos
+    // COMENTADO TEMPORALMENTE PARA MOSTRAR TODOS LOS VUELOS
+    /*
+    if (selectedMonth !== undefined && selectedYear !== undefined) {
+      const beforeMonthFilter = filtered.length
+      filtered = filtered.filter((flight) => {
+        const flightDate = new Date(flight.date)
+        return flightDate.getMonth() === selectedMonth && flightDate.getFullYear() === selectedYear
+      })
+      console.log(`Filtro por mes/año: ${beforeMonthFilter} → ${filtered.length}`)
+    }
+    */
+
+    // Filtrar por término de búsqueda
+    if (searchTerm && searchTerm.trim() !== "") {
+      const beforeSearchFilter = filtered.length
+      filtered = filtered.filter((flight) => {
+        const searchLower = searchTerm.toLowerCase()
+        return (
+          flight.id.toString().includes(searchLower) ||
+          flight.pilot?.user?.firstName?.toLowerCase().includes(searchLower) ||
+          flight.pilot?.user?.lastName?.toLowerCase().includes(searchLower) ||
+          flight.helicopter?.registration?.toLowerCase().includes(searchLower) ||
+          flight.destination?.name?.toLowerCase().includes(searchLower) ||
+          flight.client?.name?.toLowerCase().includes(searchLower) ||
+          flight.date.includes(searchLower)
+        )
+      })
+      console.log(`Filtro por búsqueda: ${beforeSearchFilter} → ${filtered.length}`)
+    }
+
+    // Filtrar por estado - con validación reforzada
+    if (statusFilter && statusFilter !== "all") {
+      const beforeStatusFilter = filtered.length
+      console.log(`Aplicando filtro de estado: "${statusFilter}" (tipo: ${typeof statusFilter})`)
+      filtered = filtered.filter((flight) => {
+        const match = flight.status === statusFilter
+        if (!match && beforeStatusFilter > 0) {
+          console.log(`Estado no coincide: flight.status="${flight.status}" vs statusFilter="${statusFilter}"`)
+        }
+        return match
+      })
+      console.log(`Filtro por estado: ${beforeStatusFilter} → ${filtered.length}`)
+    }
+
+    // Filtrar por estado de facturación - con validación reforzada
+    if (billingFilter && billingFilter !== "all") {
+      const beforeBillingFilter = filtered.length
+      console.log(`Aplicando filtro de facturación: "${billingFilter}" (tipo: ${typeof billingFilter})`)
+      filtered = filtered.filter((flight) => {
+        const match = flight.paymentStatus === billingFilter
+        if (!match && beforeBillingFilter > 0) {
+          console.log(
+            `PaymentStatus no coincide: flight.paymentStatus="${flight.paymentStatus}" vs billingFilter="${billingFilter}"`,
+          )
+        }
+        return match
+      })
+      console.log(`Filtro por facturación: ${beforeBillingFilter} → ${filtered.length}`)
+    }
+
+    // Filtrar por piloto - con validación reforzada
+    if (pilotFilter && pilotFilter !== "all") {
+      const beforePilotFilter = filtered.length
+      console.log(`Aplicando filtro de piloto: "${pilotFilter}" (tipo: ${typeof pilotFilter})`)
+      filtered = filtered.filter((flight) => {
+        const match = flight.pilot?.id.toString() === pilotFilter
+        if (!match && beforePilotFilter > 0) {
+          console.log(`PilotId no coincide: flight.pilotId="${flight.pilotId}" vs pilotFilter="${pilotFilter}"`)
+        }
+        return match
+      })
+      console.log(`Filtro por piloto: ${beforePilotFilter} → ${filtered.length}`)
+    }
+
+    console.log(`FlightLogs: Vuelos filtrados: ${filtered.length}`)
+
+    // Debug del primer vuelo después de filtrar
+    if (filtered.length > 0) {
+      console.log("Ejemplo de flight[0] después de filtrar:", filtered[0])
+    } else if (allFlights.length > 0) {
+      console.log("No hay vuelos después del filtrado, pero sí había vuelos originales")
+    }
+
+    setFilteredFlights(filtered)
+  }, [searchTerm, statusFilter, billingFilter, pilotFilter, selectedMonth, selectedYear, allFlights])
+
+  // Manejar la apertura del modal de detalles
   const handleViewFlight = (flightId: string) => {
-    setSelectedFlightId(flightId)
+    const flight = filteredFlights.find((f) => f.id.toString() === flightId)
+    setSelectedFlightLog(flight || null)
     setIsDetailsModalOpen(true)
   }
 
+  // Clases condicionales
+  const cardClass = darkMode
+    ? "bg-gray-800 text-white border border-gray-700"
+    : "bg-white text-gray-900 border border-gray-200"
+
+  if (userLoading || isLoading) {
+    return (
+      <div className="pt-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Cargando vuelos...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="pt-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-2xl font-semibold">Bitácoras de Vuelo</h1>
-        <button className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-          <svg
-            className="h-5 w-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-          </svg>
+    <div className="pt-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Bitácoras de Vuelo</h1>
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+        >
           Nuevo Vuelo
         </button>
       </div>
 
-      {/* Filtros */}
-      <div
-        className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} p-4 rounded-lg shadow border`}
-      >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="w-full md:w-1/3">
-            <label htmlFor="search" className="sr-only">
-              Buscar
-            </label>
-            <div className="relative">
+      <div className={`${cardClass} rounded-lg shadow-md p-6 mb-6`}>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          {/* Filtros en una sola fila */}
+          <div className="flex flex-col md:flex-row gap-4 w-full">
+            {/* Buscador */}
+            <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className={`h-5 w-5 ${darkMode ? "text-gray-400" : "text-gray-400"}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  ></path>
-                </svg>
+                <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
-                id="search"
-                type="search"
-                className={`block w-full pl-10 pr-3 py-2 border rounded-md leading-5 ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-orange-500 focus:border-orange-500"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-orange-500 focus:border-orange-500"
-                }`}
+                type="text"
                 placeholder="Buscar vuelos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className={`pl-10 pr-4 py-2 w-full rounded-md ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600 focus:border-orange-500"
+                    : "bg-white text-gray-900 border-gray-300 focus:border-orange-500"
+                } border focus:outline-none focus:ring-2 focus:ring-orange-500`}
               />
             </div>
-          </div>
 
-          <div className="flex items-center space-x-4">
-            <span className={`text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Estado:</span>
-            <select
-              className={`block w-full pl-3 pr-10 py-2 text-base border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
-              }`}
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">Todos</option>
-              <option value="completed">Completados</option>
-              <option value="scheduled">Programados</option>
-            </select>
+            {/* Filtro de estado - CORREGIDO con valores de la API */}
+            <div className="w-full md:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={`rounded-md border py-2 px-3 w-full ${
+                  darkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white text-gray-900 border-gray-300"
+                } focus:outline-none focus:ring-2 focus:ring-orange-500`}
+              >
+                <option value="all">Todos los estados</option>
+                <option value="COMPLETED">Completados</option>
+                <option value="SCHEDULED">Programados</option>
+                <option value="CANCELLED">Cancelados</option>
+              </select>
+            </div>
+
+            {/* Filtro de facturación - CORREGIDO con valores de la API */}
+            <div className="w-full md:w-auto">
+              <select
+                value={billingFilter}
+                onChange={(e) => setBillingFilter(e.target.value)}
+                className={`rounded-md border py-2 px-3 w-full ${
+                  darkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white text-gray-900 border-gray-300"
+                } focus:outline-none focus:ring-2 focus:ring-orange-500`}
+              >
+                <option value="all">Todas las facturas</option>
+                <option value="PENDING_INVOICE">Pendiente facturación</option>
+                <option value="INVOICED">Facturado</option>
+                <option value="PENDING_PAYMENT">Pendiente pago</option>
+                <option value="PAID">Pagado</option>
+              </select>
+            </div>
+
+            {/* Filtro de piloto */}
+            <div className="w-full md:w-auto">
+              <select
+                value={pilotFilter}
+                onChange={(e) => setPilotFilter(e.target.value)}
+                className={`rounded-md border py-2 px-3 w-full ${
+                  darkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white text-gray-900 border-gray-300"
+                } focus:outline-none focus:ring-2 focus:ring-orange-500`}
+              >
+                <option value="all">Todos los pilotos</option>
+                {uniquePilots.map((pilot) => (
+                  <option key={pilot.id} value={pilot.id}>
+                    {pilot.firstName} {pilot.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Información de resultados */}
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Mostrando {filteredFlights.length} de {allFlights.length} vuelos
+        </p>
+      </div>
+
       {/* Tabla de vuelos */}
-      <div
-        className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} shadow rounded-lg overflow-hidden border`}
-      >
+      <div className={`${cardClass} rounded-lg shadow-md overflow-hidden`}>
         <div className="overflow-x-auto">
-          <table className={`min-w-full divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className={darkMode ? "bg-gray-700" : "bg-gray-50"}>
               <tr>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Fecha
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Piloto
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Ruta
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Helicóptero
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Horario
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Duración
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Estado
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-right text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                >
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  Facturación
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody
-              className={`${darkMode ? "bg-gray-800 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}`}
-            >
+            <tbody className={`divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
               {filteredFlights.length > 0 ? (
                 filteredFlights.map((flight) => (
-                  <tr key={flight.id} className={darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {new Date(flight.date).toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </div>
+                  <tr
+                    key={flight.id}
+                    className={`cursor-pointer ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+                    onClick={() => handleViewFlight(flight.id.toString())}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {new Date(flight.date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {getPilotName(flight.pilotId)}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {flight.pilot?.user
+                        ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}`
+                        : `Piloto ${flight.pilotId}`}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {getLocationName(flight.originId).split(" ")[0]} →{" "}
-                        {getLocationName(flight.destinationId).split(" ")[0]}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {flight.destination?.name || `Destino ${flight.destinationId}`}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {getHelicopterInfo(flight.helicopterId)}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {flight.departureTime} - {flight.arrivalTime}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {flight.startTime} - {flight.landingTime}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
-                        {flight.flightHours}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          flight.status === "completed" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {flight.status === "completed" ? "Completado" : "Programado"}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{flight.duration} min</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(flight.status)}`}>
+                        {getStatusText(flight.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleViewFlight(flight.id)}
-                        className={`text-orange-600 hover:text-orange-900 mr-3 ${darkMode ? "hover:text-orange-400" : ""}`}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusClass(flight.paymentStatus)}`}
                       >
-                        Ver
-                      </button>
+                        {getPaymentStatusText(flight.paymentStatus)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                       <button
-                        className={`text-orange-600 hover:text-orange-900 mr-3 ${darkMode ? "hover:text-orange-400" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewFlight(flight.id.toString())
+                        }}
+                        className={`text-orange-600 hover:text-orange-900 font-medium ${
+                          darkMode ? "hover:text-orange-400" : ""
+                        }`}
                       >
-                        Editar
-                      </button>
-                      <button className={`text-red-600 hover:text-red-900 ${darkMode ? "hover:text-red-400" : ""}`}>
-                        Eliminar
+                        Ver detalles
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className={`px-6 py-4 text-center text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
-                  >
+                  <td colSpan={9} className="px-6 py-4 text-center text-sm">
                     No se encontraron vuelos con los filtros seleccionados.
                   </td>
                 </tr>
@@ -265,8 +508,18 @@ const FlightLogs = ({ darkMode = false }: FlightLogsProps) => {
       <FlightDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
-        flightId={selectedFlightId}
+        flightLog={selectedFlightLog}
         darkMode={darkMode}
+      />
+
+      {/* Modal para agregar nuevo vuelo */}
+      <AddFlightLogModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onFlightCreated={() => {
+          // Recargar la lista de vuelos
+          window.location.reload() // Temporal, se puede mejorar
+        }}
       />
     </div>
   )

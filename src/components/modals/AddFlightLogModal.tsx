@@ -1,32 +1,38 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useUser } from "../../context/UserContext"
-import { createFlightLog, getClients, getDestinations, getHelicopters, getPilots } from "../../services/api"
-import type { NewFlightLog, FlightStatus, PaymentStatus, Client, Destination, Helicopter } from "../../types/api"
+import { useTheme } from "../../context/ThemeContext"
+import { createFlightLog, getPilots, getHelicopters, getClients, getDestinations } from "../../services/api"
+import type { NewFlightLog, FlightStatus, PaymentStatus, Pilot, Client, Destination, Helicopter } from "../../types/api"
+import Modal from "../ui/Modal"
 
-interface NewFlightLogProps {
-  darkMode: boolean
+interface AddFlightLogModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onFlightCreated?: () => void
 }
 
-const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
-  const { user } = useUser()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [error, setError] = useState<string>("")
+interface AutocompleteOption {
+  id: number | string
+  name: string
+  isCustom?: boolean
+}
+
+const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, onFlightCreated }) => {
+  const { user, accessToken, isLoading: userLoading } = useUser()
+  const { darkMode } = useTheme()
 
   // Estados para datos de la API
+  const [pilots, setPilots] = useState<Pilot[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [helicopters, setHelicopters] = useState<Helicopter[]>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
 
-  // Estado para el pilotId del usuario actual
-  const [currentPilotId, setCurrentPilotId] = useState<number | null>(null)
-
   // Estado para los datos del formulario
+  const [selectedPilot, setSelectedPilot] = useState<string>("")
   const [flightDate, setFlightDate] = useState<string>(new Date().toISOString().split("T")[0])
   const [selectedHelicopter, setSelectedHelicopter] = useState<string>("")
   const [selectedClient, setSelectedClient] = useState<string>("")
@@ -47,7 +53,6 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const [notes, setNotes] = useState<string>("")
   const [passengers, setPassengers] = useState<string>("0")
   const [fuelConsumed, setFuelConsumed] = useState<string>("0")
-  const [status, setStatus] = useState<FlightStatus>("COMPLETED")
 
   // Nuevos campos
   const [startupTime, setStartupTime] = useState<string>("")
@@ -61,12 +66,15 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const [launches, setLaunches] = useState<string>("0")
   const [rin, setRin] = useState<string>("0")
   const [gachoTime, setGachoTime] = useState<string>("0.00")
+  const [flightStatus, setFlightStatus] = useState<string>("COMPLETED")
 
   // Estados para foto de odómetro final
   const [finalOdometerPhoto, setFinalOdometerPhoto] = useState<File | null>(null)
   const [finalOdometerPhotoPreview, setFinalOdometerPhotoPreview] = useState<string>("")
 
   const [isDrawing, setIsDrawing] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string>("")
 
   // Canvas para firma
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -76,49 +84,33 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const originRef = useRef<HTMLDivElement>(null)
   const destinationRef = useRef<HTMLDivElement>(null)
 
-  // Función para obtener el token de acceso
-  const getAccessToken = (): string | null => {
-    return user?.accessToken || localStorage.getItem("ibex_access_token")
-  }
-
   // Cargar datos desde la API
   useEffect(() => {
     const loadData = async () => {
+      if (!isOpen || !accessToken || userLoading) return
+
       try {
         setIsLoadingData(true)
-        const token = getAccessToken()
-
-        if (!token) {
-          setError("No hay token de autenticación disponible")
-          return
-        }
+        setError("")
 
         console.log("🔄 Cargando datos desde la API...")
 
         // Cargar datos en paralelo
-        const [clientsData, destinationsData, helicoptersData, pilotsData] = await Promise.all([
-          getClients(token),
-          getDestinations(token),
-          getHelicopters(token),
-          getPilots(token), // Agregar esta llamada
+        const [pilotsData, clientsData, destinationsData, helicoptersData] = await Promise.all([
+          getPilots(accessToken),
+          getClients(accessToken),
+          getDestinations(accessToken),
+          getHelicopters(accessToken),
         ])
 
         console.log("✅ Datos cargados:", {
+          pilots: pilotsData.length,
           clients: clientsData.length,
           destinations: destinationsData.length,
           helicopters: helicoptersData.length,
-          pilots: pilotsData.length,
         })
 
-        // Encontrar el pilotId del usuario actual
-        const currentPilot = pilotsData.find((pilot) => pilot.userId === user?.id)
-        if (currentPilot) {
-          setCurrentPilotId(currentPilot.id)
-          console.log("✅ Pilot ID encontrado:", currentPilot.id)
-        } else {
-          throw new Error("No se encontró el piloto asociado al usuario actual")
-        }
-
+        setPilots(pilotsData)
         setClients(clientsData)
         setDestinations(destinationsData.filter((d) => d.active)) // Solo destinos activos
         setHelicopters(helicoptersData.filter((h) => h.status === "ACTIVE")) // Solo helicópteros activos
@@ -131,7 +123,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
     }
 
     loadData()
-  }, [user])
+  }, [isOpen, accessToken, userLoading])
 
   // Manejar clics fuera de los dropdowns
   useEffect(() => {
@@ -348,22 +340,14 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
     try {
       // Verificar autenticación
-      const token = getAccessToken()
-      if (!token) {
+      if (!accessToken) {
         throw new Error("No hay token de autenticación disponible")
       }
 
-      // Verificar que el usuario sea un piloto
-      if (!user || user.role !== "PILOT") {
-        throw new Error("Solo los pilotos pueden crear bitácoras de vuelo")
-      }
-
-      // Verificar que tengamos el pilotId
-      if (!currentPilotId) {
-        throw new Error("No se pudo obtener el ID del piloto")
-      }
-
       // Validar campos requeridos
+      if (!selectedPilot) {
+        throw new Error("Debe seleccionar un piloto")
+      }
       if (!selectedHelicopter) {
         throw new Error("Debe seleccionar un helicóptero")
       }
@@ -379,7 +363,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
-        pilotId: currentPilotId, // Usar currentPilotId en lugar de Number(pilotId)
+        pilotId: Number(selectedPilot),
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
         destinationId: destinationId ? Number(destinationId) : undefined,
@@ -387,7 +371,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
         duration: calculateDurationInMinutes(),
         passengers: passengers ? Number(passengers) : undefined,
         notes: notes.trim() || undefined,
-        status: status,
+        status: flightStatus as FlightStatus,
         paymentStatus: "PENDING_INVOICE" as PaymentStatus,
         startTime: convertTimeToDateTime(startupTime, flightDate),
         landingTime: convertTimeToDateTime(shutdownTime, flightDate),
@@ -401,25 +385,22 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
       console.log("📤 Enviando flight log:", flightLogData)
 
       // Llamar a la API
-      const createdFlightLog = await createFlightLog(flightLogData, token)
+      const createdFlightLog = await createFlightLog(flightLogData, accessToken)
 
       console.log("✅ Flight log creado:", createdFlightLog)
 
-      // Mostrar éxito
-      setShowSuccess(true)
+      // Resetear formulario
+      resetForm()
 
-      // Ocultar mensaje de éxito después de 3 segundos y resetear formulario
-      setTimeout(() => {
-        setShowSuccess(false)
-        resetForm()
-      }, 3000)
+      // Notificar éxito y cerrar
+      onFlightCreated?.()
+      onClose()
     } catch (error) {
       console.error("❌ Error al crear flight log:", error)
 
       if (error instanceof Error) {
         if (error.message.includes("401") || error.message.includes("unauthorized")) {
           setError("Sesión expirada. Por favor, inicie sesión nuevamente.")
-          localStorage.removeItem("ibex_access_token")
         } else if (error.message.includes("403")) {
           setError("No tiene permisos para realizar esta acción.")
         } else if (error.message.includes("400")) {
@@ -437,6 +418,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Función para resetear el formulario
   const resetForm = () => {
+    setSelectedPilot("")
     setFlightDate(new Date().toISOString().split("T")[0])
     setSelectedHelicopter("")
     setSelectedClient("")
@@ -447,7 +429,6 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
     setNotes("")
     setPassengers("0")
     setFuelConsumed("0")
-    setStatus("COMPLETED")
     setStartupTime("")
     setShutdownTime("")
     setRunTime("0:00")
@@ -459,6 +440,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
     setLaunches("0")
     setRin("0")
     setGachoTime("0.00")
+    setFlightStatus("COMPLETED")
     setFinalOdometerPhoto(null)
     setFinalOdometerPhotoPreview("")
     setCustomOrigin(false)
@@ -469,69 +451,17 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   if (isLoadingData) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <Modal isOpen={isOpen} onClose={onClose} title="Nuevo Vuelo" maxWidth="max-w-4xl">
         <div className="flex flex-col items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
           <p className={`mt-4 text-lg ${darkMode ? "text-gray-300" : "text-gray-600"}`}>Cargando datos necesarios...</p>
         </div>
-      </div>
+      </Modal>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-semibold">Nueva Bitácora de Vuelo</h1>
-      </div>
-
-      {/* Mensaje de éxito */}
-      {showSuccess && (
-        <div
-          className={`mb-6 border-l-4 border-green-500 p-4 rounded ${
-            darkMode ? "bg-green-900/20 text-green-300" : "bg-green-50 text-green-800"
-          }`}
-        >
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">Bitácora registrada correctamente</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mensaje de error */}
-      {error && (
-        <div
-          className={`mb-6 border-l-4 border-red-500 p-4 rounded ${
-            darkMode ? "bg-red-900/20 text-red-300" : "bg-red-50 text-red-800"
-          }`}
-        >
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <Modal isOpen={isOpen} onClose={onClose} title="Nueva Bitácora de Vuelo" maxWidth="max-w-4xl">
       <div
         className={`${darkMode ? "bg-gray-800 text-white border border-gray-700" : "bg-white text-gray-900 border border-gray-200"} shadow rounded-lg overflow-hidden`}
       >
@@ -544,6 +474,35 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Piloto - NUEVO CAMPO */}
+            <div className="col-span-1">
+              <label
+                htmlFor="pilot"
+                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+              >
+                Piloto *
+              </label>
+              <select
+                id="pilot"
+                value={selectedPilot}
+                onChange={(e) => setSelectedPilot(e.target.value)}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+                required
+                disabled={isSubmitting}
+              >
+                <option value="">Seleccionar piloto</option>
+                {pilots.map((pilot) => (
+                  <option key={pilot.id} value={pilot.id}>
+                    {pilot.user.firstName} {pilot.user.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Fecha del vuelo */}
             <div className="col-span-1">
               <label
@@ -1158,15 +1117,15 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
             {/* Status del vuelo */}
             <div className="col-span-1">
               <label
-                htmlFor="status"
+                htmlFor="flightStatus"
                 className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
               >
                 Status del vuelo *
               </label>
               <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as FlightStatus)}
+                id="flightStatus"
+                value={flightStatus}
+                onChange={(e) => setFlightStatus(e.target.value)}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -1244,11 +1203,35 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
           {hasSignature && <p className="text-sm text-green-500 mt-1">✔ Firma registrada</p>}
 
+          {/* Error */}
+          {error && (
+            <div
+              className={`mt-6 border-l-4 border-red-500 p-4 rounded ${
+                darkMode ? "bg-red-900/20 text-red-300" : "bg-red-50 text-red-800"
+              }`}
+            >
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Botón de envío */}
           <div className="mt-8">
             <button
               type="submit"
-              disabled={isSubmitting || !user || user.role !== "PILOT" || !currentPilotId}
+              disabled={isSubmitting || !accessToken}
               className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                 darkMode ? "focus:ring-offset-gray-800" : ""
               }`}
@@ -1258,8 +1241,8 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 
-export default NewFlightLogComponent
+export default AddFlightLogModal

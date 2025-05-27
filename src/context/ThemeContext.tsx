@@ -1,3 +1,5 @@
+"use client"
+
 import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
 
 interface ThemeContextType {
@@ -11,29 +13,29 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // Inicializar explícitamente en modo claro
   console.log("ThemeProvider: Inicializando estado")
   const [darkMode, setDarkMode] = useState(() => {
-    console.log("ThemeProvider: Estado inicial darkMode = false")
-    return false
+    console.log("ThemeProvider: Estado inicial darkMode = true")
+    return true
   })
 
   // Cargar preferencia guardada solo una vez al inicio
   useEffect(() => {
     console.log("ThemeProvider: Primer useEffect - Cargando preferencia guardada")
 
-    // Eliminar cualquier clase dark que pudiera estar presente
-    document.documentElement.classList.remove("dark")
-    console.log("ThemeProvider: Clase 'dark' removida del documento")
+    // Aplicar clase dark por defecto
+    document.documentElement.classList.add("dark")
+    console.log("ThemeProvider: Clase 'dark' aplicada al documento por defecto")
 
     const savedTheme = localStorage.getItem("ibex_theme")
     console.log("ThemeProvider: Tema guardado en localStorage:", savedTheme)
 
-    if (savedTheme === "dark") {
-      console.log("ThemeProvider: Aplicando modo oscuro desde localStorage")
-      setDarkMode(true)
-      document.documentElement.classList.add("dark")
+    if (savedTheme === "light") {
+      console.log("ThemeProvider: Aplicando modo claro desde localStorage")
+      setDarkMode(false)
+      document.documentElement.classList.remove("dark")
     } else {
-      console.log("ThemeProvider: Aplicando modo claro (por defecto o desde localStorage)")
-      // Asegurarse de que localStorage tenga el valor correcto para modo claro
-      localStorage.setItem("ibex_theme", "light")
+      console.log("ThemeProvider: Aplicando modo oscuro (por defecto o desde localStorage)")
+      // Asegurarse de que localStorage tenga el valor correcto para modo oscuro
+      localStorage.setItem("ibex_theme", "dark")
     }
   }, [])
 

@@ -20,16 +20,24 @@ const Login = () => {
     setIsLoading(true)
 
     try {
+      console.log("Intentando login con:", email)
       const success = await login(email, password)
+      console.log("Resultado del login:", success)
 
       if (success) {
-        // Redirigir según el rol (esto se maneja en el contexto)
+        // Obtener datos del usuario del contexto
         const userData = localStorage.getItem("ibex_user")
+        console.log("Datos del usuario:", userData)
+
         if (userData) {
           const user = JSON.parse(userData)
-          if (user.role === "pilot") {
+          console.log("Rol del usuario:", user.role)
+
+          if (user.role === "PILOT") {
+            console.log("Redirigiendo a /pilot")
             navigate("/pilot")
           } else {
+            console.log("Redirigiendo a /admin")
             navigate("/admin")
           }
         }
@@ -37,6 +45,7 @@ const Login = () => {
         setError("Credenciales incorrectas. Por favor, inténtalo de nuevo.")
       }
     } catch (err) {
+      console.error("Error completo:", err)
       setError("Error al iniciar sesión. Por favor, inténtalo de nuevo.")
     } finally {
       setIsLoading(false)
@@ -44,21 +53,25 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
           <div className="p-6 sm:p-8">
             <div className="flex justify-center mb-8">
               <img src="/logo.png" alt="IBEX Logo" className="h-16" />
             </div>
 
-            <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">Iniciar Sesión</h2>
+            <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-8">Iniciar Sesión</h2>
 
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded-md mb-6 text-sm">{error}</div>}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md mb-6 text-sm">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Correo Electrónico
                 </label>
                 <input
@@ -66,14 +79,14 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
                   placeholder="ejemplo@ibexheli.com"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Contraseña
                 </label>
                 <input
@@ -81,7 +94,7 @@ const Login = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
                   placeholder="••••••"
                   required
                 />
@@ -92,15 +105,18 @@ const Login = () => {
                   <input
                     id="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 dark:border-gray-600 rounded"
                   />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                     Recordarme
                   </label>
                 </div>
 
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-orange-600 hover:text-orange-500">
+                  <a
+                    href="#"
+                    className="font-medium text-orange-600 hover:text-orange-500 dark:text-orange-400 dark:hover:text-orange-300"
+                  >
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>

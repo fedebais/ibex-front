@@ -1,3 +1,18 @@
+export interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  avatar?: string
+  licenseNumber?: string
+  flightHours?: number
+  medicalExpiry?: string
+  lastTraining?: string
+  certifications?: string[]
+  aircraftCertifications?: { model: string; date: string }[]
+}
+
+// Usuarios mock para la aplicación
 export const mockUsers = [
   {
     id: "1",
@@ -83,6 +98,8 @@ export const mockUsers = [
     avatar: "https://randomuser.me/api/portraits/men/46.jpg",
   },
 ]
+
+export const mockPilots = mockUsers.filter((user) => user.role === "pilot")
 
 // Helicópteros mock
 export const mockHelicopters = [
@@ -253,6 +270,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "08:45",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "2",
@@ -280,6 +298,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "10:15",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "3",
@@ -307,6 +326,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "14:15",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "4",
@@ -334,6 +354,7 @@ export const mockFlights = [
     launches: 1,
     rin: 1,
     gachoTime: "09:30",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "5",
@@ -361,6 +382,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "6",
@@ -388,6 +410,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "7",
@@ -415,6 +438,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "8",
@@ -442,6 +466,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "9",
@@ -469,6 +494,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "10",
@@ -496,6 +522,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "11",
@@ -523,6 +550,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "12",
@@ -550,6 +578,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "13",
@@ -577,6 +606,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "14",
@@ -604,6 +634,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "15",
@@ -631,6 +662,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "16",
@@ -658,6 +690,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "17",
@@ -685,6 +718,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "18",
@@ -712,6 +746,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "19",
@@ -739,6 +774,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "20",
@@ -766,6 +802,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "21",
@@ -793,6 +830,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "22",
@@ -820,6 +858,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "paid", // Pagado
   },
   {
     id: "23",
@@ -847,6 +886,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "invoiced_pending", // Facturado pendiente de pago
   },
   {
     id: "24",
@@ -874,6 +914,7 @@ export const mockFlights = [
     launches: 0,
     rin: 0,
     gachoTime: "",
+    billingStatus: "pending", // Pendiente de facturación
   },
   {
     id: "25",
@@ -901,6 +942,7 @@ export const mockFlights = [
     launches: 1,
     rin: 1,
     gachoTime: "09:00",
+    billingStatus: "paid", // Pagado
   },
 ]
 
@@ -927,6 +969,20 @@ export const getClientName = (clientId: string) => {
 
 export const getClientFlights = (clientId: string) => {
   return mockFlights.filter((flight) => flight.clientId === clientId)
+}
+
+// Función para obtener el estado de facturación en texto
+export const getBillingStatusText = (billingStatus: string) => {
+  switch (billingStatus) {
+    case "pending":
+      return "Pendiente de facturación"
+    case "invoiced_pending":
+      return "Facturado pendiente de pago"
+    case "paid":
+      return "Pagado"
+    default:
+      return "Desconocido"
+  }
 }
 
 // Función para calcular el valor monetario de las horas de vuelo
