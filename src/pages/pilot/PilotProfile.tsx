@@ -1,45 +1,94 @@
+"use client"
+
 import { useUser } from "../../context/UserContext"
-import { mockFlights, getPilotMonthlyHours, getSettings } from "../../data/mockData"
+import { getFlightLogs, getPilotById } from "../../services/api"
+import { useState, useEffect } from "react"
+import type { FlightLog, Pilot } from "../../types/api"
 
 interface PilotProfileProps {
   darkMode: boolean
 }
 
 const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
-  const { user } = useUser()
+  const { user, accessToken } = useUser()
+  const [pilotData, setPilotData] = useState<Pilot | null>(null)
+  const [flights, setFlights] = useState<FlightLog[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Filtrar vuelos del piloto actual
-  const pilotFlights = mockFlights.filter((flight) => flight.pilotId === user?.id)
+  useEffect(() => {
+    const loadPilotData = async () => {
+      if (!user?.id || !accessToken) return
+
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Cargar datos del piloto
+        const pilotResponse = await getPilotById(user.id, accessToken)
+        setPilotData(pilotResponse)
+
+        // Cargar vuelos del piloto
+        const flightsResponse = await getFlightLogs(accessToken)
+        const pilotFlights = flightsResponse.filter((flight: FlightLog) => flight.pilotId === user.id)
+        setFlights(pilotFlights)
+      } catch (err) {
+        console.error("Error loading pilot data:", err)
+        setError("Error al cargar los datos del piloto")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadPilotData()
+  }, [user?.id, accessToken])
 
   // Calcular estadísticas
-  const totalFlights = pilotFlights.length
-  const totalFlightHours = pilotFlights
-    .reduce((total, flight) => {
-      const [hours, minutes] = flight.flightHours.split(":").map(Number)
-      return total + hours + minutes / 60
-    }, 0)
-    .toFixed(1)
+  // const totalFlights = flights.length
+  const totalFlightHours = flights.reduce((total, flight) => total + (flight.duration || 0), 0) / 60 // Convertir minutos a horas
+  const completedFlights = flights.filter((f) => f.status === "COMPLETED").length
+  const scheduledFlights = flights.filter((f) => f.status === "SCHEDULED").length
 
-  // Obtener el mes actual para mostrar las estadísticas del mes en curso
+  // Estadísticas del mes actual
   const currentDate = new Date()
-  const currentYear = currentDate.getFullYear()
   const currentMonth = currentDate.getMonth()
+  const currentYear = currentDate.getFullYear()
 
-  // Obtener horas y valor monetario del mes actual
-  const monthlyStats = user
-    ? getPilotMonthlyHours(user.id, currentYear, currentMonth)
-    : { totalHours: 0, totalValue: 0, flights: [] }
+  const monthlyFlights = flights.filter((flight) => {
+    const flightDate = new Date(flight.date)
+    return flightDate.getMonth() === currentMonth && flightDate.getFullYear() === currentYear
+  })
 
-  // Obtener configuración de tarifas
-  const settings = getSettings()
+  const monthlyHours = monthlyFlights.reduce((total, flight) => total + (flight.duration || 0), 0) / 60
+  const monthlyValue = monthlyHours * 1000 // Tarifa fija de $1000/hora
 
-  // Datos ficticios para el perfil del piloto
-  const pilotData = {
-    licenseNumber: "PL-12345",
-    medicalExpiry: "2024-06-30",
-    flightHours: 2450,
-    lastTraining: "2023-09-15",
-    certifications: ["VFR", "IFR", "Night Flying", "Mountain Operations"],
+  // Certificaciones fijas (se pueden hacer dinámicas después)
+  const certifications = ["VFR", "IFR", "Night Flying", "Mountain Operations"]
+  const aircraftCertifications = [
+    { model: "Bell 407", date: "2021-05-10" },
+    { model: "Airbus H125", date: "2022-03-15" },
+    { model: "Robinson R44", date: "2020-11-22" },
+    { model: "Sikorsky S-76", date: "2023-01-08" },
+  ]
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className={`p-4 rounded-lg ${darkMode ? "bg-red-900/20 text-red-300" : "bg-red-50 text-red-600"}`}>
+          {error}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -55,15 +104,21 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
           className={`px-4 py-5 sm:px-6 border-b ${darkMode ? "border-gray-700" : "border-gray-200"} flex flex-col md:flex-row md:items-center md:justify-between`}
         >
           <div className="flex items-center">
-            {user?.avatar ? (
-              <img src={user.avatar || "/placeholder.svg"} className="h-16 w-16 rounded-full mr-4" alt={user.name} />
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage || "/placeholder.svg"}
+                className="h-16 w-16 rounded-full mr-4"
+                alt={user.firstName}
+              />
             ) : (
               <div className="h-16 w-16 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl mr-4">
-                {user?.name.charAt(0)}
+                {user?.firstName?.charAt(0)}
               </div>
             )}
             <div>
-              <h3 className="text-lg font-medium leading-6">{user?.name}</h3>
+              <h3 className="text-lg font-medium leading-6">
+                {user?.firstName} {user?.lastName}
+              </h3>
               <p className={`mt-1 max-w-2xl text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Piloto</p>
             </div>
           </div>
@@ -92,22 +147,34 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
                   <dd className="text-sm">{user?.email}</dd>
                 </div>
                 <div className="flex justify-between">
+                  <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</dt>
+                  <dd className="text-sm">{user?.phone || "No especificado"}</dd>
+                </div>
+                <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Número de Licencia
                   </dt>
-                  <dd className="text-sm">{pilotData.licenseNumber}</dd>
+                  <dd className="text-sm">{pilotData?.license || "No especificado"}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Vencimiento Médico
                   </dt>
-                  <dd className="text-sm">{new Date(pilotData.medicalExpiry).toLocaleDateString("es-ES")}</dd>
+                  <dd className="text-sm">
+                    {pilotData?.medicalExpiry
+                      ? new Date(pilotData.medicalExpiry).toLocaleDateString("es-ES")
+                      : "No especificado"}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Último Entrenamiento
                   </dt>
-                  <dd className="text-sm">{new Date(pilotData.lastTraining).toLocaleDateString("es-ES")}</dd>
+                  <dd className="text-sm">
+                    {pilotData?.lastTraining
+                      ? new Date(pilotData.lastTraining).toLocaleDateString("es-ES")
+                      : "No especificado"}
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -121,25 +188,25 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Total Horas de Vuelo
                   </dt>
-                  <dd className="text-sm">{pilotData.flightHours}</dd>
+                  <dd className="text-sm">{pilotData?.flightHours || 0} hrs</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Horas en IBEX
                   </dt>
-                  <dd className="text-sm">{totalFlightHours}</dd>
+                  <dd className="text-sm">{totalFlightHours.toFixed(1)} hrs</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Vuelos Completados
                   </dt>
-                  <dd className="text-sm">{totalFlights}</dd>
+                  <dd className="text-sm">{completedFlights}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                     Vuelos Programados
                   </dt>
-                  <dd className="text-sm">{pilotFlights.filter((f) => f.status === "scheduled").length}</dd>
+                  <dd className="text-sm">{scheduledFlights}</dd>
                 </div>
               </dl>
             </div>
@@ -155,28 +222,23 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
                 <div>
                   <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas Voladas</p>
                   <p className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                    {monthlyStats.totalHours} hrs
+                    {monthlyHours.toFixed(1)} hrs
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Valor Acumulado</p>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vuelos del Mes</p>
                   <p className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                    $
-                    {monthlyStats.totalValue.toLocaleString("es-ES", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {monthlyFlights.length}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Tarifa Base</p>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Valor Estimado</p>
                   <p className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
                     $
-                    {settings.hourlyRate.toLocaleString("es-ES", {
+                    {monthlyValue.toLocaleString("es-ES", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
-                    /hr
                   </p>
                 </div>
               </div>
@@ -188,7 +250,7 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
               Certificaciones
             </h4>
             <div className="flex flex-wrap gap-2">
-              {pilotData.certifications.map((cert, index) => (
+              {certifications.map((cert, index) => (
                 <span
                   key={index}
                   className={`inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium ${
@@ -200,6 +262,7 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
               ))}
             </div>
           </div>
+
           <div className="mt-8">
             <h4 className={`text-base font-medium mb-4 ${darkMode ? "text-gray-300" : "text-gray-900"}`}>
               Certificaciones por Aeronave
@@ -227,12 +290,7 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
                 <tbody
                   className={`${darkMode ? "bg-gray-800" : "bg-white"} divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}
                 >
-                  {[
-                    { model: "Bell 407", date: "2021-05-10" },
-                    { model: "Airbus H125", date: "2022-03-15" },
-                    { model: "Robinson R44", date: "2020-11-22" },
-                    { model: "Sikorsky S-76", date: "2023-01-08" },
-                  ].map((cert, index) => (
+                  {aircraftCertifications.map((cert, index) => (
                     <tr key={index}>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
