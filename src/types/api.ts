@@ -101,8 +101,20 @@ export interface Technician {
   specialty: TechnicianSpecialty
   certificationLevel: CertificationLevel
   yearsOfExperience: number
-  lastCertification: string // ISO string
+  lastCertification: string
   user: User
+  certifications?: Certification[] // <-- si vas a mostrarlas
+  maintenanceRecords?: Maintenance[] // <-- si vas a mostrarlos
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface Certification {
+  id: number
+  name: string
+  issuedDate: string
+  expiryDate?: string
+  issuingAuthority?: string
 }
 
 
