@@ -15,7 +15,7 @@ interface AddHelicopterModalProps {
 }
 
 const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterModalProps) => {
-  const { user, accessToken, isLoading: userLoading } = useUser()
+  const {  accessToken, isLoading: userLoading } = useUser()
   const { darkMode } = useTheme()
 
   // Estados del formulario
@@ -48,12 +48,7 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
         setHelicopterModels(models)
       } catch (err) {
         console.error("Error loading helicopter models:", err)
-        // Si no se pueden cargar los modelos, usar algunos por defecto
-        setHelicopterModels([
-          { id: 1, name: "Bell 407", manufacturer: "Bell" },
-          { id: 2, name: "Robinson R44", manufacturer: "Robinson" },
-          { id: 3, name: "Airbus H125", manufacturer: "Airbus" },
-        ])
+     
       } finally {
         setLoadingModels(false)
       }
@@ -153,7 +148,7 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
     darkMode ? "bg-red-900/30 border-red-700 text-red-200" : "bg-red-50 border-red-200 text-red-700"
   }`
 
-  const sectionTitleClassesOld = `text-lg font-semibold mb-4 ${darkMode ? "text-white" : "text-gray-900"}`
+  
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Añadir Nuevo Helicóptero" maxWidth="max-w-4xl">
@@ -197,7 +192,7 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
                 <option value="">{loadingModels ? "Cargando modelos..." : "Seleccionar modelo"}</option>
                 {helicopterModels.map((model) => (
                   <option key={model.id} value={model.id}>
-                    {model.manufacturer} {model.name}
+                    {model.name}
                   </option>
                 ))}
               </select>

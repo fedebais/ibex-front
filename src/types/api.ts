@@ -208,6 +208,20 @@ export interface Helicopter {
   ceilingMeters: number | null
 }
 
+export interface CreateHelicopterInput {
+  modelId: number
+  registration: string
+  manufactureYear?: number
+  lastMaintenance?: string
+  totalFlightHours?: number
+  status?: HelicopterStatus
+  imageUrl?: string
+  capacity?: number
+  speedKmh?: number
+  rangeKm?: number
+  ceilingMeters?: number
+}
+
 // Agregar el tipo HelicopterModel después de la interfaz Helicopter
 
 export interface HelicopterModel {
