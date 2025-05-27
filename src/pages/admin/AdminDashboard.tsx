@@ -39,7 +39,9 @@ const AdminDashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedYear] = useState(new Date().getFullYear())
+
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -143,6 +145,7 @@ const AdminDashboard = () => {
                     selectedMonth={selectedMonth}
                     selectedYear={selectedYear}
                     onMonthChange={setSelectedMonth}
+                     
                   />
                 }
               />
@@ -164,8 +167,8 @@ const AdminDashboard = () => {
               <Route path="/settings" element={<AdminSettings darkMode={darkMode} />} />
               {/* Añadir las rutas para UserManagement y Calendar */}
               <Route path="/user-management" element={<UserManagement darkMode={darkMode} />} />
-              <Route path="/calendar" element={<Calendar darkMode={darkMode} />} />
-              <Route path="/helicopter-models" element={<HelicopterModels darkMode={darkMode} />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/helicopter-models" element={<HelicopterModels  />} />
             </Routes>
           </main>
 
