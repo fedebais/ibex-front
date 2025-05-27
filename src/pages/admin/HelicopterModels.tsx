@@ -11,7 +11,7 @@ import EditHelicopterModelModal from "../../components/modals/EditHelicopterMode
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 
 const HelicopterModels: React.FC = () => {
-  const { user } = useUser()
+  const { user, accessToken } = useUser()
   const { darkMode } = useTheme()
   const [models, setModels] = useState<HelicopterModel[]>([])
   const [filteredModels, setFilteredModels] = useState<HelicopterModel[]>([])
@@ -30,7 +30,7 @@ const HelicopterModels: React.FC = () => {
   }, [models, searchTerm])
 
   const loadModels = async () => {
-    const token = user?.accessToken || localStorage.getItem("ibex_access_token")
+    const token = accessToken || localStorage.getItem("ibex_access_token")
 
     if (!token) {
       console.error("No access token available")
@@ -66,7 +66,7 @@ const HelicopterModels: React.FC = () => {
   }
 
   const handleDelete = async (model: HelicopterModel) => {
-    const token = user?.accessToken || localStorage.getItem("ibex_access_token")
+    const token = accessToken || localStorage.getItem("ibex_access_token")
 
     if (!token) {
       alert("No hay token de acceso disponible")

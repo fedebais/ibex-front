@@ -81,7 +81,7 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
       return modelName.includes(searchLower) || registration.includes(searchLower)
     })
 
-  const handleAddHelicopter = async (newHelicopter: any) => {
+  const handleAddHelicopter = async () => {
     try {
       // ✅ NO lo crees de nuevo, solo actualiza la lista
       await loadHelicopters()

@@ -15,11 +15,12 @@ const FlightHistory = ({ darkMode = false }: FlightHistoryProps) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedFlightId, setSelectedFlightId] = useState(null)
+
 
   const [flightLogs, setFlightLogs] = useState<FlightLog[]>([])
   const [filteredFlights, setFilteredFlights] = useState<FlightLog[]>([])
   const [currentPilotId, setCurrentPilotId] = useState<number | null>(null)
+  console.log(currentPilotId)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedFlightLog, setSelectedFlightLog] = useState<FlightLog | null>(null)

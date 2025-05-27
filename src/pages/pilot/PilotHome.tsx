@@ -12,7 +12,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
   const { user } = useUser()
 
   // Filtrar vuelos del piloto actual
-  const pilotFlights = mockFlights.filter((flight) => flight.pilotId === user?.id)
+  const pilotFlights = mockFlights.filter(() => 1 === 1)
 
   // Filtrar por mes si se ha seleccionado un mes específico (0 = todos los meses)
   const filteredFlights =
@@ -67,7 +67,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-2xl font-semibold">Bienvenido, {user?.name}</h1>
+        <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName}</h1>
         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
           {new Date().toLocaleDateString("es-ES", {
             weekday: "long",

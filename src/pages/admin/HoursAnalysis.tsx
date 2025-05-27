@@ -11,6 +11,8 @@ interface HoursAnalysisProps {
 
 // Actualicemos el componente HoursAnalysis para que acepte los props de mes y año
 const HoursAnalysis = ({ darkMode = false, selectedMonth, selectedYear }: HoursAnalysisProps) => {
+
+  console.log (selectedMonth , selectedYear)
   // Usar los props selectedMonth y selectedYear para filtrar los datos
   // Resto del componente se mantiene igual
 
