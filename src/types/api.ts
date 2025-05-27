@@ -127,6 +127,7 @@ export interface FlightLog {
   pilotId: number
   helicopterId: number
   clientId: number
+  originId: number
   destinationId: number
   duration: number
   passengers?: number

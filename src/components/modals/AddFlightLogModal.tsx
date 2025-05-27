@@ -35,13 +35,13 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
 
   // Estados para origen y destino con autocompletado
   const [originInput, setOriginInput] = useState<string>("")
-  const [originId, setOriginId] = useState<string>("")
+  const [originId, setOriginId] = useState<number | "">("")
   const [originResults, setOriginResults] = useState<Destination[]>([])
   const [showOriginResults, setShowOriginResults] = useState(false)
   const [customOrigin, setCustomOrigin] = useState(false)
 
   const [destinationInput, setDestinationInput] = useState<string>("")
-  const [destinationId, setDestinationId] = useState<string>("")
+  const [destinationId, setDestinationId] = useState<number | "">("")
   const [destinationResults, setDestinationResults] = useState<Destination[]>([])
   const [showDestinationResults, setShowDestinationResults] = useState(false)
   const [customDestination, setCustomDestination] = useState(false)
@@ -200,12 +200,14 @@ console.log(finalOdometerPhoto instanceof File ? "📸 Imagen lista para subir m
   }, [initialOdometer, finalOdometer])
 
   // Manejar selección de origen
-  const handleOriginSelect = (destination: Destination) => {
-    setOriginInput(destination.name)
-    setOriginId(destination.id)
-    setShowOriginResults(false)
-    setCustomOrigin(false)
-  }
+
+const handleOriginSelect = (origin: Destination) => {
+  setOriginInput(origin.name)
+  setOriginId(origin.id) 
+  setShowOriginResults(false)
+  setCustomOrigin(false)
+}
+
 
   // Manejar selección de destino
   const handleDestinationSelect = (destination: Destination) => {
