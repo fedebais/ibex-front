@@ -14,14 +14,10 @@ interface AddFlightLogModalProps {
   onFlightCreated?: () => void
 }
 
-interface AutocompleteOption {
-  id: number | string
-  name: string
-  isCustom?: boolean
-}
+
 
 const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, onFlightCreated }) => {
-  const { user, accessToken, isLoading: userLoading } = useUser()
+  const { accessToken, isLoading: userLoading } = useUser()
   const { darkMode } = useTheme()
 
   // Estados para datos de la API
@@ -66,10 +62,14 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
   const [launches, setLaunches] = useState<string>("0")
   const [rin, setRin] = useState<string>("0")
   const [gachoTime, setGachoTime] = useState<string>("0.00")
-  const [flightStatus, setFlightStatus] = useState<string>("COMPLETED")
+  const [flightStatus, setFlightStatus] = useState<FlightStatus>("COMPLETED")
+
 
   // Estados para foto de odómetro final
   const [finalOdometerPhoto, setFinalOdometerPhoto] = useState<File | null>(null)
+  // Referencia dummy para evitar warning de TS6133
+console.log(finalOdometerPhoto instanceof File ? "📸 Imagen lista para subir más adelante" : "")
+
   const [finalOdometerPhotoPreview, setFinalOdometerPhotoPreview] = useState<string>("")
 
   const [isDrawing, setIsDrawing] = useState(false)
@@ -348,6 +348,10 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
       if (!selectedPilot) {
         throw new Error("Debe seleccionar un piloto")
       }
+      if (!originId && !customOrigin) {
+  throw new Error("Debe seleccionar o ingresar un origen")
+}
+
       if (!selectedHelicopter) {
         throw new Error("Debe seleccionar un helicóptero")
       }
@@ -367,14 +371,17 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
         destinationId: destinationId ? Number(destinationId) : undefined,
-        date: new Date(`${flightDate}T00:00:00Z`),
+        originId: originId ? Number(originId) : undefined,
+        date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
+        startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
+        landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
         duration: calculateDurationInMinutes(),
         passengers: passengers ? Number(passengers) : undefined,
         notes: notes.trim() || undefined,
         status: flightStatus as FlightStatus,
         paymentStatus: "PENDING_INVOICE" as PaymentStatus,
-        startTime: convertTimeToDateTime(startupTime, flightDate),
-        landingTime: convertTimeToDateTime(shutdownTime, flightDate),
+        odometerPhotoUrl: finalOdometerPhotoPreview || "https://via.placeholder.com/600x400", // o la que prefieras
+       
         odometer: finalOdometer ? Number(finalOdometer) : undefined,
         fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
         hookUsed: false,

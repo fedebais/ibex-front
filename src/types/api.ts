@@ -141,6 +141,7 @@ export interface FlightLog {
   fuelEnd?: number
   hookUsed?: boolean
   remarks?: string
+  odometerPhotoUrl?: string
 
   createdAt?: string
   updatedAt?: string
