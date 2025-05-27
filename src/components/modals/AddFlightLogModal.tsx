@@ -367,13 +367,57 @@ const handleOriginSelect = (origin: Destination) => {
         throw new Error("Debe ingresar los tiempos de puesta en marcha y corte")
       }
 
+    let finalOriginId = originId
+if (customOrigin && originInput) {
+  const originPayload = {
+    name: originInput.trim(),
+    latitude: 0,
+    longitude: 0,
+    altitude: 0,
+    active: true,
+  }
+
+  const res = await fetch("/api/destinations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(originPayload),
+  })
+
+  if (!res.ok) throw new Error("Error al crear origen personalizado")
+  const newOrigin = await res.json()
+  finalOriginId = newOrigin.id
+}
+
+let finalDestinationId = destinationId
+if (customDestination && destinationInput) {
+  const destinationPayload = {
+    name: destinationInput.trim(),
+    latitude: 0,
+    longitude: 0,
+    altitude: 0,
+    active: true,
+  }
+
+  const res = await fetch("/api/destinations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(destinationPayload),
+  })
+
+  if (!res.ok) throw new Error("Error al crear destino personalizado")
+  const newDestination = await res.json()
+  finalDestinationId = newDestination.id
+}
+
+
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
         pilotId: Number(selectedPilot),
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
-        destinationId: destinationId ? Number(destinationId) : undefined,
-        originId: originId ? Number(originId) : undefined,
+        originId: finalOriginId ? Number(finalOriginId) : undefined,
+destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
+
         date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
         startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
         landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
