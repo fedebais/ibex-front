@@ -380,7 +380,7 @@ const lastMaintenanceDate = helicopter.lastMaintenance
                     type="number"
                     id="totalFlightHours"
                     name="totalFlightHours"
-                    value={editHelicopterData.totalFlightHours}
+                    value={editHelicopterData.totalFlightHours ?? ""}
                     onChange={handleEditInputChange}
                     className={`w-full px-3 py-2 border ${darkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300 text-gray-900"} rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
                   />
