@@ -389,25 +389,36 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
 
       {/* Modal para añadir helicóptero */}
       <AddHelicopterModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddHelicopter={handleAddHelicopter}
-      
-      />
+  isOpen={isAddModalOpen}
+  onClose={() => setIsAddModalOpen(false)}
+  onAddHelicopter={handleAddHelicopter}
+  darkMode={darkMode}
+/>
+
 
       {/* Modal para ver detalles del helicóptero */}
-      <HelicopterDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => {
-          setIsDetailsModalOpen(false)
-          setSelectedHelicopter(null)
-          setSelectedHelicopterId(null)
-        }}
-        helicopterId={selectedHelicopterId}
-        helicopter={selectedHelicopter}
-        onUpdateHelicopter={handleUpdateHelicopter}
-        
-      />
+     <HelicopterDetailsModal
+  isOpen={isDetailsModalOpen}
+  onClose={() => {
+    setIsDetailsModalOpen(false)
+    setSelectedHelicopter(null)
+    setSelectedHelicopterId(null)
+  }}
+  helicopterId={selectedHelicopterId}
+  helicopter={selectedHelicopter}
+  onUpdateHelicopter={(updatedPartial) => {
+    if (!selectedHelicopter) return
+
+    // Combinamos los datos previos con los nuevos
+    const fullUpdatedHelicopter: Helicopter = {
+      ...selectedHelicopter,
+      ...updatedPartial,
+    }
+
+    void handleUpdateHelicopter(fullUpdatedHelicopter)
+  }}
+/>
+
     </div>
   )
 }
