@@ -106,7 +106,8 @@ const EditDestinationModal: React.FC<EditDestinationModalProps> = ({
         name: formData.name.trim(),
         latitude: Number.parseFloat(formData.latitude),
         longitude: Number.parseFloat(formData.longitude),
-        altitude: formData.altitude ? Number.parseFloat(formData.altitude) : null,
+        altitude: formData.altitude ? Number.parseFloat(formData.altitude) : undefined,
+
         active: formData.active,
       }
 
@@ -137,7 +138,7 @@ const EditDestinationModal: React.FC<EditDestinationModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="max-w-2xl">
+    <Modal  title="Editar Destino" isOpen={isOpen} onClose={handleClose} maxWidth="max-w-2xl">
       <div className={`p-6 ${darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold flex items-center gap-2">
