@@ -291,7 +291,7 @@ export class ApiService {
     })
   }
 
-  async deleteHelicopter(id: string, token: string): Promise<{ message: string }> {
+  async deleteHelicopter(id: number, token: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/helicopters/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(token),
