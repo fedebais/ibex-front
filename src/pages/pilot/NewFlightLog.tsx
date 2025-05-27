@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useUser } from "../../context/UserContext"
-import { createFlightLog, getClients, getDestinations, getHelicopters, getPilots } from "../../services/api"
+import { createFlightLog, getClients, getDestinations, getHelicopters, getPilots, createDestination } from "../../services/api"
 import type { NewFlightLog, FlightStatus, PaymentStatus, Client, Destination, Helicopter } from "../../types/api"
 
 interface NewFlightLogProps {
@@ -12,7 +12,7 @@ interface NewFlightLogProps {
 }
 
 const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
-  const { user } = useUser()
+  const { accessToken, user } = useUser()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState<string>("")
@@ -33,13 +33,13 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Estados para origen y destino con autocompletado
   const [originInput, setOriginInput] = useState<string>("")
-  const [originId, setOriginId] = useState<string>("")
+    const [originId, setOriginId] = useState<number | "">("")
   const [originResults, setOriginResults] = useState<Destination[]>([])
   const [showOriginResults, setShowOriginResults] = useState(false)
   const [customOrigin, setCustomOrigin] = useState(false)
 
   const [destinationInput, setDestinationInput] = useState<string>("")
-  const [destinationId, setDestinationId] = useState<string>("")
+  const [destinationId, setDestinationId] = useState<number | "">("")
   const [destinationResults, setDestinationResults] = useState<Destination[]>([])
   const [showDestinationResults, setShowDestinationResults] = useState(false)
   const [customDestination, setCustomDestination] = useState(false)
@@ -78,7 +78,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Función para obtener el token de acceso
   const getAccessToken = (): string | null => {
-    return user?.accessToken || localStorage.getItem("ibex_access_token")
+    return accessToken || localStorage.getItem("ibex_access_token")
   }
 
   // Cargar datos desde la API
@@ -208,12 +208,13 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   }, [initialOdometer, finalOdometer])
 
   // Manejar selección de origen
-  const handleOriginSelect = (destination: Destination) => {
-    setOriginInput(destination.name)
-    setOriginId(destination.id)
-    setShowOriginResults(false)
-    setCustomOrigin(false)
-  }
+const handleOriginSelect = (origin: Destination) => {
+  setOriginInput(origin.name)
+  setOriginId(origin.id) 
+  setShowOriginResults(false)
+  setCustomOrigin(false)
+}
+
 
   // Manejar selección de destino
   const handleDestinationSelect = (destination: Destination) => {
@@ -377,20 +378,52 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
         throw new Error("Debe ingresar los tiempos de puesta en marcha y corte")
       }
 
+         let finalOriginId = originId
+      if (customOrigin && originInput) {
+        const originPayload = {
+          name: originInput.trim(),
+          latitude: 0,
+          longitude: 0,
+          altitude: 0,
+          active: true,
+        }
+      
+        const newOrigin = await createDestination(originPayload, accessToken)
+        finalOriginId = newOrigin.id
+      }
+      
+      let finalDestinationId = destinationId
+      if (customDestination && destinationInput) {
+        const destinationPayload = {
+          name: destinationInput.trim(),
+          latitude: 0,
+          longitude: 0,
+          altitude: 0,
+          active: true,
+        }
+      
+        const newDestination = await createDestination(destinationPayload, accessToken)
+        finalDestinationId = newDestination.id
+      }
+      
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
         pilotId: currentPilotId, // Usar currentPilotId en lugar de Number(pilotId)
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
-        destinationId: destinationId ? Number(destinationId) : undefined,
-        date: new Date(`${flightDate}T00:00:00Z`),
+        originId: finalOriginId ? Number(finalOriginId) : undefined,
+destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
+         date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
+        startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
+        landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
         duration: calculateDurationInMinutes(),
         passengers: passengers ? Number(passengers) : undefined,
         notes: notes.trim() || undefined,
         status: status,
         paymentStatus: "PENDING_INVOICE" as PaymentStatus,
-        startTime: convertTimeToDateTime(startupTime, flightDate),
-        landingTime: convertTimeToDateTime(shutdownTime, flightDate),
+          odometerPhotoUrl: finalOdometerPhotoPreview || "https://via.placeholder.com/600x400", // o la que prefieras
+       
+       
         odometer: finalOdometer ? Number(finalOdometer) : undefined,
         fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
         hookUsed: false,
