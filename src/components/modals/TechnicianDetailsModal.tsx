@@ -80,7 +80,7 @@ const TechnicianDetailsModal: React.FC<TechnicianDetailsModalProps> = ({ isOpen,
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Especialización</label>
-                <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>{technician.specialization}</p>
+                <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>{technician.specialty}</p>
               </div>
 
               <div>
@@ -96,7 +96,7 @@ const TechnicianDetailsModal: React.FC<TechnicianDetailsModalProps> = ({ isOpen,
                   Años de Experiencia
                 </label>
                 <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                  {technician.experienceYears} años
+                  {technician.yearsOfExperience} años
                 </p>
               </div>
 
@@ -171,10 +171,10 @@ const TechnicianDetailsModal: React.FC<TechnicianDetailsModalProps> = ({ isOpen,
                       {formatDate(maintenance.date)}
                     </span>
                   </div>
-                  {maintenance.helicopter && (
+                  {maintenance.helicopterId && (
                     <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"} mb-1`}>
-                      <span className="font-medium">Helicóptero:</span> {maintenance.helicopter.registration} (
-                      {maintenance.helicopter.model.name})
+                      <span className="font-medium">Helicóptero:</span> {maintenance.helicopterId} (
+                      {maintenance.helicopterId})
                     </p>
                   )}
                   {maintenance.description && (

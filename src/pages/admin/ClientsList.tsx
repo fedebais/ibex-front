@@ -22,7 +22,7 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
-  const { user, accessToken, isAuthenticated } = useUser()
+  const {  accessToken, isAuthenticated } = useUser()
 
   const getAccessToken = (): string | null => {
     // Primero intentar obtener del contexto
@@ -113,7 +113,7 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       )
     })
 
-  const handleAddClient = async (newClient: any) => {
+  const handleAddClient = async () => {
     console.log("Cliente agregado, recargando lista...")
     await loadClients() // Recargar la lista después de agregar
   }

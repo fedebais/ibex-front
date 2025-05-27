@@ -25,7 +25,7 @@ const AddClientModal = ({ isOpen, onClose, onAddClient, darkMode = false }: AddC
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { user, accessToken, isAuthenticated } = useUser()
+  const { accessToken, isAuthenticated } = useUser()
 
   const getAccessToken = (): string | null => {
     // Primero intentar obtener del contexto

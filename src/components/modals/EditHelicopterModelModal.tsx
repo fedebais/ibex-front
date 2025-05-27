@@ -47,7 +47,8 @@ const EditHelicopterModelModal: React.FC<EditHelicopterModelModalProps> = ({ isO
 
     setIsLoading(true)
     try {
-      await updateHelicopterModel(model.id, formData, user.accessToken)
+      if (!accessToken) return
+      await updateHelicopterModel(model.id, formData, accessToken)
       alert("Modelo de helicóptero actualizado exitosamente")
       onSuccess()
       onClose()

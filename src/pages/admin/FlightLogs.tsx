@@ -33,7 +33,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
   const uniquePilots = allFlights
     .filter((flight) => flight.pilot?.user)
     .reduce((acc, flight) => {
-      if (flight.pilot?.user && !acc.find((p) => p.id === flight.pilot.id)) {
+      if (flight.pilot?.user && !acc.find((p) => p.id === flight.pilotId)) {
         acc.push({
           id: flight.pilot.id,
           firstName: flight.pilot.user.firstName,

@@ -420,7 +420,7 @@ async deleteHelicopterModel(id: number, token: string): Promise<{ message: strin
     })
   }
 
-  async deleteDestination(id: string, token: string): Promise<{ message: string }> {
+  async deleteDestination(id: number, token: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/destinations/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(token),

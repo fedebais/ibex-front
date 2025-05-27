@@ -14,7 +14,7 @@ interface AddHelicopterModelModalProps {
 }
 
 const AddHelicopterModelModal: React.FC<AddHelicopterModelModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { user } = useUser()
+  const { accessToken } = useUser()
   const { darkMode } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,7 +24,7 @@ const AddHelicopterModelModal: React.FC<AddHelicopterModelModalProps> = ({ isOpe
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const token = user?.accessToken || localStorage.getItem("ibex_access_token")
+    const token = accessToken || localStorage.getItem("ibex_access_token")
 
     if (!token) {
       alert("No hay token de acceso disponible")
