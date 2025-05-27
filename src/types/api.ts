@@ -208,6 +208,26 @@ export interface Helicopter {
   ceilingMeters: number | null
 }
 
+export interface MaintenanceFormData {
+  type: string
+  name: string
+  date: string
+  details: string
+  technician: string
+
+  
+}
+
+export interface EditHelicopterFormData {
+  model: string
+  registration: string
+  manufactureYear: number | null
+  totalFlightHours: number | null
+  status: HelicopterStatus
+  imageUrl: string
+}
+
+
 export interface CreateHelicopterInput {
   modelId: number
   registration: string

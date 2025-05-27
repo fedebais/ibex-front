@@ -5,7 +5,7 @@ import Modal from "../ui/Modal"
 import { useState, useEffect } from "react"
 import { useUser } from "../../context/UserContext"
 import { getMaintenanceByHelicopterId, createMaintenance, updateHelicopter, deleteHelicopter } from "../../services/api"
-import type { Helicopter, Maintenance } from "../../types/api"
+import type { Helicopter, Maintenance , MaintenanceFormData , EditHelicopterFormData  } from "../../types/api"
 
 interface HelicopterDetailsModalProps {
   isOpen: boolean
@@ -15,28 +15,9 @@ interface HelicopterDetailsModalProps {
   darkMode?: boolean
   onUpdateHelicopter?: (updatedHelicopter: Helicopter) => void
   onDelete?: (helicopterId: number) => void
-  onAddMaintenance?: (
-    helicopterId: number,
-    maintenance: { type: string; name: string; date: string; details: string; technician: string },
-  ) => void
+  
 }
 
-interface MaintenanceFormData {
-  type: string
-  name: string
-  date: string
-  details: string
-  technician: string
-}
-
-interface EditHelicopterFormData {
-  model: string
-  registration: string
-  manufactureYear: number
-  totalFlightHours: number
-  status: string
-  imageUrl: string
-}
 
 const HelicopterDetailsModal = ({
   isOpen,
@@ -46,9 +27,8 @@ const HelicopterDetailsModal = ({
   darkMode = false,
   onUpdateHelicopter,
   onDelete,
-  onAddMaintenance,
 }: HelicopterDetailsModalProps) => {
-  const { user } = useUser()
+  const { accessToken, user } = useUser()
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [maintenanceData, setMaintenanceData] = useState<MaintenanceFormData>({
@@ -85,12 +65,12 @@ const HelicopterDetailsModal = ({
   useEffect(() => {
     if (helicopter) {
       setEditHelicopterData({
-        model: helicopter.model,
-        registration: helicopter.registration,
-        manufactureYear: helicopter.manufactureYear,
-        totalFlightHours: helicopter.totalFlightHours,
-        status: helicopter.status,
-        imageUrl: helicopter.imageUrl || "",
+         model: helicopter.model.name,
+  registration: helicopter.registration,
+  manufactureYear: helicopter.manufactureYear ?? null,
+  totalFlightHours: helicopter.totalFlightHours ?? null,
+  status: helicopter.status ?? "ACTIVE",
+  imageUrl: helicopter.imageUrl || "",
       })
     }
   }, [helicopter])
@@ -102,7 +82,7 @@ const HelicopterDetailsModal = ({
     setError(null)
 
     try {
-      const maintenanceData = await getMaintenanceByHelicopterId(helicopterId, user.accessToken)
+      const maintenanceData = await getMaintenanceByHelicopterId(helicopterId, accessToken)
       setMaintenanceHistory(maintenanceData)
     } catch (err) {
       console.error("Error al cargar el historial de mantenimiento:", err)
@@ -115,7 +95,10 @@ const HelicopterDetailsModal = ({
   if (!isOpen) return null
   if (!helicopterId || !helicopter) return null
 
-  const lastMaintenanceDate = new Date(helicopter.lastMaintenance)
+const lastMaintenanceDate = helicopter.lastMaintenance
+  ? new Date(helicopter.lastMaintenance)
+  : new Date()
+
   const today = new Date()
   const diffTime = Math.abs(today.getTime() - lastMaintenanceDate.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -176,7 +159,7 @@ const HelicopterDetailsModal = ({
         date: new Date(maintenanceData.date).toISOString(),
       }
 
-      await createMaintenance(newMaintenance, user.accessToken)
+      await createMaintenance(newMaintenance, accessToken)
 
       await loadMaintenanceHistory()
 
@@ -233,7 +216,7 @@ const HelicopterDetailsModal = ({
         imageUrl: editHelicopterData.imageUrl,
       }
 
-      await updateHelicopter(helicopterId, updatedHelicopter, user.accessToken)
+      await updateHelicopter(helicopterId, updatedHelicopter, accessToken)
 
       if (onUpdateHelicopter) {
         onUpdateHelicopter(updatedHelicopter)
@@ -362,13 +345,18 @@ const HelicopterDetailsModal = ({
                     Año de Fabricación
                   </label>
                   <input
-                    type="number"
-                    id="manufactureYear"
-                    name="manufactureYear"
-                    value={editHelicopterData.manufactureYear}
-                    onChange={handleEditInputChange}
-                    className={`w-full px-3 py-2 border ${darkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300 text-gray-900"} rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
-                  />
+  type="number"
+  id="manufactureYear"
+  name="manufactureYear"
+  value={editHelicopterData.manufactureYear}
+  onChange={(e) =>
+    setEditHelicopterData({
+      ...editHelicopterData,
+      manufactureYear: Number(e.target.value),
+    })
+  }
+/>
+
                 </div>
 
                 <div>
@@ -402,8 +390,10 @@ const HelicopterDetailsModal = ({
                     onChange={handleEditInputChange}
                     className={`w-full px-3 py-2 border ${darkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300 text-gray-900"} rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500`}
                   >
-                    <option value="Activo">Activo</option>
-                    <option value="Mantenimiento">En Mantenimiento</option>
+                   <option value="ACTIVE">Activo</option>
+<option value="MAINTENANCE">En Mantenimiento</option>
+<option value="INACTIVE">Inactivo</option>
+
                   </select>
                 </div>
 
