@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
-import { getPilotById, getFlightLogsByPilotId, getHelicopterById } from "../../services/api"
+import { getPilotById, getFlightLogsByPilotId } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot, FlightLog, Helicopter } from "../../types/api"
 
@@ -25,7 +25,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
   // Debug logs
   console.log("PilotDetailsModal - Props:", { isOpen, pilotId })
   console.log("PilotDetailsModal - User:", user)
-  console.log("PilotDetailsModal - AccessToken:", user?.accessToken)
+  console.log("PilotDetailsModal - AccessToken:", accessToken)
 
   // Cargar datos del piloto
   useEffect(() => {
@@ -66,7 +66,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
       try {
         console.log("PilotDetailsModal - Calling getPilotById with:", { pilotId, token: accessToken })
 
-        // Cargar datos del piloto
+        // Cargar datos del pilotox
         const pilotData = await getPilotById(pilotId, accessToken)
         console.log("PilotDetailsModal - Pilot data received:", pilotData)
         setPilot(pilotData)
@@ -77,13 +77,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         console.log("PilotDetailsModal - Flight logs received:", flightsData)
         setPilotFlights(flightsData)
 
-        // Cargar datos del helicóptero asignado
-        if (pilotData.helicopterId) {
-          console.log("PilotDetailsModal - Loading helicopter data for ID:", pilotData.helicopterId)
-          const helicopterData = await getHelicopterById(pilotData.helicopterId, accessToken)
-          console.log("PilotDetailsModal - Helicopter data received:", helicopterData)
-          setHelicopter(helicopterData)
-        }
+       
       } catch (err) {
         console.error("PilotDetailsModal - Error loading pilot data:", err)
         setError("No se pudieron cargar los datos del piloto. Por favor, intente nuevamente.")
@@ -108,8 +102,8 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
 
   // Calcular estadísticas
   const totalFlights = pilotFlights.length
-  const completedFlights = pilotFlights.filter((f) => f.status === "Completado").length
-  const scheduledFlights = pilotFlights.filter((f) => f.status === "Programado").length
+  const completedFlights = pilotFlights.filter((f) => f.status === "COMPLETED").length
+  const scheduledFlights = pilotFlights.filter((f) => f.status === "SCHEDULED").length
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
@@ -208,7 +202,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                       {pilot.user.firstName} {pilot.user.lastName}
                     </h3>
                     <p className={`text-sm sm:text-base ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                      {pilot.email}
+                      {pilot.user.email}
                     </p>
                     <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Piloto</p>
                   </div>
@@ -236,7 +230,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                     <div>
                       <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</p>
                       <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {pilot.phone}
+                        {pilot.user.phone}
                       </p>
                     </div>
                     <div>
@@ -294,17 +288,17 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                     <div className="flex-shrink-0">
                       <img
                         src={helicopter.imageUrl || "/placeholder.svg"}
-                        alt={helicopter.model}
+                        alt={helicopter.model.name}
                         className="h-16 w-16 object-cover rounded-md"
                       />
                     </div>
                     <div>
                       <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {helicopter.model} - {helicopter.registration}
+                        {helicopter.model.name} - {helicopter.registration}
                       </p>
                       <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                         Estado:{" "}
-                        <span className={helicopter.status === "Activo" ? "text-green-500" : "text-yellow-500"}>
+                        <span className={helicopter.status === "ACTIVE" ? "text-green-500" : "text-yellow-500"}>
                           {helicopter.status}
                         </span>
                       </p>
@@ -434,7 +428,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                           <td className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm`}>
                             <span
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                flight.status === "Completado"
+                                flight.status === "COMPLETED"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-yellow-100 text-yellow-800"
                               }`}
