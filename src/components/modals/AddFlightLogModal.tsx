@@ -1134,7 +1134,8 @@ const handleOriginSelect = (origin: Destination) => {
               <select
                 id="flightStatus"
                 value={flightStatus}
-                onChange={(e) => setFlightStatus(e.target.value)}
+               onChange={(e) => setFlightStatus(e.target.value as FlightStatus)}
+
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"

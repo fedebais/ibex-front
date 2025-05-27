@@ -158,6 +158,7 @@ export interface NewFlightLog {
   pilotId: number
   helicopterId: number
   clientId: number
+  originId: number
   destinationId: number
   date: string
   duration: number
