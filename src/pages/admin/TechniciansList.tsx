@@ -65,13 +65,13 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
           technician.user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           technician.user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           technician.user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          technician.specialization?.toLowerCase().includes(searchTerm.toLowerCase()),
+          technician.specialty?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
     // Filtro por especialización
     if (specializationFilter) {
-      filtered = filtered.filter((technician) => technician.specialization === specializationFilter)
+      filtered = filtered.filter((technician) => technician.specialty === specializationFilter)
     }
 
     // Filtro por estado
@@ -132,7 +132,7 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
   }
 
   const getUniqueSpecializations = () => {
-    const specializations = technicians.map((t) => t.specialization).filter(Boolean)
+    const specializations = technicians.map((t) => t.specialty).filter(Boolean)
     return [...new Set(specializations)]
   }
 
@@ -308,11 +308,11 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
               <div className="space-y-3 mb-4">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm">{technician.specialization}</span>
+                  <span className="text-sm">{technician.specialty}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm">{technician.experienceYears} años de experiencia</span>
+                  <span className="text-sm">{technician.yearsOfExperience} años de experiencia</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-orange-500" />
