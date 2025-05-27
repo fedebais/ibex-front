@@ -13,7 +13,7 @@ interface HelicopterDetailsModalProps {
   helicopterId: number | null
   helicopter: Helicopter | null
   darkMode?: boolean
-  onUpdateHelicopter?: (updatedHelicopter: Helicopter) => void
+  onUpdateHelicopter: (updated: Partial<Helicopter>) => void
   onDelete?: (helicopterId: number) => void
   
 }
@@ -39,6 +39,7 @@ const HelicopterDetailsModal = ({
     technician: user?.firstName ? `${user.firstName} ${user.lastName}` : "",
   })
   const [editHelicopterData, setEditHelicopterData] = useState<EditHelicopterFormData>({
+    modelId:0,
     model: "",
     registration: "",
     manufactureYear: 0,
@@ -66,6 +67,7 @@ const HelicopterDetailsModal = ({
   useEffect(() => {
     if (helicopter) {
       setEditHelicopterData({
+        modelId: helicopter.modelId,
          model: helicopter.model.name,
   registration: helicopter.registration,
   manufactureYear: helicopter.manufactureYear ?? null,
@@ -182,10 +184,11 @@ const lastMaintenanceDate = helicopter.lastMaintenance
     e.preventDefault()
     setEditFormError("")
 
-    if (!editHelicopterData.model.trim()) {
-      setEditFormError("El modelo es obligatorio")
-      return
-    }
+  if (!editHelicopterData.modelId || editHelicopterData.modelId === 0) {
+  setEditFormError("Debe seleccionar un modelo válido")
+  return
+}
+
     if (!editHelicopterData.registration.trim()) {
       setEditFormError("La matrícula es obligatoria")
       return
@@ -208,15 +211,14 @@ const lastMaintenanceDate = helicopter.lastMaintenance
     try {
       setIsUpdating(true)
 
-      const updatedHelicopter = {
-        ...helicopter,
-        model: editHelicopterData.model,
-        registration: editHelicopterData.registration,
-        manufactureYear: editHelicopterData.manufactureYear,
-        totalFlightHours: editHelicopterData.totalFlightHours,
-        status: editHelicopterData.status,
-        imageUrl: editHelicopterData.imageUrl,
-      }
+  const updatedHelicopter = {
+  registration: editHelicopterData.registration,
+  manufactureYear: editHelicopterData.manufactureYear,
+  totalFlightHours: editHelicopterData.totalFlightHours,
+  status: editHelicopterData.status,
+  imageUrl: editHelicopterData.imageUrl,
+  modelId: editHelicopterData.modelId,
+} as Partial<Helicopter> // ✅ casting explícito
 
       await updateHelicopter(helicopterId!, updatedHelicopter, accessToken)
 

@@ -231,6 +231,7 @@ export interface MaintenanceFormData {
 }
 
 export interface EditHelicopterFormData {
+  modelId: number
   model: string
   registration: string
   manufactureYear: number | null
