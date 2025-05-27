@@ -465,9 +465,10 @@ const lastMaintenanceDate = helicopter.lastMaintenance
 
                 <div
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    helicopter.status.toLowerCase() === "activo"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800"
+                   (helicopter.status ?? "").toLowerCase() === "activo"
+  ? "bg-green-100 text-green-800"
+  : "bg-yellow-100 text-yellow-800"}
+
                   }`}
                 >
                   {helicopter.status}
@@ -500,7 +501,8 @@ const lastMaintenanceDate = helicopter.lastMaintenance
                 <div>
                   <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Último Mantenimiento</p>
                   <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                    {new Date(helicopter.lastMaintenance).toLocaleDateString("es-ES")}
+                    {lastMaintenanceDate.toLocaleDateString("es-ES")
+}
                   </p>
                 </div>
                 <div>
@@ -525,7 +527,7 @@ const lastMaintenanceDate = helicopter.lastMaintenance
                   <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Próximo Mantenimiento</p>
                   <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
                     {new Date(
-                      new Date(helicopter.lastMaintenance).setDate(lastMaintenanceDate.getDate() + 180),
+                      new Date(lastMaintenanceDate.getTime()).setDate(lastMaintenanceDate.getDate() + 180),
                     ).toLocaleDateString("es-ES")}
                   </p>
                 </div>
