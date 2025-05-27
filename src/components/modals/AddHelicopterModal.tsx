@@ -12,8 +12,9 @@ interface AddHelicopterModalProps {
   isOpen: boolean
   onClose: () => void
   onAddHelicopter: (newHelicopter: any) => void
-  
+  darkMode: boolean
 }
+
 
 const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterModalProps) => {
   const {  accessToken, isLoading: userLoading } = useUser()
@@ -236,7 +237,8 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
               <label htmlFor="status" className={labelClasses}>
                 Estado
               </label>
-              <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} className={inputClasses}>
+              <select id="status" value={status} onChange={(e) => setStatus(e.target.value as HelicopterStatus)}
+ className={inputClasses}>
                 <option value="ACTIVE">Activo</option>
                 <option value="MAINTENANCE">En Mantenimiento</option>
                 <option value="INACTIVE">Inactivo</option>

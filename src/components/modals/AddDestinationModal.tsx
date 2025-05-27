@@ -92,12 +92,13 @@ const AddDestinationModal: React.FC<AddDestinationModalProps> = ({ isOpen, onClo
       console.log("📤 Enviando datos del destino:", formData)
 
       const destinationData = {
-        name: formData.name.trim(),
-        latitude: Number.parseFloat(formData.latitude),
-        longitude: Number.parseFloat(formData.longitude),
-        altitude: formData.altitude ? Number.parseFloat(formData.altitude) : null,
-        active: formData.active,
-      }
+  name: formData.name.trim(),
+  latitude: Number.parseFloat(formData.latitude),
+  longitude: Number.parseFloat(formData.longitude),
+  altitude: formData.altitude ? Number.parseFloat(formData.altitude) : 0,
+  active: formData.active,
+}
+
 
       const newDestination = await createDestination(destinationData, token)
       console.log("✅ Destino creado exitosamente:", newDestination)
