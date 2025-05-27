@@ -392,7 +392,7 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddHelicopter={handleAddHelicopter}
-        darkMode={darkMode}
+      
       />
 
       {/* Modal para ver detalles del helicóptero */}
@@ -406,7 +406,7 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
         helicopterId={selectedHelicopterId}
         helicopter={selectedHelicopter}
         onUpdateHelicopter={handleUpdateHelicopter}
-        darkMode={darkMode}
+        
       />
     </div>
   )

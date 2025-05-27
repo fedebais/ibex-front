@@ -12,6 +12,7 @@ interface AddHelicopterModalProps {
   isOpen: boolean
   onClose: () => void
   onAddHelicopter: (newHelicopter: any) => void
+  darkMode: boolean
 }
 
 const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterModalProps) => {

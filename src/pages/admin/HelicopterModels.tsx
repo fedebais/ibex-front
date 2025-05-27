@@ -11,7 +11,7 @@ import EditHelicopterModelModal from "../../components/modals/EditHelicopterMode
 import { Plus, Edit, Trash2, Search } from "lucide-react"
 
 const HelicopterModels: React.FC = () => {
-  const { user, accessToken } = useUser()
+  const { accessToken } = useUser()
   const { darkMode } = useTheme()
   const [models, setModels] = useState<HelicopterModel[]>([])
   const [filteredModels, setFilteredModels] = useState<HelicopterModel[]>([])

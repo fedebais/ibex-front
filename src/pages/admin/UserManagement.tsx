@@ -39,13 +39,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
 
   // Cargar usuarios
   useEffect(() => {
-    // Añadir status a los usuarios si no lo tienen
-    const usersWithStatus = mockUsers.map((user) => ({
-      ...user,
-      status: user.status || "active",
-    }))
-    setUsers(usersWithStatus)
-    setFilteredUsers(usersWithStatus)
+
+  setUsers(mockUsers)
+setFilteredUsers(mockUsers)
+
   }, [])
 
   // Filtrar usuarios
