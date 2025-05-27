@@ -283,7 +283,7 @@ export class ApiService {
     })
   }
 
-  async updateHelicopter(id: string, data: Partial<Helicopter>, token: string): Promise<Helicopter> {
+  async updateHelicopter(id: number, data: Partial<Helicopter>, token: string): Promise<Helicopter> {
     return this.makeRequest<Helicopter>(`/helicopters/${id}`, {
       method: "PUT",
       headers: this.getAuthHeaders(token),

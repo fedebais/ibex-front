@@ -43,7 +43,8 @@ const HelicopterDetailsModal = ({
     registration: "",
     manufactureYear: 0,
     totalFlightHours: 0,
-    status: "",
+   status: "ACTIVE",
+
     imageUrl: "",
   })
   const [formError, setFormError] = useState("")
