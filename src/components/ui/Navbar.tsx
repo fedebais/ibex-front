@@ -60,7 +60,7 @@ const Navbar = ({ darkMode, toggleDarkMode, isSidebarCollapsed }: NavbarProps) =
 
           <div className="hidden md:flex items-center">
             <span className={`text-base font-normal mr-5 ${darkMode ? "text-gray-300" : "text-gray-500"}`}>
-              {user?.role === "pilot" ? "Piloto" : user?.role === "admin" ? "Administrador" : "Operador"}
+              {user?.role === "PILOT" ? "Piloto" : user?.role === "ADMIN" ? "Administrador" : "Operador"}
             </span>
           </div>
 
@@ -71,14 +71,14 @@ const Navbar = ({ darkMode, toggleDarkMode, isSidebarCollapsed }: NavbarProps) =
                 darkMode ? "text-gray-300" : "text-gray-500"
               }`}
             >
-              {user?.avatar ? (
-                <img src={user.avatar || "/placeholder.svg"} className="w-8 h-8 rounded-full" alt={user.name} />
+              {user?.profileImage ? (
+                <img src={user.profileImage || "/placeholder.svg"} className="w-8 h-8 rounded-full" alt={user.firstName} />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white">
-                  {user?.name?.charAt(0)}
+                  {user?.firstName?.charAt(0)}
                 </div>
               )}
-              <span className="ml-2 text-sm font-medium hidden md:block">{user?.name}</span>
+              <span className="ml-2 text-sm font-medium hidden md:block">{user?.firstName}</span>
             </button>
 
             {showDropdown && (

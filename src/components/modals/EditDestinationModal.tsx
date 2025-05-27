@@ -22,7 +22,7 @@ const EditDestinationModal: React.FC<EditDestinationModalProps> = ({
   destination,
   darkMode,
 }) => {
-  const { user, accessToken, isAuthenticated } = useUser()
+  const { accessToken, isAuthenticated } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({

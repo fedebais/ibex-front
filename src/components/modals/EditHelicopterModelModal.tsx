@@ -17,7 +17,7 @@ interface EditHelicopterModelModalProps {
 }
 
 const EditHelicopterModelModal: React.FC<EditHelicopterModelModalProps> = ({ isOpen, onClose, onSuccess, model }) => {
-  const { user } = useUser()
+  const { accessToken } = useUser()
   const { darkMode } = useTheme()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -35,7 +35,7 @@ const EditHelicopterModelModal: React.FC<EditHelicopterModelModalProps> = ({ isO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!user?.accessToken || !model) {
+    if (!accessToken || !model) {
       alert("No hay token de acceso disponible o modelo seleccionado")
       return
     }
@@ -47,7 +47,8 @@ const EditHelicopterModelModal: React.FC<EditHelicopterModelModalProps> = ({ isO
 
     setIsLoading(true)
     try {
-      if (!accessToken) return
+    
+  
       await updateHelicopterModel(model.id, formData, accessToken)
       alert("Modelo de helicóptero actualizado exitosamente")
       onSuccess()
@@ -66,7 +67,7 @@ const EditHelicopterModelModal: React.FC<EditHelicopterModelModalProps> = ({ isO
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} maxWidth="max-w-md">
+    <Modal title="Edit Model" isOpen={isOpen} onClose={handleClose} maxWidth="max-w-md">
       <div className={`p-6 ${darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
