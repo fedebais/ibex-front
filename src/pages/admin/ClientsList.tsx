@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClients, type Client } from "../../services/api"
+import { getClients } from "../../services/api"
+import type { Client } from "../../types/api"
 import { getClientFlights } from "../../data/mockData"
 import AddClientModal from "../../components/modals/AddClientModal"
 import ClientDetailsModal from "../../components/modals/ClientDetailsModal"
