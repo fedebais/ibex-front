@@ -223,9 +223,13 @@ const lastMaintenanceDate = helicopter.lastMaintenance
       await updateHelicopter(helicopterId!, updatedHelicopter, accessToken)
 
 
-      if (onUpdateHelicopter) {
-        onUpdateHelicopter(updatedHelicopter)
-      }
+     if (onUpdateHelicopter) {
+  onUpdateHelicopter({
+    ...helicopter,             // objeto completo original con campos obligatorios como id y model
+    ...updatedHelicopter,      // campos modificados
+  })
+}
+
 
       setShowEditForm(false)
     } catch (err) {
