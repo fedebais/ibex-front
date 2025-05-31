@@ -39,7 +39,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
 
   // Cargar usuarios
   useEffect(() => {
-
   setUsers(mockUsers)
 setFilteredUsers(mockUsers)
 

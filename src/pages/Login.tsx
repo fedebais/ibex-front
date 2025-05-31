@@ -21,7 +21,8 @@ const Login = () => {
 
     try {
       console.log("Intentando login con:", email)
-      const success = await login(email, password)
+      const success = await login(email.trim().toLowerCase(), password.trim())
+
       console.log("Resultado del login:", success)
 
       if (success) {
@@ -77,6 +78,9 @@ const Login = () => {
                 <input
                   id="email"
                   type="email"
+                  autoCapitalize="none"
+  autoCorrect="off"
+  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
@@ -92,6 +96,9 @@ const Login = () => {
                 <input
                   id="password"
                   type="password"
+                  autoCapitalize="none"
+  autoCorrect="off"
+  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
