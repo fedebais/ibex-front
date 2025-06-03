@@ -3,7 +3,7 @@
 import type React from "react"
 import Modal from "../ui/Modal"
 import type { Technician } from "../../types/api"
-import { User, Calendar, Award, Clock, Phone, Mail, Wrench, FileText } from "lucide-react"
+import { User, Calendar, Award, Clock, Phone, Mail } from "lucide-react"
 
 interface TechnicianDetailsModalProps {
   isOpen: boolean
@@ -113,117 +113,18 @@ const TechnicianDetailsModal: React.FC<TechnicianDetailsModalProps> = ({ isOpen,
           </div>
         </div>
 
-        {/* Certificaciones */}
-        {technician.certifications && technician.certifications.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <FileText className="w-5 h-5 text-orange-500" />
-              Certificaciones
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {technician.certifications.map((cert) => (
-                <div
-                  key={cert.id}
-                  className={`p-4 rounded-lg border ${
-                    darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <h4 className="font-medium mb-2">{cert.name}</h4>
-                  <div className="space-y-1 text-sm">
-                    <p className={darkMode ? "text-gray-300" : "text-gray-600"}>
-                      <span className="font-medium">Emitida:</span> {formatDate(cert.issuedDate)}
-                    </p>
-                    {cert.expiryDate && (
-                      <p className={darkMode ? "text-gray-300" : "text-gray-600"}>
-                        <span className="font-medium">Expira:</span> {formatDate(cert.expiryDate)}
-                      </p>
-                    )}
-                    {cert.issuingAuthority && (
-                      <p className={darkMode ? "text-gray-300" : "text-gray-600"}>
-                        <span className="font-medium">Autoridad:</span> {cert.issuingAuthority}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Historial de Mantenimientos */}
-        {technician.maintenanceRecords && technician.maintenanceRecords.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-orange-500" />
-              Historial de Mantenimientos
-            </h3>
-            <div className="space-y-3 max-h-60 overflow-y-auto">
-              {technician.maintenanceRecords.map((maintenance) => (
-                <div
-                  key={maintenance.id}
-                  className={`p-4 rounded-lg border ${
-                    darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium">{maintenance.type}</h4>
-                    <span className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                      {formatDate(maintenance.date)}
-                    </span>
-                  </div>
-                  {maintenance.helicopterId && (
-                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"} mb-1`}>
-                      <span className="font-medium">Helicóptero:</span> {maintenance.helicopterId} (
-                      {maintenance.helicopterId})
-                    </p>
-                  )}
-                  {maintenance.description && (
-                    <p className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                      {maintenance.description}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Fechas de registro */}
-        {(technician.createdAt || technician.updatedAt) && (
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              {technician.createdAt && (
-                <div>
-                  <span className="font-medium">Registrado:</span>
-                  <span className={`ml-2 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                    {formatDate(technician.createdAt)}
-                  </span>
-                </div>
-              )}
-              {technician.updatedAt && (
-                <div>
-                  <span className="font-medium">Última actualización:</span>
-                  <span className={`ml-2 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                    {formatDate(technician.updatedAt)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Estado */}
         <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Estado:</span>
             <span
               className={`px-2 py-1 rounded-full text-xs font-medium ${
-                technician.user.active
+                technician.active
                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                   : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
               }`}
             >
-              {technician.user.active ? "Activo" : "Inactivo"}
+              {technician.active ? "Activo" : "Inactivo"}
             </span>
           </div>
         </div>

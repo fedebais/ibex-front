@@ -23,9 +23,14 @@ export type FlightStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED"
 export type PaymentStatus = "PENDING_INVOICE" | "INVOICED" | "PENDING_PAYMENT" | "PAID"
 export type HelicopterStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE"
 // Enums reflejando los del schema Prisma
-export type TechnicianSpecialty = | 'MOTORES' | 'AVIONICA' | 'ESTRUCTURAS' | 'SISTEMAS_HIDRAULICOS' | 'SISTEMAS_ELECTRICOS' | 'MANTENIMIENTO_GENERAL'
-export type CertificationLevel = 'BASICO' | 'INTERMEDIO' | 'AVANZADO' | 'EXPERTO'
-
+export type TechnicianSpecialty =
+  | "MOTORES"
+  | "AVIONICA"
+  | "ESTRUCTURAS"
+  | "SISTEMAS_HIDRAULICOS"
+  | "SISTEMAS_ELECTRICOS"
+  | "MANTENIMIENTO_GENERAL"
+export type CertificationLevel = "BASICO" | "INTERMEDIO" | "AVANZADO" | "EXPERTO"
 
 export interface User {
   id: number
@@ -94,19 +99,16 @@ export interface CreatePilotInput {
   }[]
 }
 
-
+// Actualizado para coincidir con la respuesta real de la API
 export interface Technician {
   id: number
   userId: number
-  specialty: TechnicianSpecialty
+  specialty: TechnicianSpecialty // Cambiado de specialization a specialty
   certificationLevel: CertificationLevel
-  yearsOfExperience: number
+  yearsOfExperience: number // Cambiado de experienceYears a yearsOfExperience
   lastCertification: string
+  active: boolean // Campo directo en el técnico
   user: User
-  certifications?: Certification[] // <-- si vas a mostrarlas
-  maintenanceRecords?: Maintenance[] // <-- si vas a mostrarlos
-  createdAt?: string
-  updatedAt?: string
 }
 
 export interface Certification {
@@ -116,7 +118,6 @@ export interface Certification {
   expiryDate?: string
   issuingAuthority?: string
 }
-
 
 // Tipo para crear técnico
 export interface CreateTechnicianInput {
@@ -226,8 +227,6 @@ export interface MaintenanceFormData {
   date: string
   details: string
   technician: string
-
-  
 }
 
 export interface EditHelicopterFormData {
@@ -239,7 +238,6 @@ export interface EditHelicopterFormData {
   status: HelicopterStatus
   imageUrl: string
 }
-
 
 export interface CreateHelicopterInput {
   modelId: number
@@ -275,7 +273,6 @@ export interface Maintenance {
   updatedAt?: string
 }
 
-
 export interface Destination {
   id: number
   name: string
@@ -284,7 +281,6 @@ export interface Destination {
   altitude: number
   active: boolean
 }
-
 
 // Tipos para estadísticas
 export interface StatsParams {

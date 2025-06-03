@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getClients } from "../../services/api"
+import { getClients, deleteClient } from "../../services/api"
 import type { Client } from "../../types/api"
 import { getClientFlights } from "../../data/mockData"
 import AddClientModal from "../../components/modals/AddClientModal"
 import ClientDetailsModal from "../../components/modals/ClientDetailsModal"
-import { Building2, User, Phone, Mail, MapPin } from "lucide-react"
+import { Building2, User, Phone, Mail, MapPin, Trash2 } from "lucide-react"
 import { useUser } from "../../context/UserContext"
 
 interface ClientsListProps {
@@ -22,8 +22,9 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const {  accessToken, isAuthenticated } = useUser()
+  const { accessToken, isAuthenticated } = useUser()
 
   const getAccessToken = (): string | null => {
     // Primero intentar obtener del contexto
@@ -60,7 +61,12 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
 
       const data = await getClients(token)
       console.log("✅ Clientes cargados:", data.length)
-      setClients(data)
+
+      // Filtrar solo clientes activos
+      const activeClients = data.filter((client) => client.active === true)
+      console.log("✅ Clientes activos:", activeClients.length)
+
+      setClients(activeClients)
     } catch (err: any) {
       console.error("❌ Error al cargar clientes:", err)
 
@@ -79,6 +85,47 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDeleteClient = async (clientId: number, clientName: string) => {
+    try {
+      // Prevenir múltiples clicks
+      if (isDeleting) return
+
+      // Confirmar eliminación
+      const confirmed = window.confirm(
+        `¿Estás seguro de que deseas eliminar al cliente "${clientName}"? Esta acción no se puede deshacer.`,
+      )
+      if (!confirmed) return
+
+      setIsDeleting(true)
+
+      const token = getAccessToken()
+      if (!token) {
+        throw new Error("No hay token de autenticación disponible")
+      }
+
+      // Llamar a la API para eliminar
+      await deleteClient(clientId, token)
+
+      // Recargar la lista después de eliminar
+      await loadClients()
+
+      // Mostrar confirmación
+      alert(`Cliente "${clientName}" eliminado correctamente`)
+    } catch (err: any) {
+      console.error("❌ Error al eliminar cliente:", err)
+
+      if (err.message.includes("401") || err.message.includes("Unauthorized")) {
+        alert("Sesión expirada. Por favor, inicia sesión nuevamente.")
+      } else if (err.message.includes("403") || err.message.includes("Forbidden")) {
+        alert("No tienes permisos para eliminar este cliente.")
+      } else {
+        alert("Error al eliminar el cliente: " + (err.message || "Error desconocido"))
+      }
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -162,7 +209,7 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   return (
     <div className="space-y-6 pt-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-2xl font-semibold">Clientes</h1>
+        <h1 className="text-2xl font-semibold">Clientes Activos</h1>
         <button
           onClick={() => setIsAddModalOpen(true)}
           disabled={!isAuthenticated && !localStorage.getItem("ibex_access_token")}
@@ -335,16 +382,33 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
                             {clientFlights.length}
                           </span>
                         </div>
-                        <button
-                          onClick={() => handleViewClient(client.id)}
-                          className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
-                            darkMode
-                              ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                              : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
-                        >
-                          Ver Detalles
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleViewClient(client.id)}
+                            className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
+                              darkMode
+                                ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
+                                : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                          >
+                            Ver Detalles
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteClient(client.id, client.name)
+                            }}
+                            disabled={isDeleting}
+                            className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
+                              darkMode
+                                ? "border-red-800 text-red-300 bg-red-900 hover:bg-red-800"
+                                : "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            Eliminar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -355,7 +419,7 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
             <div
               className={`col-span-full ${darkMode ? "bg-gray-800 text-gray-400 border-gray-700" : "bg-white text-gray-500 border-gray-200"} p-6 text-center rounded-lg shadow border`}
             >
-              No se encontraron clientes con los filtros seleccionados.
+              No se encontraron clientes activos con los filtros seleccionados.
             </div>
           )}
         </div>

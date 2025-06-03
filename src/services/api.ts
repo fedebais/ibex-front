@@ -134,6 +134,26 @@ export class ApiService {
     })
   }
 
+  async updatePilot(id: number, data: Partial<CreatePilotInput>, token: string): Promise<Pilot> {
+  return this.makeRequest<Pilot>(`/pilots/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...this.getAuthHeaders(token),
+    },
+    body: JSON.stringify(data),
+  })
+}
+
+
+
+    async deletePilot(id: number, token: string): Promise<{ message: string }> {
+    return this.makeRequest<{ message: string }>(`/pilots/${id}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
   // ==================== TECHNICIAN ENDPOINTS ====================
 
   async getTechnicians(token: string): Promise<Technician[]> {
@@ -172,12 +192,12 @@ export class ApiService {
     })
   }
 
-  async deleteTechnician(id: number, token: string): Promise<{ message: string }> {
-    return this.makeRequest<{ message: string }>(`/technicians/${id}`, {
-      method: "DELETE",
-      headers: this.getAuthHeaders(token),
-    })
-  }
+async deleteTechnician(id: number, token: string): Promise<Technician> {
+  return this.makeRequest<Technician>(`/technicians/${id}`, {
+    method: "DELETE",
+    headers: this.getAuthHeaders(token),
+  })
+}
 
   // ==================== FLIGHT LOG ENDPOINTS ====================
 
@@ -230,6 +250,13 @@ export class ApiService {
     })
   }
 
+  async getClientById(id: number, token: string): Promise<Client> {
+  return this.makeRequest<Client>(`/clients/${id}`, {
+    method: "GET",
+    headers: this.getAuthHeaders(token),
+  })
+}
+
   async createClient(data: Partial<Client>, token: string): Promise<Client> {
     return this.makeRequest<Client>("/clients", {
       method: "POST",
@@ -244,7 +271,10 @@ export class ApiService {
   async updateClient(id: string, data: Partial<Client>, token: string): Promise<Client> {
     return this.makeRequest<Client>(`/clients/${id}`, {
       method: "PUT",
-      headers: this.getAuthHeaders(token),
+       headers: {
+        "Content-Type": "application/json", // 👈 esto es esencial
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify(data),
     })
   }
@@ -415,7 +445,10 @@ async deleteHelicopterModel(id: number, token: string): Promise<{ message: strin
   async updateDestination(id: string, data: Partial<Destination>, token: string): Promise<Destination> {
     return this.makeRequest<Destination>(`/destinations/${id}`, {
       method: "PUT",
-      headers: this.getAuthHeaders(token),
+      headers: {
+        "Content-Type": "application/json", // 👈 esto es esencial
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify(data),
     })
   }
@@ -498,12 +531,15 @@ export const deleteUser = api.deleteUser.bind(api)
 export const getPilots = api.getPilots.bind(api)
 export const getPilotById = api.getPilotById.bind(api)
 export const createPilot = api.createPilot.bind(api)
+export const updatePilot = api.updatePilot.bind(api)
+export const deletePilot = api.deletePilot.bind(api)
 export const getFlightLogs = api.getFlightLogs.bind(api)
 export const getFlightLogsByPilotId = api.getFlightLogsByPilotId.bind(api)
 export const createFlightLog = api.createFlightLog.bind(api)
 export const updateFlightLog = api.updateFlightLog.bind(api)
 export const deleteFlightLog = api.deleteFlightLog.bind(api)
 export const getClients = api.getClients.bind(api)
+export const getClientById = api.getClientById.bind(api)
 export const createClient = api.createClient.bind(api)
 export const updateClient = api.updateClient.bind(api)
 export const deleteClient = api.deleteClient.bind(api)

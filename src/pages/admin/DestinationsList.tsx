@@ -62,8 +62,12 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
       const data = await getDestinations(token)
       console.log("✅ Destinos cargados exitosamente:", data)
 
-      setDestinations(data)
-      setFilteredDestinations(data)
+      // Filtrar solo destinos activos
+      const activeDestinations = data.filter((destination) => destination.active === true)
+      console.log("🟢 Destinos activos:", activeDestinations.length)
+
+      setDestinations(activeDestinations)
+      setFilteredDestinations(activeDestinations)
     } catch (error: any) {
       console.error("❌ Error al cargar destinos:", error)
 
@@ -102,7 +106,7 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
       filtered = filtered.filter((destination) => destination.name?.toLowerCase().includes(searchTerm.toLowerCase()))
     }
 
-    // Filtrar por estado
+    // Filtrar por estado (aunque ya solo tenemos activos, mantenemos por si cambia la lógica)
     if (statusFilter !== "all") {
       filtered = filtered.filter((destination) => {
         if (statusFilter === "active") return destination.active === true
@@ -115,11 +119,19 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
   }, [destinations, searchTerm, statusFilter])
 
   const handleAddDestination = (newDestination: any) => {
-    setDestinations((prev) => [...prev, newDestination])
+    // Solo añadir si es activo
+    if (newDestination.active) {
+      setDestinations((prev) => [...prev, newDestination])
+    }
   }
 
   const handleUpdateDestination = (updatedDestination: any) => {
-    setDestinations((prev) => prev.map((dest) => (dest.id === updatedDestination.id ? updatedDestination : dest)))
+    // Si el destino actualizado ya no está activo, lo removemos de la lista
+    if (!updatedDestination.active) {
+      setDestinations((prev) => prev.filter((dest) => dest.id !== updatedDestination.id))
+    } else {
+      setDestinations((prev) => prev.map((dest) => (dest.id === updatedDestination.id ? updatedDestination : dest)))
+    }
   }
 
   const handleDeleteDestination = async (destinationId: number) => {
@@ -243,9 +255,8 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
                 darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
               }`}
             >
-              <option value="all">Todos los estados</option>
+              <option value="all">Todos los destinos</option>
               <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
             </select>
             <button
               onClick={clearFilters}
@@ -263,7 +274,7 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
       {/* Contador de resultados */}
       <div className="mb-4">
         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-          Mostrando {filteredDestinations.length} de {destinations.length} destinos
+          Mostrando {filteredDestinations.length} destinos activos
         </p>
       </div>
 
@@ -272,14 +283,12 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
         <div className={`text-center py-12 ${darkMode ? "bg-gray-800" : "bg-white"} rounded-lg shadow-sm`}>
           <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-500 mb-2">
-            {searchTerm || statusFilter !== "all" ? "No se encontraron destinos" : "No hay destinos registrados"}
+            {searchTerm ? "No se encontraron destinos" : "No hay destinos activos registrados"}
           </h3>
           <p className="text-gray-400 mb-4">
-            {searchTerm || statusFilter !== "all"
-              ? "Intenta ajustar los filtros de búsqueda"
-              : "Comienza agregando tu primer destino"}
+            {searchTerm ? "Intenta ajustar los filtros de búsqueda" : "Comienza agregando tu primer destino"}
           </p>
-          {!searchTerm && statusFilter === "all" && (
+          {!searchTerm && (
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
@@ -305,15 +314,9 @@ const DestinationsList: React.FC<DestinationsListProps> = ({ darkMode }) => {
                   <div>
                     <h3 className="font-semibold text-lg">{destination.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      {destination.active ? (
-                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full">
-                          Inactivo
-                        </span>
-                      )}
+                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+                        Activo
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import AddPilotModal from "../../components/modals/AddPilotModal"
 import PilotDetailsModal from "../../components/modals/PilotDetailsModal"
-import { getPilots } from "../../services/api"
+import EditPilotModal from "../../components/modals/EditPilotModal"
+import { getPilots, deletePilot } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot } from "../../types/api"
 
@@ -18,6 +19,8 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedPilotId, setSelectedPilotId] = useState<number | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editPilotId, setEditPilotId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +50,9 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
       console.log("PilotsList - Loading pilots with token:", accessToken)
       const data = await getPilots(accessToken)
       console.log("PilotsList - Pilots loaded:", data)
-      setPilots(data)
+      // Filtrar solo pilotos activos
+      const activePilots = data.filter((pilot) => pilot.user.active === true)
+      setPilots(activePilots)
     } catch (err) {
       console.error("PilotsList - Error loading pilots:", err)
       setError("No se pudieron cargar los pilotos. Por favor, intente nuevamente.")
@@ -84,6 +89,13 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
     setIsDetailsModalOpen(true)
   }
 
+  const handleEditPilot = (pilotId: number) => {
+    console.log("PilotsList - Opening edit modal for pilot ID:", pilotId)
+    setEditPilotId(pilotId)
+    setIsEditModalOpen(true)
+    console.log("PilotsList - Edit modal state set to true")
+  }
+
   const handleRefresh = () => {
     loadPilots()
   }
@@ -92,6 +104,36 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
     console.log("PilotsList - Closing modal")
     setSelectedPilotId(null)
     setIsDetailsModalOpen(false)
+  }
+
+  const handleCloseEditModal = () => {
+    console.log("PilotsList - Closing edit modal")
+    setEditPilotId(null)
+    setIsEditModalOpen(false)
+  }
+
+  const handleDeletePilot = async (pilotId: number, pilotName: string) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas eliminar al piloto ${pilotName}? Esta acción no se puede deshacer.`,
+    )
+
+    if (!confirmed) return
+
+    try {
+      if (!accessToken) {
+        console.error("No access token available for deleting pilot")
+        return
+      }
+
+      await deletePilot(pilotId, accessToken)
+      console.log("Pilot deleted successfully")
+
+      // Recargar la lista de pilotos
+      loadPilots()
+    } catch (error) {
+      console.error("Error deleting pilot:", error)
+      alert("Error al eliminar el piloto. Por favor, intente nuevamente.")
+    }
   }
 
   // Mostrar loading mientras el UserContext está cargando
@@ -345,11 +387,21 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
                           Ver
                         </button>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditPilot(pilot.id)
+                          }}
                           className={`text-orange-600 hover:text-orange-900 mr-3 ${darkMode ? "hover:text-orange-400" : ""}`}
                         >
                           Editar
                         </button>
-                        <button className={`text-red-600 hover:text-red-900 ${darkMode ? "hover:text-red-400" : ""}`}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeletePilot(pilot.id, `${pilot.user.firstName} ${pilot.user.lastName}`)
+                          }}
+                          className={`text-red-600 hover:text-red-900 ${darkMode ? "hover:text-red-400" : ""}`}
+                        >
                           Eliminar
                         </button>
                       </td>
@@ -384,6 +436,15 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
         isOpen={isDetailsModalOpen}
         onClose={handleCloseModal}
         pilotId={selectedPilotId}
+        darkMode={darkMode}
+      />
+
+      {/* Modal para editar piloto */}
+      <EditPilotModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onEditPilot={loadPilots} // Cambiar de handleAddPilot a loadPilots
+        pilotId={editPilotId}
         darkMode={darkMode}
       />
     </div>

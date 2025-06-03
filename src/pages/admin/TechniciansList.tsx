@@ -8,6 +8,7 @@ import { useUser } from "../../context/UserContext"
 import type { Technician } from "../../types/api"
 import TechnicianDetailsModal from "../../components/modals/TechnicianDetailsModal"
 import AddTechnicianModal from "../../components/modals/AddTechnicianModal"
+import EditTechnicianModal from "../../components/modals/EditTechnicianModal"
 
 interface TechniciansListProps {
   darkMode: boolean
@@ -25,6 +26,8 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
   const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editTechnicianId, setEditTechnicianId] = useState<number | null>(null)
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
 
   useEffect(() => {
@@ -45,6 +48,7 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
     try {
       setIsLoading(true)
       const data = await getTechnicians(accessToken)
+      console.log("Técnicos cargados:", data)
       setTechnicians(data)
       setError(null)
     } catch (error) {
@@ -77,7 +81,7 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
     // Filtro por estado
     if (statusFilter) {
       const isActive = statusFilter === "active"
-      filtered = filtered.filter((technician) => technician.user.active === isActive)
+      filtered = filtered.filter((technician) => technician.active === isActive)
     }
 
     setFilteredTechnicians(filtered)
@@ -105,6 +109,12 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
     } finally {
       setIsLoadingDetails(false)
     }
+  }
+
+  const handleEditTechnician = (technicianId: number) => {
+    console.log("Editando técnico:", technicianId)
+    setEditTechnicianId(technicianId)
+    setIsEditModalOpen(true)
   }
 
   const handleDeleteTechnician = async (technicianId: number) => {
@@ -296,12 +306,12 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
                 </div>
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    technician.user.active
+                    technician.active
                       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                       : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                   }`}
                 >
-                  {technician.user.active ? "Activo" : "Inactivo"}
+                  {technician.active ? "Activo" : "Inactivo"}
                 </span>
               </div>
 
@@ -337,8 +347,7 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      // TODO: Implementar edición
-                      console.log("Editar técnico:", technician.id)
+                      handleEditTechnician(technician.id)
                     }}
                     className="p-1 text-blue-600 hover:text-blue-700 transition-colors"
                     title="Editar técnico"
@@ -378,6 +387,17 @@ const TechniciansList: React.FC<TechniciansListProps> = ({ darkMode }) => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddTechnician={handleAddTechnician}
+        darkMode={darkMode}
+      />
+
+      <EditTechnicianModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditTechnicianId(null)
+        }}
+        technicianId={editTechnicianId}
+        onEditTechnician={loadTechnicians}
         darkMode={darkMode}
       />
     </div>
