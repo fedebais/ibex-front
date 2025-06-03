@@ -245,16 +245,6 @@ export interface MaintenanceFormData {
   technician: string
 }
 
-export interface EditHelicopterFormData {
-  modelId: number
-  model: string
-  registration: string
-  manufactureYear: number | null
-  totalFlightHours: number | null
-  status: HelicopterStatus
-  imageUrl: string
-}
-
 export interface CreateHelicopterInput {
   modelId: number
   registration: string
@@ -376,4 +366,44 @@ export interface AdminDashboardData {
       hours: number
     }>
   }
+}
+
+// Tipos para certificaciones de aeronaves (reutilizable)
+export interface AircraftCertification {
+  modelId: number
+  certificationDate: string
+}
+
+// Tipos para formularios de edición (solo los que realmente necesitan ser diferentes)
+export interface EditHelicopterFormData {
+  modelId: number
+  registration: string
+  manufactureYear: number | null
+  totalFlightHours: number | null
+  status: "ACTIVE" | "MAINTENANCE" | "INACTIVE"
+  imageUrl: string
+}
+
+// Tipos para props de modales
+export interface AddPilotModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onPilotAdded: () => void
+  darkMode?: boolean
+}
+
+export interface EditPilotModalProps {
+  isOpen: boolean
+  onClose: () => void
+  pilot: Pilot | null
+  onPilotUpdated: () => void
+  darkMode?: boolean
+}
+
+export interface EditHelicopterModalProps {
+  isOpen: boolean
+  onClose: () => void
+  helicopter: Helicopter | null
+  onUpdateHelicopter: (updated: Partial<Helicopter>) => void
+  darkMode?: boolean
 }

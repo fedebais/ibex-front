@@ -10,25 +10,29 @@ import type {
   CertificationType,
   HelicopterModel,
   AddPilotModalProps,
-  AddPilotFormData,
   AircraftCertification,
 } from "../../types/api"
 
 const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddPilotModalProps) => {
   const { accessToken } = useUser()
-  const [formData, setFormData] = useState<AddPilotFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
+
+  // Usar CreatePilotInput directamente en lugar de un tipo separado
+  const [formData, setFormData] = useState<CreatePilotInput>({
+    user: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+    },
     license: "",
     flightHours: 0,
     medicalExpiry: "",
     lastTraining: "",
+    certificationTypeIds: [],
+    aircraftCertifications: [],
   })
-  const [selectedCertificationIds, setSelectedCertificationIds] = useState<number[]>([])
-  const [aircraftCertifications, setAircraftCertifications] = useState<AircraftCertification[]>([])
+
   const [certificationTypes, setCertificationTypes] = useState<CertificationType[]>([])
   const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -65,7 +69,18 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleUserInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      user: {
+        ...prev.user,
+        [name]: value,
+      },
+    }))
+  }
+
+  const handlePilotInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
@@ -74,21 +89,35 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
   }
 
   const handleCertificationChange = (certificationId: number) => {
-    setSelectedCertificationIds((prev) =>
-      prev.includes(certificationId) ? prev.filter((id) => id !== certificationId) : [...prev, certificationId],
-    )
+    setFormData((prev) => ({
+      ...prev,
+      certificationTypeIds: prev.certificationTypeIds.includes(certificationId)
+        ? prev.certificationTypeIds.filter((id) => id !== certificationId)
+        : [...prev.certificationTypeIds, certificationId],
+    }))
   }
 
   const addAircraftCertification = () => {
-    setAircraftCertifications((prev) => [...prev, { modelId: 0, certificationDate: "" }])
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: [...prev.aircraftCertifications, { modelId: 0, certificationDate: "" }],
+    }))
   }
 
   const removeAircraftCertification = (index: number) => {
-    setAircraftCertifications((prev) => prev.filter((_, i) => i !== index))
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: prev.aircraftCertifications.filter((_, i) => i !== index),
+    }))
   }
 
   const updateAircraftCertification = (index: number, field: keyof AircraftCertification, value: string | number) => {
-    setAircraftCertifications((prev) => prev.map((cert, i) => (i === index ? { ...cert, [field]: value } : cert)))
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: prev.aircraftCertifications.map((cert, i) =>
+        i === index ? { ...cert, [field]: value } : cert,
+      ),
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,17 +125,17 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
     setError("")
 
     // Validaciones básicas
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+    if (!formData.user.firstName.trim() || !formData.user.lastName.trim()) {
       setError("Nombre y apellido son obligatorios")
       return
     }
 
-    if (!formData.email.trim() || !formData.email.includes("@")) {
+    if (!formData.user.email.trim() || !formData.user.email.includes("@")) {
       setError("Email válido es obligatorio")
       return
     }
 
-    if (!formData.password || formData.password.length < 6) {
+    if (!formData.user.password || formData.user.password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres")
       return
     }
@@ -135,20 +164,14 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
     try {
       setIsLoading(true)
 
+      // Filtrar certificaciones de aeronaves válidas
+      const validAircraftCertifications = formData.aircraftCertifications.filter(
+        (cert) => cert.modelId > 0 && cert.certificationDate,
+      )
+
       const pilotData: CreatePilotInput = {
-        user: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-        },
-        license: formData.license,
-        flightHours: formData.flightHours,
-        medicalExpiry: formData.medicalExpiry,
-        lastTraining: formData.lastTraining,
-        certificationTypeIds: selectedCertificationIds,
-        aircraftCertifications: aircraftCertifications.filter((cert) => cert.modelId > 0 && cert.certificationDate),
+        ...formData,
+        aircraftCertifications: validAircraftCertifications,
       }
 
       await createPilot(pilotData, token)
@@ -164,18 +187,20 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
 
   const handleClose = () => {
     setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      password: "",
+      user: {
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        password: "",
+      },
       license: "",
       flightHours: 0,
       medicalExpiry: "",
       lastTraining: "",
+      certificationTypeIds: [],
+      aircraftCertifications: [],
     })
-    setSelectedCertificationIds([])
-    setAircraftCertifications([])
     setError("")
     setDataError("")
     onClose()
@@ -242,8 +267,8 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 type="text"
                 id="firstName"
                 name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
+                value={formData.user.firstName}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -263,8 +288,8 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 type="text"
                 id="lastName"
                 name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
+                value={formData.user.lastName}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -284,8 +309,8 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
-                onChange={handleInputChange}
+                value={formData.user.email}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -305,8 +330,8 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
+                value={formData.user.phone}
+                onChange={handleUserInputChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -325,8 +350,8 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 type="password"
                 id="password"
                 name="password"
-                value={formData.password}
-                onChange={handleInputChange}
+                value={formData.user.password}
+                onChange={handleUserInputChange}
                 required
                 minLength={6}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
@@ -357,7 +382,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 id="license"
                 name="license"
                 value={formData.license}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -378,7 +403,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 id="flightHours"
                 name="flightHours"
                 value={formData.flightHours}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 min="0"
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
@@ -400,7 +425,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 id="medicalExpiry"
                 name="medicalExpiry"
                 value={formData.medicalExpiry}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -421,7 +446,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 id="lastTraining"
                 name="lastTraining"
                 value={formData.lastTraining}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -455,7 +480,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 >
                   <input
                     type="checkbox"
-                    checked={selectedCertificationIds.includes(cert.id)}
+                    checked={formData.certificationTypeIds.includes(cert.id)}
                     onChange={() => handleCertificationChange(cert.id)}
                     className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                   />
@@ -492,7 +517,7 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
             </div>
           ) : (
             <div className="space-y-3">
-              {aircraftCertifications.map((cert, index) => (
+              {formData.aircraftCertifications.map((cert, index) => (
                 <div key={index} className="flex gap-3 items-end">
                   <div className="flex-1">
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
