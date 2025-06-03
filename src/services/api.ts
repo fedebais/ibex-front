@@ -4,6 +4,7 @@ import type {
   User,
   Pilot,
   CreatePilotInput,
+  UpdatePilotInput,
   Technician,
   CreateTechnicianInput,
   FlightLog,
@@ -16,6 +17,7 @@ import type {
   Stats,
   ErrorResponse,
   AdminDashboardData,
+  CertificationType,
 } from "../types/api"
 
 // Base URL de la API - se puede cambiar fácilmente para desarrollo/producción
@@ -134,22 +136,29 @@ export class ApiService {
     })
   }
 
-  async updatePilot(id: number, data: Partial<CreatePilotInput>, token: string): Promise<Pilot> {
-  return this.makeRequest<Pilot>(`/pilots/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...this.getAuthHeaders(token),
-    },
-    body: JSON.stringify(data),
-  })
-}
+  async updatePilot(id: number, data: UpdatePilotInput, token: string): Promise<Pilot> {
+    return this.makeRequest<Pilot>(`/pilots/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
+      body: JSON.stringify(data),
+    })
+  }
 
-
-
-    async deletePilot(id: number, token: string): Promise<{ message: string }> {
+  async deletePilot(id: number, token: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/pilots/${id}`, {
       method: "DELETE",
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
+  // ==================== Certifications Types ENDPOINTS ====================
+
+  async getCertificationTypes(token: string): Promise<CertificationType[]> {
+    return this.makeRequest<CertificationType[]>("/certifications-types", {
+      method: "GET",
       headers: this.getAuthHeaders(token),
     })
   }
@@ -192,12 +201,12 @@ export class ApiService {
     })
   }
 
-async deleteTechnician(id: number, token: string): Promise<Technician> {
-  return this.makeRequest<Technician>(`/technicians/${id}`, {
-    method: "DELETE",
-    headers: this.getAuthHeaders(token),
-  })
-}
+  async deleteTechnician(id: number, token: string): Promise<Technician> {
+    return this.makeRequest<Technician>(`/technicians/${id}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(token),
+    })
+  }
 
   // ==================== FLIGHT LOG ENDPOINTS ====================
 
@@ -251,11 +260,11 @@ async deleteTechnician(id: number, token: string): Promise<Technician> {
   }
 
   async getClientById(id: number, token: string): Promise<Client> {
-  return this.makeRequest<Client>(`/clients/${id}`, {
-    method: "GET",
-    headers: this.getAuthHeaders(token),
-  })
-}
+    return this.makeRequest<Client>(`/clients/${id}`, {
+      method: "GET",
+      headers: this.getAuthHeaders(token),
+    })
+  }
 
   async createClient(data: Partial<Client>, token: string): Promise<Client> {
     return this.makeRequest<Client>("/clients", {
@@ -271,7 +280,7 @@ async deleteTechnician(id: number, token: string): Promise<Technician> {
   async updateClient(id: string, data: Partial<Client>, token: string): Promise<Client> {
     return this.makeRequest<Client>(`/clients/${id}`, {
       method: "PUT",
-       headers: {
+      headers: {
         "Content-Type": "application/json", // 👈 esto es esencial
         ...this.getAuthHeaders(token),
       },
@@ -316,7 +325,10 @@ async deleteTechnician(id: number, token: string): Promise<Technician> {
   async updateHelicopter(id: number, data: Partial<Helicopter>, token: string): Promise<Helicopter> {
     return this.makeRequest<Helicopter>(`/helicopters/${id}`, {
       method: "PUT",
-      headers: this.getAuthHeaders(token),
+        headers: {
+        "Content-Type": "application/json", // 👈 esto es esencial
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify(data),
     })
   }
@@ -328,50 +340,54 @@ async deleteTechnician(id: number, token: string): Promise<Technician> {
     })
   }
 
-// ==================== HELICOPTER MODEL ENDPOINTS ====================
+  // ==================== HELICOPTER MODEL ENDPOINTS ====================
 
-async getHelicopterModels(token: string): Promise<HelicopterModel[]> {
-  return this.makeRequest<HelicopterModel[]>("/helicopters/models", {
-    method: "GET",
-    headers: this.getAuthHeaders(token),
-  })
-}
+  async getHelicopterModels(token: string): Promise<HelicopterModel[]> {
+    return this.makeRequest<HelicopterModel[]>("/helicopters/models", {
+      method: "GET",
+      headers: this.getAuthHeaders(token),
+    })
+  }
 
-async getHelicopterModelById(id: number, token: string): Promise<HelicopterModel> {
-  return this.makeRequest<HelicopterModel>(`/helicopters/models/${id}`, {
-    method: "GET",
-    headers: this.getAuthHeaders(token),
-  })
-}
+  async getHelicopterModelById(id: number, token: string): Promise<HelicopterModel> {
+    return this.makeRequest<HelicopterModel>(`/helicopters/models/${id}`, {
+      method: "GET",
+      headers: this.getAuthHeaders(token),
+    })
+  }
 
-async createHelicopterModel(data: { name: string; manufacturer?: string }, token: string): Promise<HelicopterModel> {
-  return this.makeRequest<HelicopterModel>("/helicopters/models", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...this.getAuthHeaders(token),
-    },
-    body: JSON.stringify(data),
-  })
-}
+  async createHelicopterModel(data: { name: string; manufacturer?: string }, token: string): Promise<HelicopterModel> {
+    return this.makeRequest<HelicopterModel>("/helicopters/models", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
+      body: JSON.stringify(data),
+    })
+  }
 
-async updateHelicopterModel(id: number, data: { name: string; manufacturer?: string }, token: string): Promise<HelicopterModel> {
-  return this.makeRequest<HelicopterModel>(`/helicopters/models/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...this.getAuthHeaders(token),
-    },
-    body: JSON.stringify(data),
-  })
-}
+  async updateHelicopterModel(
+    id: number,
+    data: { name: string; manufacturer?: string },
+    token: string,
+  ): Promise<HelicopterModel> {
+    return this.makeRequest<HelicopterModel>(`/helicopters/models/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
+      body: JSON.stringify(data),
+    })
+  }
 
-async deleteHelicopterModel(id: number, token: string): Promise<{ message: string }> {
-  return this.makeRequest<{ message: string }>(`/helicopters/models/${id}`, {
-    method: "DELETE",
-    headers: this.getAuthHeaders(token),
-  })
-}
+  async deleteHelicopterModel(id: number, token: string): Promise<{ message: string }> {
+    return this.makeRequest<{ message: string }>(`/helicopters/models/${id}`, {
+      method: "DELETE",
+      headers: this.getAuthHeaders(token),
+    })
+  }
 
   // ==================== MAINTENANCE ENDPOINTS ====================
 
@@ -568,6 +584,7 @@ export const verifyToken = api.verifyToken.bind(api)
 export const refreshToken = api.refreshToken.bind(api)
 export const logout = api.logout.bind(api)
 export const getAdminDashboard = api.getAdminDashboard.bind(api)
+export const getCertificationTypes = api.getCertificationTypes.bind(api)
 export const getTechnicians = api.getTechnicians.bind(api)
 export const getTechnicianById = api.getTechnicianById.bind(api)
 export const createTechnician = api.createTechnician.bind(api)

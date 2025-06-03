@@ -1,22 +1,24 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
+import { createPilot, getCertificationTypes, getHelicopterModels } from "../../services/api"
 import { useUser } from "../../context/UserContext"
-import { createPilot } from "../../services/api"
-import type { CreatePilotInput } from "../../types/api"
+import type { CertificationType, HelicopterModel, CreatePilotInput } from "../../types/api"
 
 interface AddPilotModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddPilot: (pilotData: any) => void
+  onAddPilot: () => void
   darkMode?: boolean
 }
 
-const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPilotModalProps) => {
+const AddPilotModal: React.FC<AddPilotModalProps> = ({ isOpen, onClose, onAddPilot, darkMode = false }) => {
   const { accessToken } = useUser()
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Estados del formulario
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -26,25 +28,83 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
   const [flightHours, setFlightHours] = useState("")
   const [medicalExpiry, setMedicalExpiry] = useState("")
   const [lastTraining, setLastTraining] = useState("")
-  const [certifications, setCertifications] = useState<string[]>(["VFR"])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedCertificationIds, setSelectedCertificationIds] = useState<number[]>([])
+  const [certificationTypes, setCertificationTypes] = useState<CertificationType[]>([])
+  const [isLoadingCertifications, setIsLoadingCertifications] = useState(false)
+  const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
 
-  const [aircraftCertifications, setAircraftCertifications] = useState<{ model: string; certificationDate: string }[]>([
-    { model: "", certificationDate: "" },
-  ])
+  const [aircraftCertifications, setAircraftCertifications] = useState<
+    { modelId: number; certificationDate: string }[]
+  >([{ modelId: 0, certificationDate: "" }])
 
-  // Lista de modelos de helicópteros disponibles
-  const helicopterModels = ["Bell 407", "Airbus H125", "Robinson R44", "Sikorsky S-76"]
+  // Cargar tipos de certificaciones y modelos cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && accessToken) {
+      loadCertificationTypes()
+      loadHelicopterModels()
+    }
+  }, [isOpen, accessToken])
+
+  const loadCertificationTypes = async () => {
+    if (!accessToken) return
+
+    setIsLoadingCertifications(true)
+    try {
+      const types = await getCertificationTypes(accessToken)
+      setCertificationTypes(types)
+    } catch (error) {
+      console.error("Error loading certification types:", error)
+      // Fallback a certificaciones por defecto si falla la API
+      setCertificationTypes([
+        { id: 1, name: "VFR" },
+        { id: 2, name: "IFR" },
+        { id: 3, name: "Night Flying" },
+        { id: 4, name: "Mountain Operations" },
+        { id: 5, name: "Offshore" },
+        { id: 6, name: "External Load" },
+        { id: 7, name: "Firefighting" },
+        { id: 8, name: "SAR" },
+      ])
+    } finally {
+      setIsLoadingCertifications(false)
+    }
+  }
+
+  const loadHelicopterModels = async () => {
+    if (!accessToken) return
+
+    setIsLoadingModels(true)
+    try {
+      const models = await getHelicopterModels(accessToken)
+      setHelicopterModels(models)
+    } catch (error) {
+      console.error("Error loading helicopter models:", error)
+      // Fallback a modelos por defecto si falla la API
+      setHelicopterModels([
+        { id: 1, name: "Bell 407", createdAt: "", updatedAt: "" },
+        { id: 2, name: "Airbus H125", createdAt: "", updatedAt: "" },
+        { id: 3, name: "Robinson R44", createdAt: "", updatedAt: "" },
+        { id: 4, name: "Sikorsky S-76", createdAt: "", updatedAt: "" },
+      ])
+    } finally {
+      setIsLoadingModels(false)
+    }
+  }
 
   // Funciones para manejar las certificaciones por aeronave
-  const handleAircraftCertChange = (index: number, field: "model" | "certificationDate", value: string) => {
+  const handleAircraftCertChange = (index: number, field: "modelId" | "certificationDate", value: string | number) => {
     const newCerts = [...aircraftCertifications]
-    newCerts[index][field] = value
+    if (field === "modelId") {
+      newCerts[index][field] = Number(value)
+    } else {
+      newCerts[index][field] = value as string
+    }
     setAircraftCertifications(newCerts)
   }
 
   const addAircraftCert = () => {
-    setAircraftCertifications([...aircraftCertifications, { model: "", certificationDate: "" }])
+    setAircraftCertifications([...aircraftCertifications, { modelId: 0, certificationDate: "" }])
   }
 
   const removeAircraftCert = (index: number) => {
@@ -55,80 +115,66 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
     }
   }
 
-  // Opciones de certificaciones
-  const certificationOptions = [
-    "VFR",
-    "IFR",
-    "Night Flying",
-    "Mountain Operations",
-    "Offshore",
-    "External Load",
-    "Firefighting",
-    "SAR",
-  ]
-
-  const handleCertificationChange = (cert: string) => {
-    if (certifications.includes(cert)) {
-      setCertifications(certifications.filter((c) => c !== cert))
+  const handleCertificationChange = (certId: number) => {
+    if (selectedCertificationIds.includes(certId)) {
+      setSelectedCertificationIds(selectedCertificationIds.filter((id) => id !== certId))
     } else {
-      setCertifications([...certifications, cert])
+      setSelectedCertificationIds([...selectedCertificationIds, certId])
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!accessToken) {
+      alert("Error: No se pudo obtener el token de acceso")
+      return
+    }
+
     // Validar que todos los campos requeridos estén completos
     if (!firstName || !lastName || !email || !phone || !password || !license) {
-      console.error("Faltan campos requeridos")
+      alert("Faltan campos requeridos")
       return
     }
 
-    if (!accessToken) {
-      console.error("No access token available")
-      return
-    }
-
-    setIsSubmitting(true)
+    setIsLoading(true)
 
     try {
+      // Preparar datos para crear el piloto
       const pilotData: CreatePilotInput = {
         user: {
           firstName,
           lastName,
           email,
           phone,
-          password,
-          profileImage: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? "men" : "women"}/${Math.floor(Math.random() * 100)}.jpg`,
+          password, // Siempre incluir password en creación
         },
         license,
         flightHours: Number.parseInt(flightHours) || 0,
         medicalExpiry,
         lastTraining,
-        certifications,
+        certificationTypeIds: selectedCertificationIds,
         aircraftCertifications: aircraftCertifications
-          .filter((cert) => cert.model && cert.certificationDate)
+          .filter((cert) => cert.modelId > 0 && cert.certificationDate)
           .map((cert) => ({
-            model: cert.model,
+            modelId: cert.modelId,
             certificationDate: cert.certificationDate,
           })),
       }
 
-      console.log("Enviando datos del piloto:", pilotData)
-      console.log("PilotData JSON:", JSON.stringify(pilotData))
+      console.log("Creando piloto con datos:", pilotData)
 
+      await createPilot(pilotData, accessToken)
 
-      const newPilot = await createPilot(pilotData, accessToken)
-      console.log("Piloto creado exitosamente:", newPilot)
-
-      onAddPilot(newPilot)
-      resetForm()
+      alert("Piloto creado exitosamente")
+      onAddPilot() // Callback para recargar la lista
       onClose()
+      resetForm()
     } catch (error) {
-      console.error("Error al crear piloto:", error)
-      // Aquí podrías mostrar un mensaje de error al usuario
+      console.error("Error creating pilot:", error)
+      alert("Error al crear el piloto. Por favor, intente nuevamente.")
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
@@ -142,12 +188,17 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
     setFlightHours("")
     setMedicalExpiry("")
     setLastTraining("")
-    setCertifications(["VFR"])
-    setAircraftCertifications([{ model: "", certificationDate: "" }])
+    setSelectedCertificationIds([])
+    setAircraftCertifications([{ modelId: 0, certificationDate: "" }])
+  }
+
+  const handleClose = () => {
+    onClose()
+    resetForm()
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Añadir Nuevo Piloto" maxWidth="max-w-lg" darkMode={darkMode}>
+    <Modal isOpen={isOpen} onClose={handleClose} title="Agregar Nuevo Piloto" maxWidth="max-w-lg" darkMode={darkMode}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -354,29 +405,36 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
           <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-2`}>
             Certificaciones
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {certificationOptions.map((cert) => (
-              <div key={cert} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`cert-${cert}`}
-                  checked={certifications.includes(cert)}
-                  onChange={() => handleCertificationChange(cert)}
-                  className={`h-4 w-4 ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-orange-500 focus:ring-orange-500"
-                      : "border-gray-300 text-orange-600 focus:ring-orange-500"
-                  }`}
-                />
-                <label
-                  htmlFor={`cert-${cert}`}
-                  className={`ml-2 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}
-                >
-                  {cert}
-                </label>
-              </div>
-            ))}
-          </div>
+          {isLoadingCertifications ? (
+            <div className="flex justify-center items-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500"></div>
+              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando certificaciones...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {certificationTypes.map((cert) => (
+                <div key={cert.id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`cert-${cert.id}`}
+                    checked={selectedCertificationIds.includes(cert.id)}
+                    onChange={() => handleCertificationChange(cert.id)}
+                    className={`h-4 w-4 ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-orange-500 focus:ring-orange-500"
+                        : "border-gray-300 text-orange-600 focus:ring-orange-500"
+                    }`}
+                  />
+                  <label
+                    htmlFor={`cert-${cert.id}`}
+                    className={`ml-2 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    {cert.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Certificaciones por Aeronave */}
@@ -384,75 +442,87 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
           <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-2`}>
             Certificaciones por Aeronave
           </label>
-          <div className="space-y-2">
-            {aircraftCertifications.map((cert, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <select
-                  value={cert.model}
-                  onChange={(e) => handleAircraftCertChange(index, "model", e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                      : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                  }`}
+          {isLoadingModels ? (
+            <div className="flex justify-center items-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500"></div>
+              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando modelos...</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {aircraftCertifications.map((cert, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <select
+                    value={cert.modelId}
+                    onChange={(e) => handleAircraftCertChange(index, "modelId", e.target.value)}
+                    className={`flex-1 px-3 py-2 border rounded-md ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                    }`}
+                  >
+                    <option value={0}>Seleccionar modelo</option>
+                    {helicopterModels.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={cert.certificationDate}
+                    onChange={(e) => handleAircraftCertChange(index, "certificationDate", e.target.value)}
+                    className={`flex-1 px-3 py-2 border rounded-md ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeAircraftCert(index)}
+                    className="p-2 text-red-500 hover:text-red-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addAircraftCert}
+                className={`mt-2 inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium ${
+                  darkMode
+                    ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                 >
-                  <option value="">Seleccionar modelo</option>
-                  {helicopterModels.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  value={cert.certificationDate}
-                  onChange={(e) => handleAircraftCertChange(index, "certificationDate", e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-md ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                      : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeAircraftCert(index)}
-                  className="p-2 text-red-500 hover:text-red-700"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addAircraftCert}
-              className={`mt-2 inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium ${
-                darkMode
-                  ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                  : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Añadir Certificación
-            </button>
-          </div>
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Añadir Certificación
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className={`px-4 py-2 border rounded-md text-sm font-medium ${
               darkMode
                 ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
@@ -463,10 +533,10 @@ const AddPilotModal = ({ isOpen, onClose, onAddPilot, darkMode = false }: AddPil
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isLoading}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
-            {isSubmitting ? "Guardando..." : "Guardar Piloto"}
+            {isLoading ? "Creando..." : "Crear Piloto"}
           </button>
         </div>
       </form>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
-import { getPilotById, getFlightLogsByPilotId } from "../../services/api"
+import { getPilotById, getFlightLogsByPilotId, getHelicopterById } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot, FlightLog, Helicopter } from "../../types/api"
 
@@ -25,7 +25,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
   // Debug logs
   console.log("PilotDetailsModal - Props:", { isOpen, pilotId })
   console.log("PilotDetailsModal - User:", user)
-  console.log("PilotDetailsModal - AccessToken:", accessToken)
+  console.log("PilotDetailsModal - AccessToken:", user?.accessToken)
 
   // Cargar datos del piloto
   useEffect(() => {
@@ -66,7 +66,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
       try {
         console.log("PilotDetailsModal - Calling getPilotById with:", { pilotId, token: accessToken })
 
-        // Cargar datos del pilotox
+        // Cargar datos del piloto
         const pilotData = await getPilotById(pilotId, accessToken)
         console.log("PilotDetailsModal - Pilot data received:", pilotData)
         setPilot(pilotData)
@@ -77,7 +77,13 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         console.log("PilotDetailsModal - Flight logs received:", flightsData)
         setPilotFlights(flightsData)
 
-       
+        // Cargar datos del helicóptero asignado
+        if (pilotData.helicopterId) {
+          console.log("PilotDetailsModal - Loading helicopter data for ID:", pilotData.helicopterId)
+          const helicopterData = await getHelicopterById(pilotData.helicopterId, accessToken)
+          console.log("PilotDetailsModal - Helicopter data received:", helicopterData)
+          setHelicopter(helicopterData)
+        }
       } catch (err) {
         console.error("PilotDetailsModal - Error loading pilot data:", err)
         setError("No se pudieron cargar los datos del piloto. Por favor, intente nuevamente.")
@@ -102,8 +108,8 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
 
   // Calcular estadísticas
   const totalFlights = pilotFlights.length
-  const completedFlights = pilotFlights.filter((f) => f.status === "COMPLETED").length
-  const scheduledFlights = pilotFlights.filter((f) => f.status === "SCHEDULED").length
+  const completedFlights = pilotFlights.filter((f) => f.status === "Completado").length
+  const scheduledFlights = pilotFlights.filter((f) => f.status === "Programado").length
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
@@ -277,6 +283,74 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                 </div>
               </div>
 
+              {/* Certificaciones */}
+              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  Certificaciones
+                </h4>
+
+                {pilot.certifications && pilot.certifications.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {pilot.certifications.map((cert) => (
+                      <div
+                        key={cert.id}
+                        className={`px-3 py-2 rounded-md text-sm font-medium ${
+                          darkMode
+                            ? "bg-orange-900 text-orange-200 border border-orange-700"
+                            : "bg-orange-100 text-orange-800 border border-orange-200"
+                        }`}
+                      >
+                        {cert.certificationType.name}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    No hay certificaciones registradas
+                  </p>
+                )}
+              </div>
+
+              {/* Certificaciones por Aeronave */}
+              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  Certificaciones por Aeronave
+                </h4>
+
+                {pilot.aircraftRatings && pilot.aircraftRatings.length > 0 ? (
+                  <div className="space-y-3">
+                    {pilot.aircraftRatings.map((rating, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-3 rounded-md ${
+                          darkMode ? "bg-gray-800 border border-gray-600" : "bg-white border border-gray-200"
+                        }`}
+                      >
+                        <div>
+                          <p className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                            {rating.aircraftModel || rating.model}
+                          </p>
+                          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                            Certificado: {formatDate(rating.certificationDate)}
+                          </p>
+                        </div>
+                        <div
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            darkMode ? "bg-green-900 text-green-200" : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          Certificado
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    No hay certificaciones por aeronave registradas
+                  </p>
+                )}
+              </div>
+
               {/* Helicóptero asignado */}
               <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
                 <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
@@ -288,17 +362,17 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                     <div className="flex-shrink-0">
                       <img
                         src={helicopter.imageUrl || "/placeholder.svg"}
-                        alt={helicopter.model.name}
+                        alt={helicopter.model}
                         className="h-16 w-16 object-cover rounded-md"
                       />
                     </div>
                     <div>
                       <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {helicopter.model.name} - {helicopter.registration}
+                        {helicopter.model} - {helicopter.registration}
                       </p>
                       <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                         Estado:{" "}
-                        <span className={helicopter.status === "ACTIVE" ? "text-green-500" : "text-yellow-500"}>
+                        <span className={helicopter.status === "Activo" ? "text-green-500" : "text-yellow-500"}>
                           {helicopter.status}
                         </span>
                       </p>
@@ -428,7 +502,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                           <td className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm`}>
                             <span
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                flight.status === "COMPLETED"
+                                flight.status === "Completado"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-yellow-100 text-yellow-800"
                               }`}

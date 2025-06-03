@@ -24,13 +24,49 @@ const ClientDetailsModal = ({
   const [endDate, setEndDate] = useState("")
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  if (!clientId) return null
+  console.log("=== ClientDetailsModal Debug ===")
+  console.log("isOpen:", isOpen)
+  console.log("clientId recibido:", clientId)
+  console.log("Tipo de clientId:", typeof clientId)
 
-  const client = mockClients.find((c) => c.id === clientId)
-  if (!client) return null
+  if (!clientId) {
+    console.log("❌ No hay clientId - modal no se renderiza")
+    return null
+  }
 
-  // Obtener vuelos del cliente
-  const clientFlights = getClientFlights(clientId)
+  // Buscar cliente en datos mock
+  const client = mockClients.find((c) => c.id === clientId || c.id === Number(clientId))
+  console.log("Cliente encontrado en mockClients:", client)
+  console.log(
+    "mockClients disponibles:",
+    mockClients.map((c) => ({ id: c.id, name: c.name })),
+  )
+
+  // Si no se encuentra en mock, crear un cliente temporal con datos básicos
+  let clientData = client
+  if (!client) {
+    console.log("⚠️ Cliente no encontrado en mockClients, creando datos temporales")
+    clientData = {
+      id: clientId,
+      name: `Cliente ${clientId}`,
+      type: "corporate",
+      contactPerson: "No disponible",
+      email: "No disponible",
+      phone: "No disponible",
+      address: "No disponible",
+      notes: "Cliente cargado desde API - datos limitados disponibles",
+    }
+  }
+
+  // Obtener vuelos del cliente (puede retornar array vacío)
+  let clientFlights = []
+  try {
+    clientFlights = getClientFlights(clientId) || []
+    console.log("Vuelos del cliente:", clientFlights)
+  } catch (error) {
+    console.log("Error al obtener vuelos:", error)
+    clientFlights = []
+  }
 
   // Filtrar vuelos por fecha si se han seleccionado fechas
   const filteredFlights = clientFlights.filter((flight) => {
@@ -51,6 +87,11 @@ const ClientDetailsModal = ({
 
   // Función para generar CSV de vuelos filtrados
   const generateCSV = () => {
+    if (filteredFlights.length === 0) {
+      alert("No hay vuelos para exportar")
+      return
+    }
+
     // Cabeceras del CSV
     const headers = ["Fecha", "Origen", "Destino", "Piloto", "Helicóptero", "Duración", "Pasajeros", "Estado"]
 
@@ -76,7 +117,7 @@ const ClientDetailsModal = ({
     link.setAttribute("href", url)
     link.setAttribute(
       "download",
-      `vuelos_${client.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`,
+      `vuelos_${clientData.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`,
     )
     link.style.visibility = "hidden"
     document.body.appendChild(link)
@@ -95,47 +136,59 @@ const ClientDetailsModal = ({
     }
   }
 
+  console.log("✅ Modal se va a renderizar con clientData:", clientData)
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} title="Detalles del Cliente" maxWidth="max-w-4xl" darkMode={darkMode}>
         <div className="space-y-6">
           {/* Información básica del cliente */}
           <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-            <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-white" : "text-gray-900"}`}>{client.name}</h3>
+            <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-white" : "text-gray-900"}`}>
+              {clientData.name}
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Persona de Contacto</p>
                 <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {client.contactPerson}
+                  {clientData.contactPerson || "No disponible"}
                 </p>
               </div>
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Tipo</p>
                 <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {client.type === "corporate"
+                  {clientData.type === "corporate"
                     ? "Corporativo"
-                    : client.type === "individual"
+                    : clientData.type === "individual"
                       ? "Individual"
-                      : "Gubernamental"}
+                      : clientData.type === "government"
+                        ? "Gubernamental"
+                        : "No especificado"}
                 </p>
               </div>
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Email</p>
-                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>{client.email}</p>
+                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {clientData.email || "No disponible"}
+                </p>
               </div>
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</p>
-                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>{client.phone}</p>
+                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {clientData.phone || "No disponible"}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Dirección</p>
-                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>{client.address}</p>
+                <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                  {clientData.address || "No disponible"}
+                </p>
               </div>
-              {client.notes && (
+              {clientData.notes && (
                 <div className="md:col-span-2">
                   <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Notas</p>
-                  <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{client.notes}</p>
+                  <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{clientData.notes}</p>
                 </div>
               )}
             </div>
@@ -181,161 +234,192 @@ const ClientDetailsModal = ({
             </div>
           </div>
 
-          {/* Filtro de vuelos */}
-          <div>
-            <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-              Filtrar Vuelos
-            </h4>
+          {/* Filtro de vuelos - Solo mostrar si hay vuelos */}
+          {clientFlights.length > 0 && (
+            <div>
+              <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                Filtrar Vuelos
+              </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div>
-                <label
-                  htmlFor="startDate"
-                  className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                >
-                  Fecha Inicio
-                </label>
-                <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                      : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                  }`}
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                  <label
+                    htmlFor="startDate"
+                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                  >
+                    Fecha Inicio
+                  </label>
+                  <input
+                    type="date"
+                    id="startDate"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
 
-              <div>
-                <label
-                  htmlFor="endDate"
-                  className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                >
-                  Fecha Fin
-                </label>
-                <input
-                  type="date"
-                  id="endDate"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                      : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                  }`}
-                />
-              </div>
+                <div>
+                  <label
+                    htmlFor="endDate"
+                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                  >
+                    Fecha Fin
+                  </label>
+                  <input
+                    type="date"
+                    id="endDate"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                    }`}
+                  />
+                </div>
 
-              <div>
-                <button
-                  onClick={generateCSV}
-                  className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                >
-                  Descargar CSV
-                </button>
+                <div>
+                  <button
+                    onClick={generateCSV}
+                    disabled={filteredFlights.length === 0}
+                    className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Descargar CSV
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Últimos vuelos */}
+          {/* Historial de vuelos */}
           <div>
             <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
               Historial de Vuelos {filteredFlights.length !== clientFlights.length ? "(Filtrados)" : ""}
             </h4>
 
-            <div
-              className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border rounded-lg overflow-x-auto`}
-            >
-              <table className={`w-full divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
-                <thead className={darkMode ? "bg-gray-700" : "bg-gray-50"}>
-                  <tr>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                    >
-                      Fecha
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                    >
-                      Ruta
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                    >
-                      Piloto
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                    >
-                      Duración
-                    </th>
-                    <th
-                      scope="col"
-                      className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
-                    >
-                      Estado
-                    </th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`${darkMode ? "bg-gray-800 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}`}
-                >
-                  {filteredFlights.length > 0 ? (
-                    filteredFlights.map((flight) => (
-                      <tr key={flight.id}>
-                        <td
-                          className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {new Date(flight.date).toLocaleDateString("es-ES")}
-                        </td>
-                        <td
-                          className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {getLocationName(flight.originId).split(" ")[0]} →{" "}
-                          {getLocationName(flight.destinationId).split(" ")[0]}
-                        </td>
-                        <td
-                          className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {getPilotName(flight.pilotId)}
-                        </td>
-                        <td
-                          className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {flight.flightHours}
-                        </td>
-                        <td className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm`}>
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              flight.status === "completed"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
+            {clientFlights.length > 0 ? (
+              <div
+                className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border rounded-lg overflow-x-auto`}
+              >
+                <table className={`w-full divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
+                  <thead className={darkMode ? "bg-gray-700" : "bg-gray-50"}>
+                    <tr>
+                      <th
+                        scope="col"
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
+                      >
+                        Fecha
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
+                      >
+                        Ruta
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
+                      >
+                        Piloto
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
+                      >
+                        Duración
+                      </th>
+                      <th
+                        scope="col"
+                        className={`px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium ${darkMode ? "text-gray-300" : "text-gray-500"} uppercase tracking-wider`}
+                      >
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={`${darkMode ? "bg-gray-800 divide-y divide-gray-700" : "bg-white divide-y divide-gray-200"}`}
+                  >
+                    {filteredFlights.length > 0 ? (
+                      filteredFlights.map((flight) => (
+                        <tr key={flight.id}>
+                          <td
+                            className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
                           >
-                            {flight.status === "completed" ? "Completado" : "Programado"}
-                          </span>
+                            {new Date(flight.date).toLocaleDateString("es-ES")}
+                          </td>
+                          <td
+                            className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            {getLocationName(flight.originId).split(" ")[0]} →{" "}
+                            {getLocationName(flight.destinationId).split(" ")[0]}
+                          </td>
+                          <td
+                            className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            {getPilotName(flight.pilotId)}
+                          </td>
+                          <td
+                            className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            {flight.flightHours}
+                          </td>
+                          <td className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm`}>
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                flight.status === "completed"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-green-100 text-green-800"
+                              }`}
+                            >
+                              {flight.status === "completed" ? "Completado" : "Programado"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className={`px-3 sm:px-6 py-4 text-center text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                        >
+                          No se encontraron vuelos para este cliente en el período seleccionado.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className={`px-3 sm:px-6 py-4 text-center text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}
-                      >
-                        No se encontraron vuelos para este cliente en el período seleccionado.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div
+                className={`${darkMode ? "bg-gray-800 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-500"} border rounded-lg p-8 text-center`}
+              >
+                <div className="flex flex-col items-center">
+                  <svg
+                    className={`h-12 w-12 ${darkMode ? "text-gray-600" : "text-gray-400"} mb-4`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <h3 className={`text-lg font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Sin vuelos registrados
+                  </h3>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Este cliente aún no tiene vuelos asignados en el sistema.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Botones de acción */}
@@ -351,25 +435,29 @@ const ClientDetailsModal = ({
             >
               Cerrar
             </button>
-            <button
-              type="button"
-              onClick={handleEditClient}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-            >
-              Editar Cliente
-            </button>
+            {client && (
+              <button
+                type="button"
+                onClick={handleEditClient}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              >
+                Editar Cliente
+              </button>
+            )}
           </div>
         </div>
       </Modal>
 
-      {/* Modal de Edición */}
-      <EditClientModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        clientId={clientId ? Number.parseInt(clientId) : null}
-        onEditClient={handleEditComplete}
-        darkMode={darkMode}
-      />
+      {/* Modal de Edición - Solo si el cliente existe en mockClients */}
+      {client && (
+        <EditClientModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          clientId={clientId ? Number.parseInt(clientId) : null}
+          onEditClient={handleEditComplete}
+          darkMode={darkMode}
+        />
+      )}
     </>
   )
 }

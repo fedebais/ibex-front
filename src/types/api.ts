@@ -51,9 +51,45 @@ export interface Pilot {
   flightHours: number
   medicalExpiry: string
   lastTraining: string
+  active: boolean
   user: User
-  certifications?: CertificationAssignment[] // puede ser opcional si no siempre viene
-  aircraftRatings?: AircraftRating[] // puede ser opcional si no siempre viene
+  certifications?: CertificationAssignment[]
+  aircraftRatings?: AircraftRating[]
+}
+
+// Tipo para crear un piloto
+export interface CreatePilotInput {
+  user: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    password: string
+  }
+  license: string
+  flightHours: number
+  medicalExpiry: string
+  lastTraining: string
+  certificationTypeIds: number[]
+  aircraftCertifications: {
+    modelId: number
+    certificationDate: string
+  }[]
+}
+
+// Tipo para actualizar un piloto (sin password)
+export interface UpdatePilotInput extends Omit<CreatePilotInput, "user"> {
+  user: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  }
+}
+
+export interface CertificationType {
+  id: number
+  name: string
 }
 
 export interface CertificationAssignment {
@@ -78,26 +114,6 @@ export interface AircraftRating {
 }
 
 // src/types/api.ts
-
-export interface CreatePilotInput {
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    password: string
-    profileImage?: string
-  }
-  license: string
-  flightHours: number
-  medicalExpiry: string
-  lastTraining: string
-  certifications: string[]
-  aircraftCertifications: {
-    model: string
-    certificationDate: string
-  }[]
-}
 
 // Actualizado para coincidir con la respuesta real de la API
 export interface Technician {

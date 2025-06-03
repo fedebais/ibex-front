@@ -167,8 +167,17 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
   }
 
   const handleViewClient = (clientId: number) => {
+    console.log("=== ABRIENDO MODAL CLIENTE ===")
+    console.log("Cliente ID:", clientId)
+    console.log("Tipo de ID:", typeof clientId)
+
+    // Forzar la apertura del modal
     setSelectedClientId(clientId.toString())
     setIsDetailsModalOpen(true)
+
+    console.log("Estado después de setear:")
+    console.log("selectedClientId será:", clientId.toString())
+    console.log("isDetailsModalOpen será:", true)
   }
 
   const handleRetry = () => {
@@ -384,7 +393,12 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
                         </div>
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => handleViewClient(client.id)}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              console.log("Click en Ver Detalles para cliente:", client.id)
+                              handleViewClient(client.id)
+                            }}
                             className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
                               darkMode
                                 ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
@@ -436,7 +450,11 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       {/* Modal para ver detalles del cliente */}
       <ClientDetailsModal
         isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
+        onClose={() => {
+          console.log("Cerrando modal de detalles")
+          setIsDetailsModalOpen(false)
+          setSelectedClientId(null)
+        }}
         clientId={selectedClientId}
         darkMode={darkMode}
       />

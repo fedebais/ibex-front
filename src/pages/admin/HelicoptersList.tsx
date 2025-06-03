@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { api } from "../../services/api"
 import AddHelicopterModal from "../../components/modals/AddHelicopterModal"
 import HelicopterDetailsModal from "../../components/modals/HelicopterDetailsModal"
+import EditHelicopterModal from "../../components/modals/EditHelicopterModal"
 import type { Helicopter } from "../../types/api"
 
 interface HelicoptersListProps {
@@ -17,6 +18,7 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [selectedHelicopterId, setSelectedHelicopterId] = useState<number | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedHelicopter, setSelectedHelicopter] = useState<Helicopter | null>(null)
@@ -112,17 +114,33 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
     }
   }
 
-  const handleUpdateHelicopter = async (updatedHelicopter: Helicopter) => {
+  const handleEditHelicopter = async (helicopterId: number) => {
     try {
       const token = localStorage.getItem("ibex_access_token")
       if (!token) {
         throw new Error("No se encontró el token de autenticación")
       }
 
-      // Llamar a la API para actualizar el helicóptero
-      await api.updateHelicopter(updatedHelicopter.id, updatedHelicopter, token)
+      // Obtener los detalles del helicóptero directamente de la API
+      const helicopter = await api.getHelicopterById(helicopterId, token)
 
-      // Recargar la lista completa para asegurar datos actualizados
+      setSelectedHelicopter(helicopter)
+      setSelectedHelicopterId(helicopterId)
+      setIsEditModalOpen(true)
+    } catch (err) {
+      console.error("Error al obtener detalles del helicóptero:", err)
+      alert("Error al obtener detalles del helicóptero: " + (err instanceof Error ? err.message : "Error desconocido"))
+    }
+  }
+
+  const handleUpdateHelicopter = async (updatedHelicopter: Helicopter) => {
+    try {
+      console.log("HelicoptersList - handleUpdateHelicopter llamado con:", updatedHelicopter)
+
+      // ✅ NO hacer la llamada a la API aquí, ya se hizo en el modal
+      // El modal ya actualizó el helicóptero en el backend
+
+      // Solo recargar la lista para obtener datos frescos del servidor
       await loadHelicopters()
 
       // Actualizar el helicóptero seleccionado si está abierto el modal de detalles
@@ -131,10 +149,10 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
       }
 
       // Mostrar mensaje de éxito
-      alert("Helicóptero actualizado correctamente")
+      console.log("Lista de helicópteros actualizada correctamente")
     } catch (err) {
-      console.error("Error al actualizar el helicóptero:", err)
-      alert("Error al actualizar el helicóptero: " + (err instanceof Error ? err.message : "Error desconocido"))
+      console.error("Error al recargar la lista de helicópteros:", err)
+      alert("Error al recargar la lista: " + (err instanceof Error ? err.message : "Error desconocido"))
     }
   }
 
@@ -365,11 +383,7 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
                     Ver Detalles
                   </button>
                   <button
-                    onClick={() => {
-                      setSelectedHelicopter(helicopter)
-                      setSelectedHelicopterId(helicopter.id)
-                      setIsDetailsModalOpen(true)
-                    }}
+                    onClick={() => handleEditHelicopter(helicopter.id)}
                     className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                   >
                     Editar
@@ -389,36 +403,59 @@ const HelicoptersList = ({ darkMode = false }: HelicoptersListProps) => {
 
       {/* Modal para añadir helicóptero */}
       <AddHelicopterModal
-  isOpen={isAddModalOpen}
-  onClose={() => setIsAddModalOpen(false)}
-  onAddHelicopter={handleAddHelicopter}
-  darkMode={darkMode}
-/>
-
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAddHelicopter={handleAddHelicopter}
+        darkMode={darkMode}
+      />
 
       {/* Modal para ver detalles del helicóptero */}
-     <HelicopterDetailsModal
-  isOpen={isDetailsModalOpen}
-  onClose={() => {
-    setIsDetailsModalOpen(false)
-    setSelectedHelicopter(null)
-    setSelectedHelicopterId(null)
-  }}
-  helicopterId={selectedHelicopterId}
-  helicopter={selectedHelicopter}
-  onUpdateHelicopter={(updatedPartial) => {
-    if (!selectedHelicopter) return
+      <HelicopterDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false)
+          setSelectedHelicopter(null)
+          setSelectedHelicopterId(null)
+        }}
+        helicopterId={selectedHelicopterId}
+        helicopter={selectedHelicopter}
+        onUpdateHelicopter={(updatedPartial) => {
+          if (!selectedHelicopter) return
 
-    // Combinamos los datos previos con los nuevos
-    const fullUpdatedHelicopter: Helicopter = {
-      ...selectedHelicopter,
-      ...updatedPartial,
-    }
+          // Combinamos los datos previos con los nuevos
+          const fullUpdatedHelicopter: Helicopter = {
+            ...selectedHelicopter,
+            ...updatedPartial,
+          }
 
-    void handleUpdateHelicopter(fullUpdatedHelicopter)
-  }}
-/>
+          void handleUpdateHelicopter(fullUpdatedHelicopter)
+        }}
+        darkMode={darkMode}
+      />
 
+      {/* Modal para editar helicóptero */}
+      <EditHelicopterModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedHelicopter(null)
+          setSelectedHelicopterId(null)
+        }}
+        helicopter={selectedHelicopter}
+        onUpdateHelicopter={(updatedPartial) => {
+          if (!selectedHelicopter) return
+
+          // Combinamos los datos previos con los nuevos
+          const fullUpdatedHelicopter: Helicopter = {
+            ...selectedHelicopter,
+            ...updatedPartial,
+          }
+
+          void handleUpdateHelicopter(fullUpdatedHelicopter)
+          setIsEditModalOpen(false)
+        }}
+        darkMode={darkMode}
+      />
     </div>
   )
 }
