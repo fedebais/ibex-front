@@ -210,6 +210,7 @@ export interface Client {
   id: number
   name: string
   contact: string
+  active: boolean
   email: string | null
   phone: string | null
   address: string | null

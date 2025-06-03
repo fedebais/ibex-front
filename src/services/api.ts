@@ -277,7 +277,7 @@ export class ApiService {
     })
   }
 
-  async updateClient(id: string, data: Partial<Client>, token: string): Promise<Client> {
+  async updateClient(id: number, data: Partial<Client>, token: string): Promise<Client> {
     return this.makeRequest<Client>(`/clients/${id}`, {
       method: "PUT",
       headers: {
@@ -288,7 +288,7 @@ export class ApiService {
     })
   }
 
-  async deleteClient(id: string, token: string): Promise<{ message: string }> {
+  async deleteClient(id: number, token: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/clients/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(token),

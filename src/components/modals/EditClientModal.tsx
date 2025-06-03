@@ -32,7 +32,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
   const [phone, setPhone] = useState("")
   const [contact, setContact] = useState("")
   const [address, setAddress] = useState("")
-  const [type, setType] = useState<"corporate" | "individual" | "government">("corporate")
+  const [type, setType] = useState("corporate")
   const [notes, setNotes] = useState("")
   const [active, setActive] = useState(true)
 
