@@ -167,7 +167,7 @@ export const mockLocations = [
 // Clientes mock
 export const mockClients = [
   {
-    id: "1",
+    id: 1,
     name: "Hotel Llao Llao",
     contactPerson: "Martín Gutiérrez",
     email: "reservas@llaollao.com",
@@ -178,7 +178,7 @@ export const mockClients = [
     notes: "Cliente VIP, servicio de traslados exclusivos para huéspedes",
   },
   {
-    id: "2",
+    id: 2,
     name: "Turismo Aventura Patagonia",
     contactPerson: "Laura Fernández",
     email: "info@aventurapatagonia.com",
@@ -189,7 +189,7 @@ export const mockClients = [
     notes: "Agencia de turismo, vuelos panorámicos y excursiones",
   },
   {
-    id: "3",
+    id: 4,
     name: "Roberto Méndez",
     contactPerson: "Roberto Méndez",
     email: "rmendez@gmail.com",
@@ -200,7 +200,7 @@ export const mockClients = [
     notes: "Cliente frecuente, vuelos privados",
   },
   {
-    id: "4",
+    id: 5,
     name: "Hospital Regional Bariloche",
     contactPerson: "Dra. Claudia Vázquez",
     email: "emergencias@hospitalbariloche.gov.ar",
@@ -211,7 +211,7 @@ export const mockClients = [
     notes: "Servicios de emergencia médica y traslados",
   },
   {
-    id: "5",
+    id: 6,
     name: "Parques Nacionales",
     contactPerson: "Jorge Álvarez",
     email: "operaciones@parquesnacionales.gob.ar",

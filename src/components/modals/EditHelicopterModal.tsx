@@ -41,10 +41,10 @@ const EditHelicopterModal = ({
     imageUrl: "",
   })
   const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState("")
   const [isLoadingModels, setIsLoadingModels] = useState(false)
+  const [modelsError, setModelsError] = useState("")
 
   // Cargar modelos de helicópteros
   useEffect(() => {
@@ -70,6 +70,7 @@ const EditHelicopterModal = ({
   const loadHelicopterModels = async () => {
     try {
       setIsLoadingModels(true)
+      setModelsError("")
       const token = accessToken || localStorage.getItem("ibex_access_token")
       if (!token) {
         throw new Error("No se encontró el token de autenticación")
@@ -79,13 +80,8 @@ const EditHelicopterModal = ({
       setHelicopterModels(models)
     } catch (err) {
       console.error("Error al cargar modelos de helicópteros:", err)
-      // Fallback con modelos por defecto
-      setHelicopterModels([
-        { id: 1, name: "Bell 407", manufacturer: "Bell", specifications: {} },
-        { id: 2, name: "Airbus H125", manufacturer: "Airbus", specifications: {} },
-        { id: 3, name: "Robinson R44", manufacturer: "Robinson", specifications: {} },
-        { id: 4, name: "Sikorsky S-76", manufacturer: "Sikorsky", specifications: {} },
-      ])
+      setModelsError("Error al cargar los modelos de helicópteros. Por favor, recargue la página.")
+      setHelicopterModels([])
     } finally {
       setIsLoadingModels(false)
     }
@@ -169,6 +165,7 @@ const EditHelicopterModal = ({
 
   const handleClose = () => {
     setError("")
+    setModelsError("")
     onClose()
   }
 
@@ -189,6 +186,18 @@ const EditHelicopterModal = ({
           </div>
         )}
 
+        {modelsError && (
+          <div
+            className={`p-3 rounded-md text-sm ${
+              darkMode
+                ? "bg-red-900 border border-red-700 text-red-200"
+                : "bg-red-100 border border-red-200 text-red-800"
+            }`}
+          >
+            {modelsError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Modelo */}
           <div>
@@ -205,6 +214,14 @@ const EditHelicopterModal = ({
                   Cargando modelos...
                 </span>
               </div>
+            ) : modelsError ? (
+              <div
+                className={`p-2 rounded border text-sm ${
+                  darkMode ? "bg-gray-700 border-red-600 text-red-300" : "bg-red-50 border-red-300 text-red-700"
+                }`}
+              >
+                No se pudieron cargar los modelos
+              </div>
             ) : (
               <select
                 id="modelId"
@@ -212,11 +229,14 @@ const EditHelicopterModal = ({
                 value={formData.modelId}
                 onChange={handleInputChange}
                 required
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                disabled={helicopterModels.length === 0}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 ${
                   darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
               >
-                <option value={0}>Seleccionar modelo</option>
+                <option value={0}>
+                  {helicopterModels.length === 0 ? "No hay modelos disponibles" : "Seleccionar modelo"}
+                </option>
                 {helicopterModels.map((model) => (
                   <option key={model.id} value={model.id}>
                     {model.name}
@@ -386,7 +406,7 @@ const EditHelicopterModal = ({
           </button>
           <button
             type="submit"
-            disabled={isUpdating}
+            disabled={isUpdating || modelsError !== ""}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
             {isUpdating ? (

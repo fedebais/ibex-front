@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
-import { getPilotById, getFlightLogsByPilotId, getHelicopterById } from "../../services/api"
+import { getPilotById, getFlightLogsByPilotId } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot, FlightLog, Helicopter } from "../../types/api"
 
@@ -14,7 +14,7 @@ interface PilotDetailsModalProps {
 }
 
 const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: PilotDetailsModalProps) => {
-  const { user, accessToken, isLoading: userLoading } = useUser()
+  const { user, isLoading: userLoading, accessToken } = useUser()
   const [pilot, setPilot] = useState<Pilot | null>(null)
   const [pilotFlights, setPilotFlights] = useState<FlightLog[]>([])
   const [helicopter, setHelicopter] = useState<Helicopter | null>(null)
@@ -25,7 +25,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
   // Debug logs
   console.log("PilotDetailsModal - Props:", { isOpen, pilotId })
   console.log("PilotDetailsModal - User:", user)
-  console.log("PilotDetailsModal - AccessToken:", user?.accessToken)
+  console.log("PilotDetailsModal - AccessToken:", accessToken)
 
   // Cargar datos del piloto
   useEffect(() => {
@@ -77,13 +77,9 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         console.log("PilotDetailsModal - Flight logs received:", flightsData)
         setPilotFlights(flightsData)
 
-        // Cargar datos del helicóptero asignado
-        if (pilotData.helicopterId) {
-          console.log("PilotDetailsModal - Loading helicopter data for ID:", pilotData.helicopterId)
-          const helicopterData = await getHelicopterById(pilotData.helicopterId, accessToken)
-          console.log("PilotDetailsModal - Helicopter data received:", helicopterData)
-          setHelicopter(helicopterData)
-        }
+        // Cargar datos del helicóptero asignado (si existe en el piloto)
+        // Nota: Removido helicopterId ya que no existe en el tipo Pilot
+        // Si necesitas esta funcionalidad, debe agregarse al backend y tipo Pilot
       } catch (err) {
         console.error("PilotDetailsModal - Error loading pilot data:", err)
         setError("No se pudieron cargar los datos del piloto. Por favor, intente nuevamente.")
@@ -108,8 +104,8 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
 
   // Calcular estadísticas
   const totalFlights = pilotFlights.length
-  const completedFlights = pilotFlights.filter((f) => f.status === "Completado").length
-  const scheduledFlights = pilotFlights.filter((f) => f.status === "Programado").length
+  const completedFlights = pilotFlights.filter((f) => f.status === "COMPLETED").length
+  const scheduledFlights = pilotFlights.filter((f) => f.status === "SCHEDULED").length
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
@@ -121,6 +117,34 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return `${hours}h ${mins}m`
+  }
+
+  // Función para traducir estado del helicóptero
+  const translateHelicopterStatus = (status: string | null) => {
+    switch (status) {
+      case "ACTIVE":
+        return "Activo"
+      case "MAINTENANCE":
+        return "Mantenimiento"
+      case "INACTIVE":
+        return "Inactivo"
+      default:
+        return "Desconocido"
+    }
+  }
+
+  // Función para traducir estado de vuelo
+  const translateFlightStatus = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "Completado"
+      case "SCHEDULED":
+        return "Programado"
+      case "CANCELLED":
+        return "Cancelado"
+      default:
+        return status
+    }
   }
 
   if (!isOpen) return null
@@ -328,7 +352,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                       >
                         <div>
                           <p className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                            {rating.aircraftModel || rating.model}
+                            {rating.helicopterModel.name}
                           </p>
                           <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                             Certificado: {formatDate(rating.certificationDate)}
@@ -351,39 +375,35 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                 )}
               </div>
 
-              {/* Helicóptero asignado */}
-              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  Helicóptero Asignado
-                </h4>
+              {/* Helicóptero asignado - Removido ya que no existe helicopterId en Pilot */}
+              {helicopter && (
+                <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+                  <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    Helicóptero Asignado
+                  </h4>
 
-                {helicopter ? (
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
                       <img
                         src={helicopter.imageUrl || "/placeholder.svg"}
-                        alt={helicopter.model}
+                        alt={helicopter.model.name}
                         className="h-16 w-16 object-cover rounded-md"
                       />
                     </div>
                     <div>
                       <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {helicopter.model} - {helicopter.registration}
+                        {helicopter.model.name} - {helicopter.registration}
                       </p>
                       <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                         Estado:{" "}
-                        <span className={helicopter.status === "Activo" ? "text-green-500" : "text-yellow-500"}>
-                          {helicopter.status}
+                        <span className={helicopter.status === "ACTIVE" ? "text-green-500" : "text-yellow-500"}>
+                          {translateHelicopterStatus(helicopter.status)}
                         </span>
                       </p>
                     </div>
                   </div>
-                ) : (
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    No hay helicóptero asignado
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Estadísticas de vuelo */}
               <div>
@@ -502,12 +522,14 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                           <td className={`px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm`}>
                             <span
                               className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                flight.status === "Completado"
+                                flight.status === "COMPLETED"
                                   ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
+                                  : flight.status === "SCHEDULED"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {flight.status}
+                              {translateFlightStatus(flight.status)}
                             </span>
                           </td>
                         </tr>

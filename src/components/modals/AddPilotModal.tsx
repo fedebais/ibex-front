@@ -1,542 +1,573 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
-import { createPilot, getCertificationTypes, getHelicopterModels } from "../../services/api"
+import { useState, useEffect } from "react"
 import { useUser } from "../../context/UserContext"
-import type { CertificationType, HelicopterModel, CreatePilotInput } from "../../types/api"
+import { createPilot, getCertificationTypes, getHelicopterModels } from "../../services/api"
+import type {
+  CreatePilotInput,
+  CertificationType,
+  HelicopterModel,
+  AddPilotModalProps,
+  AddPilotFormData,
+  AircraftCertification,
+} from "../../types/api"
 
-interface AddPilotModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAddPilot: () => void
-  darkMode?: boolean
-}
-
-const AddPilotModal: React.FC<AddPilotModalProps> = ({ isOpen, onClose, onAddPilot, darkMode = false }) => {
+const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddPilotModalProps) => {
   const { accessToken } = useUser()
-  const [isLoading, setIsLoading] = useState(false)
-
-  // Estados del formulario
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
-  const [password, setPassword] = useState("")
-  const [license, setLicense] = useState("")
-  const [flightHours, setFlightHours] = useState("")
-  const [medicalExpiry, setMedicalExpiry] = useState("")
-  const [lastTraining, setLastTraining] = useState("")
+  const [formData, setFormData] = useState<AddPilotFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    license: "",
+    flightHours: 0,
+    medicalExpiry: "",
+    lastTraining: "",
+  })
   const [selectedCertificationIds, setSelectedCertificationIds] = useState<number[]>([])
+  const [aircraftCertifications, setAircraftCertifications] = useState<AircraftCertification[]>([])
   const [certificationTypes, setCertificationTypes] = useState<CertificationType[]>([])
-  const [isLoadingCertifications, setIsLoadingCertifications] = useState(false)
   const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
-  const [isLoadingModels, setIsLoadingModels] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [isLoadingData, setIsLoadingData] = useState(false)
+  const [dataError, setDataError] = useState("")
 
-  const [aircraftCertifications, setAircraftCertifications] = useState<
-    { modelId: number; certificationDate: string }[]
-  >([{ modelId: 0, certificationDate: "" }])
-
-  // Cargar tipos de certificaciones y modelos cuando se abre el modal
   useEffect(() => {
-    if (isOpen && accessToken) {
-      loadCertificationTypes()
-      loadHelicopterModels()
+    if (isOpen) {
+      loadInitialData()
     }
-  }, [isOpen, accessToken])
+  }, [isOpen])
 
-  const loadCertificationTypes = async () => {
-    if (!accessToken) return
-
-    setIsLoadingCertifications(true)
+  const loadInitialData = async () => {
     try {
-      const types = await getCertificationTypes(accessToken)
-      setCertificationTypes(types)
-    } catch (error) {
-      console.error("Error loading certification types:", error)
-      // Fallback a certificaciones por defecto si falla la API
-      setCertificationTypes([
-        { id: 1, name: "VFR" },
-        { id: 2, name: "IFR" },
-        { id: 3, name: "Night Flying" },
-        { id: 4, name: "Mountain Operations" },
-        { id: 5, name: "Offshore" },
-        { id: 6, name: "External Load" },
-        { id: 7, name: "Firefighting" },
-        { id: 8, name: "SAR" },
-      ])
-    } finally {
-      setIsLoadingCertifications(false)
-    }
-  }
+      setIsLoadingData(true)
+      setDataError("")
+      const token = accessToken || localStorage.getItem("ibex_access_token")
+      if (!token) {
+        throw new Error("No se encontró el token de autenticación")
+      }
 
-  const loadHelicopterModels = async () => {
-    if (!accessToken) return
+      const [certTypes, models] = await Promise.all([getCertificationTypes(token), getHelicopterModels(token)])
 
-    setIsLoadingModels(true)
-    try {
-      const models = await getHelicopterModels(accessToken)
+      setCertificationTypes(certTypes)
       setHelicopterModels(models)
-    } catch (error) {
-      console.error("Error loading helicopter models:", error)
-      // Fallback a modelos por defecto si falla la API
-      setHelicopterModels([
-        { id: 1, name: "Bell 407", createdAt: "", updatedAt: "" },
-        { id: 2, name: "Airbus H125", createdAt: "", updatedAt: "" },
-        { id: 3, name: "Robinson R44", createdAt: "", updatedAt: "" },
-        { id: 4, name: "Sikorsky S-76", createdAt: "", updatedAt: "" },
-      ])
+    } catch (err) {
+      console.error("Error al cargar datos iniciales:", err)
+      setDataError("Error al cargar los datos necesarios. Por favor, recargue la página.")
+      setCertificationTypes([])
+      setHelicopterModels([])
     } finally {
-      setIsLoadingModels(false)
+      setIsLoadingData(false)
     }
   }
 
-  // Funciones para manejar las certificaciones por aeronave
-  const handleAircraftCertChange = (index: number, field: "modelId" | "certificationDate", value: string | number) => {
-    const newCerts = [...aircraftCertifications]
-    if (field === "modelId") {
-      newCerts[index][field] = Number(value)
-    } else {
-      newCerts[index][field] = value as string
-    }
-    setAircraftCertifications(newCerts)
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "flightHours" ? Number(value) : value,
+    }))
   }
 
-  const addAircraftCert = () => {
-    setAircraftCertifications([...aircraftCertifications, { modelId: 0, certificationDate: "" }])
+  const handleCertificationChange = (certificationId: number) => {
+    setSelectedCertificationIds((prev) =>
+      prev.includes(certificationId) ? prev.filter((id) => id !== certificationId) : [...prev, certificationId],
+    )
   }
 
-  const removeAircraftCert = (index: number) => {
-    if (aircraftCertifications.length > 1) {
-      const newCerts = [...aircraftCertifications]
-      newCerts.splice(index, 1)
-      setAircraftCertifications(newCerts)
-    }
+  const addAircraftCertification = () => {
+    setAircraftCertifications((prev) => [...prev, { modelId: 0, certificationDate: "" }])
   }
 
-  const handleCertificationChange = (certId: number) => {
-    if (selectedCertificationIds.includes(certId)) {
-      setSelectedCertificationIds(selectedCertificationIds.filter((id) => id !== certId))
-    } else {
-      setSelectedCertificationIds([...selectedCertificationIds, certId])
-    }
+  const removeAircraftCertification = (index: number) => {
+    setAircraftCertifications((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const updateAircraftCertification = (index: number, field: keyof AircraftCertification, value: string | number) => {
+    setAircraftCertifications((prev) => prev.map((cert, i) => (i === index ? { ...cert, [field]: value } : cert)))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
 
-    if (!accessToken) {
-      alert("Error: No se pudo obtener el token de acceso")
+    // Validaciones básicas
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError("Nombre y apellido son obligatorios")
       return
     }
 
-    // Validar que todos los campos requeridos estén completos
-    if (!firstName || !lastName || !email || !phone || !password || !license) {
-      alert("Faltan campos requeridos")
+    if (!formData.email.trim() || !formData.email.includes("@")) {
+      setError("Email válido es obligatorio")
       return
     }
 
-    setIsLoading(true)
+    if (!formData.password || formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    if (!formData.license.trim()) {
+      setError("La licencia es obligatoria")
+      return
+    }
+
+    if (formData.flightHours < 0) {
+      setError("Las horas de vuelo no pueden ser negativas")
+      return
+    }
+
+    if (!formData.medicalExpiry || !formData.lastTraining) {
+      setError("Fecha de examen médico y último entrenamiento son obligatorios")
+      return
+    }
+
+    const token = accessToken || localStorage.getItem("ibex_access_token")
+    if (!token) {
+      setError("No se pudo verificar la autenticación. Por favor, inicie sesión de nuevo.")
+      return
+    }
 
     try {
-      // Preparar datos para crear el piloto
+      setIsLoading(true)
+
       const pilotData: CreatePilotInput = {
         user: {
-          firstName,
-          lastName,
-          email,
-          phone,
-          password, // Siempre incluir password en creación
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
         },
-        license,
-        flightHours: Number.parseInt(flightHours) || 0,
-        medicalExpiry,
-        lastTraining,
+        license: formData.license,
+        flightHours: formData.flightHours,
+        medicalExpiry: formData.medicalExpiry,
+        lastTraining: formData.lastTraining,
         certificationTypeIds: selectedCertificationIds,
-        aircraftCertifications: aircraftCertifications
-          .filter((cert) => cert.modelId > 0 && cert.certificationDate)
-          .map((cert) => ({
-            modelId: cert.modelId,
-            certificationDate: cert.certificationDate,
-          })),
+        aircraftCertifications: aircraftCertifications.filter((cert) => cert.modelId > 0 && cert.certificationDate),
       }
 
-      console.log("Creando piloto con datos:", pilotData)
-
-      await createPilot(pilotData, accessToken)
-
-      alert("Piloto creado exitosamente")
-      onAddPilot() // Callback para recargar la lista
-      onClose()
-      resetForm()
-    } catch (error) {
-      console.error("Error creating pilot:", error)
-      alert("Error al crear el piloto. Por favor, intente nuevamente.")
+      await createPilot(pilotData, token)
+      onPilotAdded()
+      handleClose()
+    } catch (err) {
+      console.error("Error al crear el piloto:", err)
+      setError("No se pudo crear el piloto. Por favor, intente de nuevo.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const resetForm = () => {
-    setFirstName("")
-    setLastName("")
-    setEmail("")
-    setPhone("")
-    setPassword("")
-    setLicense("")
-    setFlightHours("")
-    setMedicalExpiry("")
-    setLastTraining("")
+  const handleClose = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+      license: "",
+      flightHours: 0,
+      medicalExpiry: "",
+      lastTraining: "",
+    })
     setSelectedCertificationIds([])
-    setAircraftCertifications([{ modelId: 0, certificationDate: "" }])
+    setAircraftCertifications([])
+    setError("")
+    setDataError("")
+    onClose()
   }
 
-  const handleClose = () => {
-    onClose()
-    resetForm()
+  if (isLoadingData) {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Agregar Nuevo Piloto" maxWidth="max-w-4xl">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <span className={`ml-3 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>Cargando datos necesarios...</span>
+        </div>
+      </Modal>
+    )
+  }
+
+  if (dataError) {
+    return (
+      <Modal isOpen={isOpen} onClose={handleClose} title="Error" maxWidth="max-w-md">
+        <div className="text-center py-8">
+          <div className={`p-4 rounded-md ${darkMode ? "bg-red-900 text-red-200" : "bg-red-100 text-red-800"}`}>
+            {dataError}
+          </div>
+          <button
+            onClick={handleClose}
+            className="mt-4 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </Modal>
+    )
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Agregar Nuevo Piloto" maxWidth="max-w-lg" darkMode={darkMode}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="firstName"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Nombre
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="lastName"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Apellido
-            </label>
-            <input
-              type="text"
-              id="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="email"
-            className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-          >
-            Correo Electrónico
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md ${
+    <Modal isOpen={isOpen} onClose={handleClose} title="Agregar Nuevo Piloto" maxWidth="max-w-4xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div
+            className={`p-3 rounded-md text-sm ${
               darkMode
-                ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                ? "bg-red-900 border border-red-700 text-red-200"
+                : "bg-red-100 border border-red-200 text-red-800"
             }`}
-            required
-          />
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Información Personal */}
+        <div>
+          <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-white" : "text-gray-900"}`}>
+            Información Personal
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="firstName"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Nombre *
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="lastName"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Apellido *
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="email"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Email *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="phone"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Teléfono
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Contraseña *
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                minLength={6}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="phone"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+54 9 2944 123456"
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Contraseña
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-              minLength={6}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="license"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Número de Licencia
-            </label>
-            <input
-              type="text"
-              id="license"
-              value={license}
-              onChange={(e) => setLicense(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="flightHours"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Horas de Vuelo
-            </label>
-            <input
-              type="number"
-              id="flightHours"
-              value={flightHours}
-              onChange={(e) => setFlightHours(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              min="0"
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="medicalExpiry"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Vencimiento Médico
-            </label>
-            <input
-              type="date"
-              id="medicalExpiry"
-              value={medicalExpiry}
-              onChange={(e) => setMedicalExpiry(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="lastTraining"
-              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-            >
-              Último Entrenamiento
-            </label>
-            <input
-              type="date"
-              id="lastTraining"
-              value={lastTraining}
-              onChange={(e) => setLastTraining(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-              }`}
-              required
-            />
+        {/* Información Profesional */}
+        <div>
+          <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-white" : "text-gray-900"}`}>
+            Información Profesional
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="license"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Licencia *
+              </label>
+              <input
+                type="text"
+                id="license"
+                name="license"
+                value={formData.license}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="flightHours"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Horas de Vuelo *
+              </label>
+              <input
+                type="number"
+                id="flightHours"
+                name="flightHours"
+                value={formData.flightHours}
+                onChange={handleInputChange}
+                required
+                min="0"
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="medicalExpiry"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Vencimiento Examen Médico *
+              </label>
+              <input
+                type="date"
+                id="medicalExpiry"
+                name="medicalExpiry"
+                value={formData.medicalExpiry}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="lastTraining"
+                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+              >
+                Último Entrenamiento *
+              </label>
+              <input
+                type="date"
+                id="lastTraining"
+                name="lastTraining"
+                value={formData.lastTraining}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+              />
+            </div>
           </div>
         </div>
 
         {/* Certificaciones */}
         <div>
-          <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-2`}>
-            Certificaciones
-          </label>
-          {isLoadingCertifications ? (
-            <div className="flex justify-center items-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500"></div>
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando certificaciones...</span>
+          <h3 className={`text-lg font-medium mb-4 ${darkMode ? "text-white" : "text-gray-900"}`}>Certificaciones</h3>
+          {certificationTypes.length === 0 ? (
+            <div
+              className={`p-3 rounded-md text-sm ${
+                darkMode ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              No se pudieron cargar las certificaciones disponibles
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {certificationTypes.map((cert) => (
-                <div key={cert.id} className="flex items-center">
+                <label
+                  key={cert.id}
+                  className={`flex items-center space-x-2 p-3 border rounded-md cursor-pointer hover:bg-opacity-50 ${
+                    darkMode ? "border-gray-600 hover:bg-gray-700" : "border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
-                    id={`cert-${cert.id}`}
                     checked={selectedCertificationIds.includes(cert.id)}
                     onChange={() => handleCertificationChange(cert.id)}
-                    className={`h-4 w-4 ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-orange-500 focus:ring-orange-500"
-                        : "border-gray-300 text-orange-600 focus:ring-orange-500"
-                    }`}
+                    className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                   />
-                  <label
-                    htmlFor={`cert-${cert.id}`}
-                    className={`ml-2 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}
-                  >
-                    {cert.name}
-                  </label>
-                </div>
+                  <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{cert.name}</span>
+                </label>
               ))}
             </div>
           )}
         </div>
 
-        {/* Certificaciones por Aeronave */}
+        {/* Certificaciones de Aeronaves */}
         <div>
-          <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-2`}>
-            Certificaciones por Aeronave
-          </label>
-          {isLoadingModels ? (
-            <div className="flex justify-center items-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500"></div>
-              <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Cargando modelos...</span>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className={`text-lg font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+              Certificaciones de Aeronaves
+            </h3>
+            <button
+              type="button"
+              onClick={addAircraftCertification}
+              disabled={helicopterModels.length === 0}
+              className="px-3 py-1 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50"
+            >
+              Agregar
+            </button>
+          </div>
+
+          {helicopterModels.length === 0 ? (
+            <div
+              className={`p-3 rounded-md text-sm ${
+                darkMode ? "bg-yellow-900 text-yellow-200" : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              No se pudieron cargar los modelos de helicópteros disponibles
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {aircraftCertifications.map((cert, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <select
-                    value={cert.modelId}
-                    onChange={(e) => handleAircraftCertChange(index, "modelId", e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                    }`}
-                  >
-                    <option value={0}>Seleccionar modelo</option>
-                    {helicopterModels.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={cert.certificationDate}
-                    onChange={(e) => handleAircraftCertChange(index, "certificationDate", e.target.value)}
-                    className={`flex-1 px-3 py-2 border rounded-md ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
-                        : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
-                    }`}
-                  />
+                <div key={index} className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      Modelo
+                    </label>
+                    <select
+                      value={cert.modelId}
+                      onChange={(e) => updateAircraftCertification(index, "modelId", Number(e.target.value))}
+                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                        darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                      }`}
+                    >
+                      <option value={0}>Seleccionar modelo</option>
+                      {helicopterModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                      Fecha de Certificación
+                    </label>
+                    <input
+                      type="date"
+                      value={cert.certificationDate}
+                      onChange={(e) => updateAircraftCertification(index, "certificationDate", e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                        darkMode
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                      }`}
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => removeAircraftCert(index)}
-                    className="p-2 text-red-500 hover:text-red-700"
+                    onClick={() => removeAircraftCertification(index)}
+                    className="px-3 py-2 text-red-600 hover:text-red-800 border border-red-300 rounded-md hover:bg-red-50"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    Eliminar
                   </button>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={addAircraftCert}
-                className={`mt-2 inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium ${
-                  darkMode
-                    ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                }`}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-1"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Añadir Certificación
-              </button>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
+        {/* Botones */}
+        <div className="flex justify-end space-x-3 pt-6">
           <button
             type="button"
             onClick={handleClose}
-            className={`px-4 py-2 border rounded-md text-sm font-medium ${
+            disabled={isLoading}
+            className={`px-4 py-2 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
               darkMode
-                ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50"
+                : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            }`}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || certificationTypes.length === 0 || helicopterModels.length === 0}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
           >
-            {isLoading ? "Creando..." : "Crear Piloto"}
+            {isLoading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Creando...
+              </div>
+            ) : (
+              "Crear Piloto"
+            )}
           </button>
         </div>
       </form>
