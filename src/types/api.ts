@@ -415,13 +415,15 @@ export interface EditPilotModalProps {
   darkMode?: boolean
 }
 
-export interface EditHelicopterModalProps {
+export interface EditHelicopterModelModalProps {
   isOpen: boolean
   onClose: () => void
-  helicopter: Helicopter | null
-  onUpdateHelicopter: (updated: Partial<Helicopter>) => void
+  onSuccess: () => Promise<void>
+  model: HelicopterModel | null
   darkMode?: boolean
 }
+
+
 
 // Props para ClientDetailsModal
 export interface ClientDetailsModalProps {

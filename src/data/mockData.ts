@@ -963,9 +963,10 @@ export const getLocationName = (locationId: string) => {
 }
 
 export const getClientName = (clientId: string) => {
-  const client = mockClients.find((c) => c.id === clientId)
+  const client = mockClients.find((c) => c.id === Number(clientId))
   return client ? client.name : "Desconocido"
 }
+
 
 export const getClientFlights = (clientId: string) => {
   return mockFlights.filter((flight) => flight.clientId === clientId)

@@ -21,6 +21,8 @@ const HelicopterModels: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedModel, setSelectedModel] = useState<HelicopterModel | null>(null)
 
+
+  
   useEffect(() => {
     loadModels()
   }, [])
@@ -201,12 +203,13 @@ const HelicopterModels: React.FC = () => {
       {/* Modals */}
       <AddHelicopterModelModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={loadModels} />
 
-      <EditHelicopterModelModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSuccess={loadModels}
-        model={selectedModel}
-      />
+   <EditHelicopterModelModal
+  isOpen={showEditModal}
+  onClose={() => setShowEditModal(false)}
+  onSuccess={loadModels}
+  model={selectedModel}
+/>
+
     </div>
   )
 }
