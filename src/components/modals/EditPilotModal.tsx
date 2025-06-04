@@ -10,24 +10,26 @@ import type {
   CertificationType,
   HelicopterModel,
   EditPilotModalProps,
-  EditPilotFormData,
   AircraftCertification,
 } from "../../types/api"
 
 const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = false }: EditPilotModalProps) => {
   const { accessToken } = useUser()
-  const [formData, setFormData] = useState<EditPilotFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
+  const [formData, setFormData] = useState<UpdatePilotInput>({
+    user: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+    },
     license: "",
     flightHours: 0,
     medicalExpiry: "",
     lastTraining: "",
+    certificationTypeIds: [],
+    aircraftCertifications: [],
   })
-  const [selectedCertificationIds, setSelectedCertificationIds] = useState<number[]>([])
-  const [aircraftCertifications, setAircraftCertifications] = useState<AircraftCertification[]>([])
+
   const [certificationTypes, setCertificationTypes] = useState<CertificationType[]>([])
   const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -69,34 +71,37 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
     if (!pilot) return
 
     setFormData({
-      firstName: pilot.user.firstName,
-      lastName: pilot.user.lastName,
-      email: pilot.user.email,
-      phone: pilot.user.phone,
+      user: {
+        firstName: pilot.user.firstName,
+        lastName: pilot.user.lastName,
+        email: pilot.user.email,
+        phone: pilot.user.phone,
+      },
       license: pilot.license,
       flightHours: pilot.flightHours,
       medicalExpiry: pilot.medicalExpiry ? pilot.medicalExpiry.split("T")[0] : "",
       lastTraining: pilot.lastTraining ? pilot.lastTraining.split("T")[0] : "",
+      certificationTypeIds: pilot.certifications?.map((cert) => cert.certificationTypeId) || [],
+      aircraftCertifications:
+        pilot.aircraftRatings?.map((rating) => ({
+          modelId: rating.helicopterModelId,
+          certificationDate: rating.certificationDate ? rating.certificationDate.split("T")[0] : "",
+        })) || [],
     })
-
-    // Cargar certificaciones existentes
-    if (pilot.certifications && pilot.certifications.length > 0) {
-      const certIds = pilot.certifications.map((cert) => cert.certificationTypeId)
-      setSelectedCertificationIds(certIds)
-    }
-
-    // Cargar certificaciones de aeronaves existentes
-    if (pilot.aircraftRatings && pilot.aircraftRatings.length > 0) {
-      setAircraftCertifications(
-        pilot.aircraftRatings.map((cert) => ({
-          modelId: cert.helicopterModelId,
-          certificationDate: cert.certificationDate ? cert.certificationDate.split("T")[0] : "",
-        })),
-      )
-    }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleUserInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      user: {
+        ...prev.user,
+        [name]: value,
+      },
+    }))
+  }
+
+  const handlePilotInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
@@ -105,21 +110,40 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
   }
 
   const handleCertificationChange = (certificationId: number) => {
-    setSelectedCertificationIds((prev) =>
-      prev.includes(certificationId) ? prev.filter((id) => id !== certificationId) : [...prev, certificationId],
-    )
+    setFormData((prev) => {
+      const currentIds = prev.certificationTypeIds || []
+      const newIds = currentIds.includes(certificationId)
+        ? currentIds.filter((id) => id !== certificationId)
+        : [...currentIds, certificationId]
+
+      return {
+        ...prev,
+        certificationTypeIds: newIds,
+      }
+    })
   }
 
   const addAircraftCertification = () => {
-    setAircraftCertifications((prev) => [...prev, { modelId: 0, certificationDate: "" }])
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: [...prev.aircraftCertifications, { modelId: 0, certificationDate: "" }],
+    }))
   }
 
   const removeAircraftCertification = (index: number) => {
-    setAircraftCertifications((prev) => prev.filter((_, i) => i !== index))
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: prev.aircraftCertifications.filter((_, i) => i !== index),
+    }))
   }
 
   const updateAircraftCertification = (index: number, field: keyof AircraftCertification, value: string | number) => {
-    setAircraftCertifications((prev) => prev.map((cert, i) => (i === index ? { ...cert, [field]: value } : cert)))
+    setFormData((prev) => ({
+      ...prev,
+      aircraftCertifications: prev.aircraftCertifications.map((cert, i) =>
+        i === index ? { ...cert, [field]: value } : cert,
+      ),
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,12 +156,12 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
     }
 
     // Validaciones básicas
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+    if (!formData.user.firstName.trim() || !formData.user.lastName.trim()) {
       setError("Nombre y apellido son obligatorios")
       return
     }
 
-    if (!formData.email.trim() || !formData.email.includes("@")) {
+    if (!formData.user.email.trim() || !formData.user.email.includes("@")) {
       setError("Email válido es obligatorio")
       return
     }
@@ -166,19 +190,14 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
     try {
       setIsLoading(true)
 
+      // Filtrar certificaciones de aeronaves válidas
+      const validAircraftCertifications = formData.aircraftCertifications.filter(
+        (cert) => cert.modelId > 0 && cert.certificationDate,
+      )
+
       const pilotData: UpdatePilotInput = {
-        user: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        license: formData.license,
-        flightHours: formData.flightHours,
-        medicalExpiry: formData.medicalExpiry,
-        lastTraining: formData.lastTraining,
-        certificationTypeIds: selectedCertificationIds,
-        aircraftCertifications: aircraftCertifications.filter((cert) => cert.modelId > 0 && cert.certificationDate),
+        ...formData,
+        aircraftCertifications: validAircraftCertifications,
       }
 
       await updatePilot(pilot.id, pilotData, token)
@@ -261,8 +280,8 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 type="text"
                 id="firstName"
                 name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
+                value={formData.user.firstName}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -282,8 +301,8 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 type="text"
                 id="lastName"
                 name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
+                value={formData.user.lastName}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -303,8 +322,8 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 type="email"
                 id="email"
                 name="email"
-                value={formData.email}
-                onChange={handleInputChange}
+                value={formData.user.email}
+                onChange={handleUserInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -324,8 +343,8 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
+                value={formData.user.phone}
+                onChange={handleUserInputChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -354,7 +373,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 id="license"
                 name="license"
                 value={formData.license}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -375,7 +394,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 id="flightHours"
                 name="flightHours"
                 value={formData.flightHours}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 min="0"
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
@@ -397,7 +416,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 id="medicalExpiry"
                 name="medicalExpiry"
                 value={formData.medicalExpiry}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -418,7 +437,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 id="lastTraining"
                 name="lastTraining"
                 value={formData.lastTraining}
-                onChange={handleInputChange}
+                onChange={handlePilotInputChange}
                 required
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
@@ -452,7 +471,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 >
                   <input
                     type="checkbox"
-                    checked={selectedCertificationIds.includes(cert.id)}
+                    checked={formData.certificationTypeIds.includes(cert.id)}
                     onChange={() => handleCertificationChange(cert.id)}
                     className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                   />
@@ -489,7 +508,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
             </div>
           ) : (
             <div className="space-y-3">
-              {aircraftCertifications.map((cert, index) => (
+              {formData.aircraftCertifications.map((cert, index) => (
                 <div key={index} className="flex gap-3 items-end">
                   <div className="flex-1">
                     <label className={`block text-sm font-medium mb-1 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
