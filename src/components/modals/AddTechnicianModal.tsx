@@ -5,7 +5,7 @@ import { useState } from "react"
 import Modal from "../ui/Modal"
 import { createTechnician } from "../../services/api"
 import { useUser } from "../../context/UserContext"
-import type { Technician, TechnicianSpecialty, CertificationLevel } from "../../types/api"
+import type { Technician, TechnicianSpecialty, CertificationLevel, CreateTechnicianInput  } from "../../types/api"
 
 interface AddTechnicianModalProps {
   isOpen: boolean
@@ -80,18 +80,19 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
     setIsLoading(true)
 
     try {
-      const technicianData = {
-        firstName: formData.firstName.trim(),
-  lastName: formData.lastName.trim(),
-  email: formData.email.trim().toLowerCase(),
-  phone: formData.phone.trim(),
-  password: formData.password,
-  specialization: formData.specialization as TechnicianSpecialty,
-  certificationLevel: formData.certificationLevel as CertificationLevel,
-  experienceYears: formData.experienceYears,
-  lastCertification: formData.lastCertification,
-
-      }
+   const technicianData: CreateTechnicianInput = {
+    user: {
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      email: formData.email.trim().toLowerCase(),
+      phone: formData.phone.trim(),
+      password: formData.password,
+    },
+    specialization: formData.specialization as TechnicianSpecialty,
+    certificationLevel: formData.certificationLevel as CertificationLevel,
+    experienceYears: formData.experienceYears,
+    lastCertification: formData.lastCertification,
+  }
 
 
 

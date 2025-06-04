@@ -137,17 +137,20 @@ export interface Certification {
 
 // Tipo para crear técnico
 export interface CreateTechnicianInput {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  password: string
-  profileImage?: string
+  user: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    password: string
+    profileImage?: string
+  }
   specialization: TechnicianSpecialty
   certificationLevel: CertificationLevel
   experienceYears: number
   lastCertification: string
 }
+
 
 export interface UpdateTechnicianInput {
   specialization: TechnicianSpecialty
