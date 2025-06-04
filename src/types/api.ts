@@ -150,16 +150,18 @@ export interface CreateTechnicianInput {
 }
 
 export interface UpdateTechnicianInput {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  profileImage?: string
   specialization: TechnicianSpecialty
   certificationLevel: CertificationLevel
   experienceYears: number
   lastCertification: string
+  user: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  }
 }
+
 
 // Tipos para registros de vuelo
 export interface FlightLog {

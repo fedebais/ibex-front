@@ -116,16 +116,19 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
       setIsSubmitting(true)
       setError(null)
 
-const technicianData: UpdateTechnicianInput = {
-  firstName: firstName.trim(),
-  lastName: lastName.trim(),
-  email: email.trim(),
-  phone: phone.trim(),
-  certificationLevel: certificationLevel as CertificationLevel,
+const technicianData = {
   specialization: specialty as TechnicianSpecialty,
+  certificationLevel: certificationLevel as CertificationLevel,
   experienceYears: years,
   lastCertification: lastCertification ? new Date(lastCertification).toISOString() : "",
+  user: {
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+  },
 }
+
 
 
       console.log("Actualizando técnico con datos:", technicianData)
