@@ -438,6 +438,5 @@ export interface ClientDetailsModalProps {
 export interface EditHelicopterModelModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
   model: HelicopterModel | null
 }
