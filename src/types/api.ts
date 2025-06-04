@@ -409,8 +409,6 @@ export interface EditHelicopterModalProps {
   helicopter: Helicopter | null
   onUpdateHelicopter: (updated: Partial<Helicopter>) => void
   darkMode?: boolean
-  onSuccess: () => void | Promise<void>
-  model: HelicopterModel | null
 }
 
 // Props para ClientDetailsModal
@@ -420,4 +418,12 @@ export interface ClientDetailsModalProps {
   client: Client | null
   darkMode?: boolean
   onUpdateClient?: () => void
+}
+
+// Props para EditHelicopterModelModal
+export interface EditHelicopterModelModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+  model: HelicopterModel | null
 }
