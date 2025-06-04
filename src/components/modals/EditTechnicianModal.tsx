@@ -116,7 +116,7 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
       setIsSubmitting(true)
       setError(null)
 
-const technicianData = {
+const technicianData: UpdateTechnicianInput = {
   specialization: specialty as TechnicianSpecialty,
   certificationLevel: certificationLevel as CertificationLevel,
   experienceYears: years,
