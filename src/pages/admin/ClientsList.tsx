@@ -455,7 +455,8 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
           setIsDetailsModalOpen(false)
           setSelectedClientId(null)
         }}
-        clientId={selectedClientId}
+       client={clients.find((c) => c.id.toString() === selectedClientId) || null} // ✅ PASAR EL OBJETO COMPLETO
+
         darkMode={darkMode}
       />
     </div>

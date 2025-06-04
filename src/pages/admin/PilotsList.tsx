@@ -424,29 +424,28 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
       )}
 
       {/* Modal para añadir piloto */}
-      <AddPilotModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onAddPilot={handleAddPilot}
-        darkMode={darkMode}
-      />
+   <AddPilotModal
+  isOpen={isAddModalOpen}
+  onClose={() => setIsAddModalOpen(false)}
+  onPilotAdded={handleAddPilot} // ✅ Prop corregida
+  darkMode={darkMode}
+/>
 
-      {/* Modal para ver detalles del piloto */}
-      <PilotDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseModal}
-        pilotId={selectedPilotId}
-        darkMode={darkMode}
-      />
+<PilotDetailsModal
+  isOpen={isDetailsModalOpen}
+  onClose={handleCloseModal}
+  pilotId={selectedPilotId}
+  darkMode={darkMode}
+/>
 
-      {/* Modal para editar piloto */}
-      <EditPilotModal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        onEditPilot={loadPilots} // Cambiar de handleAddPilot a loadPilots
-        pilotId={editPilotId}
-        darkMode={darkMode}
-      />
+<EditPilotModal
+  isOpen={isEditModalOpen}
+  onClose={handleCloseEditModal}
+  onPilotUpdated={loadPilots} // ✅ Prop corregida
+  pilot={pilots.find((p) => p.id === editPilotId) || null} // ✅ Pasa el piloto completo
+  darkMode={darkMode}
+/>
+
     </div>
   )
 }

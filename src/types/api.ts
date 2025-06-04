@@ -407,4 +407,5 @@ export interface EditHelicopterModalProps {
   helicopter: Helicopter | null
   onUpdateHelicopter: (updated: Partial<Helicopter>) => void
   darkMode?: boolean
+  onSuccess: () => void | Promise<void>
 }
