@@ -3,26 +3,7 @@
 import { useState } from "react"
 import Modal from "../ui/Modal"
 import EditClientModal from "./EditClientModal"
-
-interface Client {
-  id: number
-  name: string
-  contactPerson: string
-  email: string
-  phone: string
-  address: string
-  type: string
-  status: string
-  notes?: string
-}
-
-interface ClientDetailsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  client: Client | null
-  darkMode?: boolean
-  onUpdateClient?: () => void
-}
+import type { ClientDetailsModalProps } from "../../types/api"
 
 const ClientDetailsModal = ({ isOpen, onClose, client, darkMode = false, onUpdateClient }: ClientDetailsModalProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -47,7 +28,9 @@ const ClientDetailsModal = ({ isOpen, onClose, client, darkMode = false, onUpdat
     }
   }
 
-  const getTypeLabel = (type: string): string => {
+  const getTypeLabel = (type: string | null): string => {
+    if (!type) return "No especificado"
+
     switch (type.toLowerCase()) {
       case "corporate":
         return "Corporativo"
@@ -60,7 +43,9 @@ const ClientDetailsModal = ({ isOpen, onClose, client, darkMode = false, onUpdat
     }
   }
 
-  const getStatusLabel = (status: string): string => {
+  const getStatusLabel = (status: string | undefined): string => {
+    if (!status) return client.active ? "Activo" : "Inactivo"
+
     switch (status.toLowerCase()) {
       case "active":
         return "Activo"
@@ -71,7 +56,13 @@ const ClientDetailsModal = ({ isOpen, onClose, client, darkMode = false, onUpdat
     }
   }
 
-  const getStatusBadgeColor = (status: string): string => {
+  const getStatusBadgeColor = (status: string | undefined): string => {
+    if (!status) {
+      return client.active
+        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+    }
+
     switch (status.toLowerCase()) {
       case "active":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
@@ -101,7 +92,7 @@ const ClientDetailsModal = ({ isOpen, onClose, client, darkMode = false, onUpdat
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Persona de Contacto</p>
                 <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {client.contactPerson || "No disponible"}
+                  {client.contactPerson || client.contact || "No disponible"}
                 </p>
               </div>
               <div>

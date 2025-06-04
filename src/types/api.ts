@@ -210,12 +210,14 @@ export interface Client {
   id: number
   name: string
   contact: string
-  active: boolean
   email: string | null
   phone: string | null
   address: string | null
   type: string | null
   notes: string | null
+  active: boolean
+  status?: string
+  contactPerson?: string
 }
 
 // Tipos para helicópteros - Actualizado según la respuesta de la API
@@ -408,4 +410,14 @@ export interface EditHelicopterModalProps {
   onUpdateHelicopter: (updated: Partial<Helicopter>) => void
   darkMode?: boolean
   onSuccess: () => void | Promise<void>
+  model: HelicopterModel | null
+}
+
+// Props para ClientDetailsModal
+export interface ClientDetailsModalProps {
+  isOpen: boolean
+  onClose: () => void
+  client: Client | null
+  darkMode?: boolean
+  onUpdateClient?: () => void
 }

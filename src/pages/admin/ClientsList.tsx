@@ -215,6 +215,9 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
     }
   }
 
+  // Encontrar el cliente seleccionado
+  const selectedClient = clients.find((c) => c.id.toString() === selectedClientId)
+
   return (
     <div className="space-y-6 pt-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -455,9 +458,9 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
           setIsDetailsModalOpen(false)
           setSelectedClientId(null)
         }}
-       client={clients.find((c) => c.id.toString() === selectedClientId) || null} // ✅ PASAR EL OBJETO COMPLETO
-
+        client={selectedClient || null}
         darkMode={darkMode}
+        onUpdateClient={loadClients}
       />
     </div>
   )
