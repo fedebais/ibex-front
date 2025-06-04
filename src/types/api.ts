@@ -146,7 +146,19 @@ export interface CreateTechnicianInput {
   specialization: TechnicianSpecialty
   certificationLevel: CertificationLevel
   experienceYears: number
-  lastCertification: string // ISO string (Date)
+  lastCertification: string
+}
+
+export interface UpdateTechnicianInput {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  profileImage?: string
+  specialization: TechnicianSpecialty
+  certificationLevel: CertificationLevel
+  experienceYears: number
+  lastCertification: string
 }
 
 // Tipos para registros de vuelo

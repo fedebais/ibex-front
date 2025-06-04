@@ -18,6 +18,7 @@ import type {
   ErrorResponse,
   AdminDashboardData,
   CertificationType,
+  UpdateTechnicianInput
 } from "../types/api"
 
 // Base URL de la API - se puede cambiar fácilmente para desarrollo/producción
@@ -190,7 +191,7 @@ export class ApiService {
     })
   }
 
-  async updateTechnician(id: number, data: Partial<CreateTechnicianInput>, token: string): Promise<Technician> {
+  async updateTechnician(id: number, data: Partial<UpdateTechnicianInput>, token: string): Promise<Technician> {
     return this.makeRequest<Technician>(`/technicians/${id}`, {
       method: "PUT",
       headers: {

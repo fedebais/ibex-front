@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { getTechnicianById, updateTechnician } from "../../services/api"
+import type { CertificationLevel, TechnicianSpecialty, UpdateTechnicianInput } from "../../types/api"
 import { useUser } from "../../context/UserContext"
 import Modal from "../ui/Modal"
 
@@ -32,8 +33,8 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
-  const [specialty, setSpecialty] = useState("")
-  const [certificationLevel, setCertificationLevel] = useState("")
+ const [specialty, setSpecialty] = useState<TechnicianSpecialty | "">("")
+  const [certificationLevel, setCertificationLevel] = useState<CertificationLevel | "">("")
   const [yearsOfExperience, setYearsOfExperience] = useState("")
   const [lastCertification, setLastCertification] = useState("")
 
@@ -115,18 +116,17 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
       setIsSubmitting(true)
       setError(null)
 
-      const technicianData = {
-        user: {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-        },
-        specialty, // Usando el nombre correcto
-        certificationLevel,
-        yearsOfExperience: years, // Usando el nombre correcto
-        lastCertification: lastCertification ? new Date(lastCertification).toISOString() : null,
-      }
+const technicianData: UpdateTechnicianInput = {
+  firstName: firstName.trim(),
+  lastName: lastName.trim(),
+  email: email.trim(),
+  phone: phone.trim(),
+  certificationLevel: certificationLevel as CertificationLevel,
+  specialization: specialty as TechnicianSpecialty,
+  experienceYears: years,
+  lastCertification: lastCertification ? new Date(lastCertification).toISOString() : "",
+}
+
 
       console.log("Actualizando técnico con datos:", technicianData)
       await updateTechnician(technicianId, technicianData, accessToken)
