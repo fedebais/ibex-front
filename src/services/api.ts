@@ -333,13 +333,20 @@ export class ApiService {
       body: JSON.stringify(data),
     })
   }
+  
 
-  async deleteHelicopter(id: number, token: string): Promise<{ message: string }> {
-    return this.makeRequest<{ message: string }>(`/helicopters/${id}`, {
-      method: "DELETE",
-      headers: this.getAuthHeaders(token),
-    })
-  }
+async deleteHelicopter(id: number, token: string): Promise<{ message: string }> {
+  return this.makeRequest<{ message: string }>(`/helicopters/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...this.getAuthHeaders(token),
+    },
+    // ✅ eliminar esta línea:
+    // body: JSON.stringify(data),
+  })
+}
+
 
   // ==================== HELICOPTER MODEL ENDPOINTS ====================
 

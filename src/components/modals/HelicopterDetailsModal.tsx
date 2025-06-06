@@ -4,7 +4,7 @@ import type React from "react"
 import Modal from "../ui/Modal"
 import { useState, useEffect } from "react"
 import { useUser } from "../../context/UserContext"
-import { getMaintenanceByHelicopterId, createMaintenance } from "../../services/api"
+import { getMaintenanceByHelicopterId, createMaintenance, deleteHelicopter } from "../../services/api"
 import type { Helicopter, Maintenance, MaintenanceFormData } from "../../types/api"
 import EditHelicopterModal from "./EditHelicopterModal"
 
@@ -68,16 +68,56 @@ const HelicopterDetailsModal = ({
     }
   }
 
+  // Función para obtener el último mantenimiento
+  const getLastMaintenance = (): Maintenance | null => {
+    if (!maintenanceHistory || maintenanceHistory.length === 0) return null
+
+    // Filtrar solo mantenimientos pasados y ordenar por fecha descendente
+    const pastMaintenances = maintenanceHistory
+      .filter((m) => new Date(m.date) <= new Date())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    return pastMaintenances.length > 0 ? pastMaintenances[0] : null
+  }
+
+  // Función para obtener el próximo mantenimiento
+  const getNextMaintenance = (): Maintenance | null => {
+    if (!maintenanceHistory || maintenanceHistory.length === 0) return null
+
+    // Filtrar solo mantenimientos futuros y ordenar por fecha ascendente
+    const futureMaintenances = maintenanceHistory
+      .filter((m) => new Date(m.date) > new Date())
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    return futureMaintenances.length > 0 ? futureMaintenances[0] : null
+  }
+
+  // Función para calcular días desde el último mantenimiento
+  const getDaysSinceLastMaintenance = (): number => {
+    const lastMaintenance = getLastMaintenance()
+    if (!lastMaintenance) return 0
+
+    const today = new Date()
+    const lastMaintenanceDate = new Date(lastMaintenance.date)
+    const diffTime = Math.abs(today.getTime() - lastMaintenanceDate.getTime())
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  // Función para obtener el estado del mantenimiento
+  const getMaintenanceStatus = (): "good" | "warning" | "danger" => {
+    const daysSince = getDaysSinceLastMaintenance()
+    if (daysSince > 180) return "danger"
+    if (daysSince > 90) return "warning"
+    return "good"
+  }
+
   if (!isOpen) return null
   if (!helicopterId || !helicopter) return null
 
-  const lastMaintenanceDate = helicopter.lastMaintenance ? new Date(helicopter.lastMaintenance) : new Date()
-
-  const today = new Date()
-  const diffTime = Math.abs(today.getTime() - lastMaintenanceDate.getTime())
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  const maintenanceStatus = diffDays > 90 ? "warning" : diffDays > 180 ? "danger" : "good"
+  const lastMaintenance = getLastMaintenance()
+  const nextMaintenance = getNextMaintenance()
+  const daysSinceLastMaintenance = getDaysSinceLastMaintenance()
+  const maintenanceStatus = getMaintenanceStatus()
 
   const canAddMaintenance = user?.role === "ADMIN" || user?.role === "TECNICO"
   const canEditHelicopter = user?.role === "ADMIN"
@@ -166,7 +206,7 @@ const HelicopterDetailsModal = ({
       setDeleteError("")
 
       console.log("Eliminando helicóptero:", helicopterId)
-      // await deleteHelicopter(helicopterId, token)
+      await deleteHelicopter(helicopterId, token)
 
       console.log("Helicóptero eliminado exitosamente")
 
@@ -263,8 +303,13 @@ const HelicopterDetailsModal = ({
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Último Mantenimiento</p>
                 <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {lastMaintenanceDate.toLocaleDateString("es-ES")}
+                  {lastMaintenance ? new Date(lastMaintenance.date).toLocaleDateString("es-ES") : "Sin registros"}
                 </p>
+                {lastMaintenance && (
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    {lastMaintenance.type} - {lastMaintenance.description}
+                  </p>
+                )}
               </div>
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
@@ -281,16 +326,19 @@ const HelicopterDetailsModal = ({
                           : "text-green-600"
                   }`}
                 >
-                  {diffDays} días
+                  {lastMaintenance ? `${daysSinceLastMaintenance} días` : "N/A"}
                 </p>
               </div>
               <div>
                 <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Próximo Mantenimiento</p>
                 <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {new Date(
-                    new Date(lastMaintenanceDate.getTime()).setDate(lastMaintenanceDate.getDate() + 180),
-                  ).toLocaleDateString("es-ES")}
+                  {nextMaintenance ? new Date(nextMaintenance.date).toLocaleDateString("es-ES") : "No programado"}
                 </p>
+                {nextMaintenance && (
+                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    {nextMaintenance.type} - {nextMaintenance.description}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -597,42 +645,44 @@ const HelicopterDetailsModal = ({
                 </thead>
                 <tbody className={`divide-y ${darkMode ? "bg-gray-800 divide-gray-700" : "bg-white divide-gray-200"}`}>
                   {maintenanceHistory.length > 0 ? (
-                    maintenanceHistory.map((maintenance) => (
-                      <tr key={maintenance.id}>
-                        <td
-                          className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {new Date(maintenance.date).toLocaleDateString("es-ES")}
-                        </td>
-                        <td
-                          className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              maintenance.type === "Mantenimiento"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                : maintenance.type === "Inspección"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                  : maintenance.type === "Reparación"
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                            }`}
+                    maintenanceHistory
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((maintenance) => (
+                        <tr key={maintenance.id}>
+                          <td
+                            className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
                           >
-                            {maintenance.type}
-                          </span>
-                        </td>
-                        <td
-                          className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {maintenance.description}
-                        </td>
-                        <td
-                          className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
-                        >
-                          {maintenance.technicianName}
-                        </td>
-                      </tr>
-                    ))
+                            {new Date(maintenance.date).toLocaleDateString("es-ES")}
+                          </td>
+                          <td
+                            className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                maintenance.type === "Mantenimiento"
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                  : maintenance.type === "Inspección"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    : maintenance.type === "Reparación"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              }`}
+                            >
+                              {maintenance.type}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            {maintenance.description}
+                          </td>
+                          <td
+                            className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? "text-white" : "text-gray-900"}`}
+                          >
+                            {maintenance.technicianName}
+                          </td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td
