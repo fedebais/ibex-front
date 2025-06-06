@@ -447,10 +447,16 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
           fuelStart: initialOdometer ? Number(initialOdometer) : undefined,
           odometerPhotoUrl: finalOdometerPhotoPreview || undefined,
           remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}`,
+          // Agregar la foto del odómetro si existe
+          ...(finalOdometerPhoto && { odometerPhoto: finalOdometerPhoto }),
         })
       }
 
-      console.log("📤 Enviando flight log:", flightLogData)
+      console.log("📤 Enviando flight log:", {
+        ...flightLogData,
+        hasOdometerPhoto: !!finalOdometerPhoto,
+        odometerPhotoSize: finalOdometerPhoto ? `${(finalOdometerPhoto.size / 1024).toFixed(2)} KB` : "N/A",
+      })
 
       // Llamar a la API
       const createdFlightLog = await createFlightLog(flightLogData, accessToken)
