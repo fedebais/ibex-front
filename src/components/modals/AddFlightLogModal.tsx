@@ -14,6 +14,7 @@ import {
 } from "../../services/api"
 import type { NewFlightLog, FlightStatus, PaymentStatus, Pilot, Client, Destination, Helicopter } from "../../types/api"
 import Modal from "../ui/Modal"
+import { uploadFile } from "../../firebase/storage"
 
 interface AddFlightLogModalProps {
   isOpen: boolean
@@ -76,6 +77,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string>("")
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   // Canvas para firma
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -420,6 +422,25 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
         finalDestinationId = newDestination.id
       }
 
+      // Subir imagen del odómetro a Firebase si existe
+      let odometerPhotoUrl = ""
+      if (finalOdometerPhoto) {
+        setIsUploadingImage(true)
+        try {
+          const fileName = `flight-logs/odometer/${Date.now()}-${finalOdometerPhoto.name}`
+          odometerPhotoUrl = await uploadFile(finalOdometerPhoto, fileName)
+          console.log("Imagen del odómetro subida exitosamente:", odometerPhotoUrl)
+        } catch (err) {
+          console.error("Error al subir la imagen del odómetro:", err)
+          setError("Error al subir la imagen del odómetro. Intente nuevamente.")
+          setIsSubmitting(false)
+          setIsUploadingImage(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
         pilotId: Number(selectedPilot),
@@ -445,10 +466,8 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
           odometer: finalOdometer ? Number(finalOdometer) : undefined,
           fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
           fuelStart: initialOdometer ? Number(initialOdometer) : undefined,
-          odometerPhotoUrl: finalOdometerPhotoPreview || undefined,
+          odometerPhotoUrl: odometerPhotoUrl || undefined,
           remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}`,
-          // Agregar la foto del odómetro si existe
-          ...(finalOdometerPhoto && { odometerPhoto: finalOdometerPhoto }),
         })
       }
 
@@ -1008,13 +1027,13 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                       accept="image/*"
                       onChange={handleFinalOdometerPhotoChange}
                       className="hidden"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isUploadingImage}
                     />
                     <label
                       htmlFor="finalOdometerPhoto"
                       className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
                         darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
-                      } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                      } ${isSubmitting || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {finalOdometerPhotoPreview ? (
                         <div className="relative w-full">
@@ -1031,7 +1050,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                               setFinalOdometerPhotoPreview("")
                             }}
                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || isUploadingImage}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -1075,6 +1094,9 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                         </div>
                       )}
                     </label>
+                    {isUploadingImage && (
+                      <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>
+                    )}
                   </div>
                 </div>
 
@@ -1334,12 +1356,12 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
           <div className="mt-8">
             <button
               type="submit"
-              disabled={isSubmitting || !accessToken}
+              disabled={isSubmitting || !accessToken || isUploadingImage}
               className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                 darkMode ? "focus:ring-offset-gray-800" : ""
               }`}
             >
-              {isSubmitting ? "Registrando..." : "Registrar Vuelo"}
+              {isSubmitting ? "Registrando..." : isUploadingImage ? "Subiendo imagen..." : "Registrar Vuelo"}
             </button>
           </div>
         </form>

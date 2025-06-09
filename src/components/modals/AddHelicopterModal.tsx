@@ -7,6 +7,7 @@ import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
 import { createHelicopter, getHelicopterModels } from "../../services/api"
 import type { CreateHelicopterInput, HelicopterModel, HelicopterStatus } from "../../types/api"
+import { uploadFile } from "../../firebase/storage"
 
 interface AddHelicopterModalProps {
   isOpen: boolean
@@ -15,9 +16,8 @@ interface AddHelicopterModalProps {
   darkMode: boolean
 }
 
-
 const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterModalProps) => {
-  const {  accessToken, isLoading: userLoading } = useUser()
+  const { accessToken, isLoading: userLoading } = useUser()
   const { darkMode } = useTheme()
 
   // Estados del formulario
@@ -32,6 +32,10 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
   const [speedKmh, setSpeedKmh] = useState("")
   const [rangeKm, setRangeKm] = useState("")
   const [ceilingMeters, setCeilingMeters] = useState("")
+
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   // Estados de control
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,7 +54,6 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
         setHelicopterModels(models)
       } catch (err) {
         console.error("Error loading helicopter models:", err)
-     
       } finally {
         setLoadingModels(false)
       }
@@ -58,6 +61,22 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
 
     loadModels()
   }, [isOpen, userLoading, accessToken])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setImageFile(file)
+
+      // Crear vista previa
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target && typeof event.target.result === "string") {
+          setImagePreview(event.target.result)
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,6 +100,25 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
     setError(null)
 
     try {
+      // Subir imagen a Firebase si existe
+      let uploadedImageUrl = imageUrl
+      if (imageFile) {
+        setIsUploadingImage(true)
+        try {
+          const fileName = `helicopters/${Date.now()}-${imageFile.name}`
+          uploadedImageUrl = await uploadFile(imageFile, fileName)
+          console.log("Imagen subida exitosamente:", uploadedImageUrl)
+        } catch (err) {
+          console.error("Error al subir la imagen:", err)
+          setError("Error al subir la imagen. Intente nuevamente.")
+          setIsSubmitting(false)
+          setIsUploadingImage(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
       const helicopterData: CreateHelicopterInput = {
         modelId: Number.parseInt(modelId),
         registration: registration.trim().toUpperCase(),
@@ -88,7 +126,7 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
         lastMaintenance: lastMaintenance || undefined,
         totalFlightHours: totalFlightHours ? Number.parseInt(totalFlightHours) : undefined,
         status: status || "ACTIVE",
-        imageUrl: imageUrl.trim() || undefined,
+        imageUrl: uploadedImageUrl.trim() || undefined,
         capacity: capacity ? Number.parseInt(capacity) : undefined,
         speedKmh: speedKmh ? Number.parseInt(speedKmh) : undefined,
         rangeKm: rangeKm ? Number.parseInt(rangeKm) : undefined,
@@ -120,6 +158,8 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
     setTotalFlightHours("")
     setStatus("ACTIVE")
     setImageUrl("")
+    setImageFile(null)
+    setImagePreview("")
     setCapacity("")
     setSpeedKmh("")
     setRangeKm("")
@@ -149,8 +189,6 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
   const errorClasses = `p-4 rounded-md border ${
     darkMode ? "bg-red-900/30 border-red-700 text-red-200" : "bg-red-50 border-red-200 text-red-700"
   }`
-
-  
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Añadir Nuevo Helicóptero" maxWidth="max-w-4xl">
@@ -237,8 +275,12 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
               <label htmlFor="status" className={labelClasses}>
                 Estado
               </label>
-              <select id="status" value={status} onChange={(e) => setStatus(e.target.value as HelicopterStatus)}
- className={inputClasses}>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as HelicopterStatus)}
+                className={inputClasses}
+              >
                 <option value="ACTIVE">Activo</option>
                 <option value="MAINTENANCE">En Mantenimiento</option>
                 <option value="INACTIVE">Inactivo</option>
@@ -365,7 +407,85 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
               onChange={(e) => setImageUrl(e.target.value)}
               className={inputClasses}
               placeholder="https://ejemplo.com/imagen.jpg"
+              disabled={!!imageFile}
             />
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="imageFile" className={labelClasses}>
+              O subir imagen
+            </label>
+            <input
+              type="file"
+              id="imageFile"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              disabled={isSubmitting}
+            />
+            <label
+              htmlFor="imageFile"
+              className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
+                darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
+              } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {imagePreview ? (
+                <div className="relative w-full">
+                  <img
+                    src={imagePreview || "/placeholder.svg"}
+                    alt="Vista previa de la imagen"
+                    className="h-32 w-full object-cover rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setImageFile(null)
+                      setImagePreview("")
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                    disabled={isSubmitting}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="mx-auto h-8 w-8 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    Haga clic para subir una imagen
+                  </p>
+                </div>
+              )}
+            </label>
+            {isUploadingImage && <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>}
           </div>
         </div>
 
@@ -376,10 +496,16 @@ const AddHelicopterModal = ({ isOpen, onClose, onAddHelicopter }: AddHelicopterM
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || userLoading || !accessToken || loadingModels}
+            disabled={isSubmitting || userLoading || !accessToken || loadingModels || isUploadingImage}
             className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting ? "Guardando..." : userLoading ? "Cargando..." : "Guardar Helicóptero"}
+            {isSubmitting
+              ? "Guardando..."
+              : isUploadingImage
+                ? "Subiendo imagen..."
+                : userLoading
+                  ? "Cargando..."
+                  : "Guardar Helicóptero"}
           </button>
         </div>
       </form>
