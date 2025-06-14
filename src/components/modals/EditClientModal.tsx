@@ -72,7 +72,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
         setContact(client.contact || "")
         setCuit(client.cuit ? formatCuit(client.cuit) : "")
         setAddress(client.address || "")
-        setType(client.type || "corporate")
+        setType((client.type as "corporate" | "individual" | "government") || "corporate")
         setNotes(client.notes || "")
         setActive(client.active !== false)
       } catch (error: any) {
@@ -307,7 +307,10 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
             <select
               id="type"
               value={type}
-              onChange={(e) => setType(e.target.value as "corporate" | "individual" | "government")}
+              onChange={(e) => {
+                const value = e.target.value as "corporate" | "individual" | "government"
+                setType(value)
+              }}
               className={`w-full px-3 py-2 border rounded-md ${
                 darkMode
                   ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
