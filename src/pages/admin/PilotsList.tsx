@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import AddPilotModal from "../../components/modals/AddPilotModal"
 import PilotDetailsModal from "../../components/modals/PilotDetailsModal"
 import EditPilotModal from "../../components/modals/EditPilotModal"
-import { getPilots, deletePilot } from "../../services/api"
+import { getPilots, deletePilot, getPilotById } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot } from "../../types/api"
 
@@ -89,15 +89,41 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
     setIsDetailsModalOpen(true)
   }
 
-  const handleEditPilot = (pilotId: number) => {
+  const handleEditPilot = async (pilotId: number) => {
     console.log("PilotsList - Opening edit modal for pilot ID:", pilotId)
-    setEditPilotId(pilotId)
-    setIsEditModalOpen(true)
-    console.log("PilotsList - Edit modal state set to true")
+
+    try {
+      if (!accessToken) {
+        console.error("No access token available for loading pilot details")
+        return
+      }
+
+      // Cargar los datos completos del piloto incluyendo certificaciones
+      console.log("PilotsList - Loading complete pilot data for editing...")
+      const completePilotData = await getPilotById(pilotId, accessToken)
+      console.log("PilotsList - Complete pilot data loaded:", completePilotData)
+
+      // Actualizar el piloto en la lista con los datos completos
+      setPilots((prevPilots) => prevPilots.map((p) => (p.id === pilotId ? completePilotData : p)))
+
+      setEditPilotId(pilotId)
+      setIsEditModalOpen(true)
+      console.log("PilotsList - Edit modal state set to true")
+    } catch (error) {
+      console.error("PilotsList - Error loading complete pilot data:", error)
+      alert("Error al cargar los datos completos del piloto. Por favor, intente nuevamente.")
+    }
   }
 
   const handleRefresh = () => {
     loadPilots()
+  }
+
+  // Agregar esta nueva función para manejar la actualización después de editar
+  const handlePilotUpdated = () => {
+    setEditPilotId(null)
+    setIsEditModalOpen(false)
+    loadPilots() // Recargar toda la lista para asegurar datos actualizados
   }
 
   const handleCloseModal = () => {
@@ -424,28 +450,27 @@ const PilotsList = ({ darkMode = false }: PilotsListProps) => {
       )}
 
       {/* Modal para añadir piloto */}
-   <AddPilotModal
-  isOpen={isAddModalOpen}
-  onClose={() => setIsAddModalOpen(false)}
-  onPilotAdded={handleAddPilot} // ✅ Prop corregida
-  darkMode={darkMode}
-/>
+      <AddPilotModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onPilotAdded={handleAddPilot} // ✅ Prop corregida
+        darkMode={darkMode}
+      />
 
-<PilotDetailsModal
-  isOpen={isDetailsModalOpen}
-  onClose={handleCloseModal}
-  pilotId={selectedPilotId}
-  darkMode={darkMode}
-/>
+      <PilotDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseModal}
+        pilotId={selectedPilotId}
+        darkMode={darkMode}
+      />
 
-<EditPilotModal
-  isOpen={isEditModalOpen}
-  onClose={handleCloseEditModal}
-  onPilotUpdated={loadPilots} // ✅ Prop corregida
-  pilot={pilots.find((p) => p.id === editPilotId) || null} // ✅ Pasa el piloto completo
-  darkMode={darkMode}
-/>
-
+      <EditPilotModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onPilotUpdated={handlePilotUpdated} // ✅ Usar la nueva función
+        pilot={pilots.find((p) => p.id === editPilotId) || null}
+        darkMode={darkMode}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import Modal from "../ui/Modal"
 import { getPilotById, getFlightLogsByPilotId } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 import type { Pilot, FlightLog, Helicopter } from "../../types/api"
+import EditPilotModal from "./EditPilotModal"
 
 interface PilotDetailsModalProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"info" | "flights" | "documents">("info")
+  const [showEditModal, setShowEditModal] = useState(false)
 
   // Debug logs
   console.log("PilotDetailsModal - Props:", { isOpen, pilotId })
@@ -99,6 +101,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
     setHelicopter(null)
     setError(null)
     setActiveTab("info")
+    setShowEditModal(false)
     onClose()
   }
 
@@ -144,6 +147,25 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         return "Cancelado"
       default:
         return status
+    }
+  }
+
+  const handlePilotUpdated = () => {
+    setShowEditModal(false)
+    // Recargar los datos del piloto
+    if (pilotId && accessToken) {
+      const loadUpdatedPilotData = async () => {
+        try {
+          const pilotData = await getPilotById(pilotId, accessToken)
+          setPilot(pilotData)
+
+          const flightsData = await getFlightLogsByPilotId(pilotId, accessToken)
+          setPilotFlights(flightsData)
+        } catch (err) {
+          console.error("Error reloading pilot data:", err)
+        }
+      }
+      loadUpdatedPilotData()
     }
   }
 
@@ -656,6 +678,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
             </button>
             <button
               type="button"
+              onClick={() => setShowEditModal(true)}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
             >
               Editar Piloto
@@ -676,6 +699,15 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
           </div>
         </div>
       )}
+
+      {/* Modal de Edición */}
+      <EditPilotModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        pilot={pilot}
+        onPilotUpdated={handlePilotUpdated}
+        darkMode={darkMode}
+      />
     </Modal>
   )
 }
