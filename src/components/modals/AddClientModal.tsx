@@ -7,6 +7,29 @@ import Modal from "../ui/Modal"
 import { createClient } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 
+// Función para formatear CUIT
+const formatCuit = (value: string): string => {
+  // Remover todos los caracteres que no sean números
+  const numbers = value.replace(/\D/g, "")
+
+  // Limitar a 11 dígitos
+  const limitedNumbers = numbers.slice(0, 11)
+
+  // Aplicar formato XX-XXXXXXXX-X
+  if (limitedNumbers.length <= 2) {
+    return limitedNumbers
+  } else if (limitedNumbers.length <= 10) {
+    return `${limitedNumbers.slice(0, 2)}-${limitedNumbers.slice(2)}`
+  } else {
+    return `${limitedNumbers.slice(0, 2)}-${limitedNumbers.slice(2, 10)}-${limitedNumbers.slice(10)}`
+  }
+}
+
+// Función para limpiar CUIT (solo números)
+const cleanCuit = (value: string): string => {
+  return value.replace(/\D/g, "")
+}
+
 interface AddClientModalProps {
   isOpen: boolean
   onClose: () => void
@@ -17,6 +40,7 @@ interface AddClientModalProps {
 const AddClientModal = ({ isOpen, onClose, onAddClient, darkMode = false }: AddClientModalProps) => {
   const [name, setName] = useState("")
   const [contact, setContact] = useState("")
+  const [cuit, setCuit] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
@@ -61,6 +85,7 @@ const AddClientModal = ({ isOpen, onClose, onAddClient, darkMode = false }: AddC
       const clientData = {
         name: name.trim(),
         contact: contact.trim(),
+        cuit: cleanCuit(cuit.trim()),
         email: email.trim() || null,
         phone: phone.trim() || null,
         address: address.trim() || null,
@@ -98,6 +123,7 @@ const AddClientModal = ({ isOpen, onClose, onAddClient, darkMode = false }: AddC
   const resetForm = () => {
     setName("")
     setContact("")
+    setCuit("")
     setEmail("")
     setPhone("")
     setAddress("")
@@ -139,6 +165,32 @@ const AddClientModal = ({ isOpen, onClose, onAddClient, darkMode = false }: AddC
                 ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
                 : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
             }`}
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="cuit"
+            className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+          >
+            CUIT *
+          </label>
+          <input
+            type="text"
+            id="cuit"
+            value={cuit}
+            onChange={(e) => {
+              const formatted = formatCuit(e.target.value)
+              setCuit(formatted)
+            }}
+            className={`w-full px-3 py-2 border rounded-md ${
+              darkMode
+                ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+            }`}
+            placeholder="XX-XXXXXXXX-X"
             required
             disabled={isSubmitting}
           />

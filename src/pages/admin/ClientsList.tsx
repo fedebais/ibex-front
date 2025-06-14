@@ -9,6 +9,19 @@ import ClientDetailsModal from "../../components/modals/ClientDetailsModal"
 import { Building2, User, Phone, Mail, MapPin, Trash2 } from "lucide-react"
 import { useUser } from "../../context/UserContext"
 
+// Función para formatear CUIT para visualización
+const formatCuitDisplay = (cuit: string | null | undefined): string => {
+  if (!cuit) return "Sin CUIT"
+
+  const numbers = cuit.replace(/\D/g, "")
+
+  if (numbers.length === 11) {
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 10)}-${numbers.slice(10)}`
+  }
+
+  return cuit // Devolver tal como está si no tiene el formato esperado
+}
+
 interface ClientsListProps {
   darkMode: boolean
 }
@@ -155,6 +168,7 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
       return (
         client.name.toLowerCase().includes(searchLower) ||
         (client.contact && client.contact.toLowerCase().includes(searchLower)) ||
+        (client.cuit && client.cuit.includes(searchLower)) ||
         (client.email && client.email.toLowerCase().includes(searchLower)) ||
         (client.phone && client.phone.includes(searchLower)) ||
         (client.address && client.address.toLowerCase().includes(searchLower))
@@ -364,6 +378,12 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
                         <User className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
                         <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                           {client.contact || "Sin contacto"}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <Building2 className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
+                        <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                          CUIT: {formatCuitDisplay(client.cuit)}
                         </span>
                       </div>
                       <div className="flex items-center">

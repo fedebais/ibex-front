@@ -227,6 +227,7 @@ export interface Client {
   id: number
   name: string
   contact: string
+  cuit: string
   email: string | null
   phone: string | null
   address: string | null

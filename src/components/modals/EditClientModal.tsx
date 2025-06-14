@@ -6,6 +6,24 @@ import Modal from "../ui/Modal"
 import { updateClient, getClientById } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 
+// Función para formatear CUIT
+const formatCuit = (value: string): string => {
+  const numbers = value.replace(/\D/g, "")
+  const limitedNumbers = numbers.slice(0, 11)
+
+  if (limitedNumbers.length <= 2) {
+    return limitedNumbers
+  } else if (limitedNumbers.length <= 10) {
+    return `${limitedNumbers.slice(0, 2)}-${limitedNumbers.slice(2)}`
+  } else {
+    return `${limitedNumbers.slice(0, 2)}-${limitedNumbers.slice(2, 10)}-${limitedNumbers.slice(10)}`
+  }
+}
+
+const cleanCuit = (value: string): string => {
+  return value.replace(/\D/g, "")
+}
+
 interface EditClientModalProps {
   isOpen: boolean
   onClose: () => void
@@ -31,8 +49,9 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [contact, setContact] = useState("")
+  const [cuit, setCuit] = useState("")
   const [address, setAddress] = useState("")
-  const [type, setType] = useState("corporate")
+  const [type, setType] = useState<"corporate" | "individual" | "government">("corporate")
   const [notes, setNotes] = useState("")
   const [active, setActive] = useState(true)
 
@@ -51,6 +70,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
         setEmail(client.email || "")
         setPhone(client.phone || "")
         setContact(client.contact || "")
+        setCuit(client.cuit ? formatCuit(client.cuit) : "")
         setAddress(client.address || "")
         setType(client.type || "corporate")
         setNotes(client.notes || "")
@@ -71,6 +91,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
     setEmail("")
     setPhone("")
     setContact("")
+    setCuit("")
     setAddress("")
     setType("corporate")
     setNotes("")
@@ -86,7 +107,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
       return
     }
 
-    if (!name.trim() || !email.trim() || !phone.trim() || !contact.trim()) {
+    if (!name.trim() || !email.trim() || !phone.trim() || !contact.trim() || !cuit.trim()) {
       setError("Por favor, completa todos los campos obligatorios.")
       return
     }
@@ -107,6 +128,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
         email: email.trim(),
         phone: phone.trim(),
         contact: contact.trim(),
+        cuit: cleanCuit(cuit.trim()),
         address: address.trim(),
         type,
         notes: notes.trim(),
@@ -176,6 +198,32 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                   ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
                   : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
               }`}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="cuit"
+              className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+            >
+              CUIT *
+            </label>
+            <input
+              type="text"
+              id="cuit"
+              value={cuit}
+              onChange={(e) => {
+                const formatted = formatCuit(e.target.value)
+                setCuit(formatted)
+              }}
+              className={`w-full px-3 py-2 border rounded-md ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600 text-white focus:ring-orange-500 focus:border-orange-500"
+                  : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+              }`}
+              placeholder="XX-XXXXXXXX-X"
               required
               disabled={isSubmitting}
             />
