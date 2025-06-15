@@ -11,15 +11,34 @@ import { useUser } from "../../context/UserContext"
 
 // Función para formatear CUIT para visualización
 const formatCuitDisplay = (cuit: string | null | undefined): string => {
-  if (!cuit) return "Sin CUIT"
+  console.log("=== FORMATEANDO CUIT ===")
+  console.log("CUIT recibido:", cuit)
+  console.log("Tipo de CUIT:", typeof cuit)
 
-  const numbers = cuit.replace(/\D/g, "")
-
-  if (numbers.length === 11) {
-    return `${numbers.slice(0, 2)}-${numbers.slice(2, 10)}-${numbers.slice(10)}`
+  if (!cuit || cuit === null || cuit === undefined) {
+    console.log("CUIT vacío, devolviendo 'Sin CUIT'")
+    return "Sin CUIT"
   }
 
-  return cuit // Devolver tal como está si no tiene el formato esperado
+  const cuitString = String(cuit).trim()
+  console.log("CUIT como string:", cuitString)
+
+  if (cuitString === "" || cuitString === "null" || cuitString === "undefined") {
+    console.log("CUIT string vacío, devolviendo 'Sin CUIT'")
+    return "Sin CUIT"
+  }
+
+  const numbers = cuitString.replace(/\D/g, "")
+  console.log("Solo números:", numbers)
+
+  if (numbers.length === 11) {
+    const formatted = `${numbers.slice(0, 2)}-${numbers.slice(2, 10)}-${numbers.slice(10)}`
+    console.log("CUIT formateado:", formatted)
+    return formatted
+  }
+
+  console.log("CUIT sin formato estándar, devolviendo tal como está:", cuitString)
+  return cuitString
 }
 
 interface ClientsListProps {
@@ -383,7 +402,12 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
                       <div className="flex items-center">
                         <Building2 className={`h-4 w-4 ${darkMode ? "text-gray-400" : "text-gray-500"} mr-2`} />
                         <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                          CUIT: {formatCuitDisplay(client.cuit)}
+                          CUIT: {(() => {
+                            console.log("=== MOSTRANDO CUIT EN TARJETA ===")
+                            console.log("Cliente completo:", client)
+                            console.log("CUIT del cliente:", client.cuit)
+                            return formatCuitDisplay(client.cuit)
+                          })()}
                         </span>
                       </div>
                       <div className="flex items-center">

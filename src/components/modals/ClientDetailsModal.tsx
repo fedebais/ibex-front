@@ -42,6 +42,11 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
   // Inicializar datos de edición cuando se abre el modal
   React.useEffect(() => {
     if (client && isOpen) {
+      console.log("=== INICIALIZANDO MODAL CLIENTE ===")
+      console.log("Cliente completo:", client)
+      console.log("CUIT del cliente:", client.cuit)
+      console.log("Tipo de CUIT:", typeof client.cuit)
+
       setEditFormData({
         name: client.name || "",
         contact: client.contact || "",
@@ -139,13 +144,35 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
 
   if (!client) return null
 
-  const formatCuit = (cuit: string) => {
-    if (!cuit) return "No especificado"
-    const numbers = cuit.replace(/\D/g, "")
-    if (numbers.length === 11) {
-      return `${numbers.slice(0, 2)}-${numbers.slice(2, 10)}-${numbers.slice(10)}`
+  const formatCuit = (cuit: string | null | undefined): string => {
+    console.log("=== FORMATEANDO CUIT EN MODAL ===")
+    console.log("CUIT recibido:", cuit)
+    console.log("Tipo de CUIT:", typeof cuit)
+
+    if (!cuit || cuit === null || cuit === undefined) {
+      console.log("CUIT vacío, devolviendo 'No especificado'")
+      return "No especificado"
     }
-    return cuit
+
+    const cuitString = String(cuit).trim()
+    console.log("CUIT como string:", cuitString)
+
+    if (cuitString === "" || cuitString === "null" || cuitString === "undefined") {
+      console.log("CUIT string vacío, devolviendo 'No especificado'")
+      return "No especificado"
+    }
+
+    const numbers = cuitString.replace(/\D/g, "")
+    console.log("Solo números:", numbers)
+
+    if (numbers.length === 11) {
+      const formatted = `${numbers.slice(0, 2)}-${numbers.slice(2, 10)}-${numbers.slice(10)}`
+      console.log("CUIT formateado:", formatted)
+      return formatted
+    }
+
+    console.log("CUIT sin formato estándar, devolviendo tal como está:", cuitString)
+    return cuitString
   }
 
   const getTypeLabel = (type: string | null) => {
