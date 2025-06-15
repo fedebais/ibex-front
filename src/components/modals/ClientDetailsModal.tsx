@@ -1,441 +1,378 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { useState } from "react"
 import Modal from "../ui/Modal"
-import { createTechnician } from "../../services/api"
+import { updateClient, deleteClient } from "../../services/api"
 import { useUser } from "../../context/UserContext"
-import type { Technician, TechnicianSpecialty, CertificationLevel, CreateTechnicianInput } from "../../types/api"
-import { Eye, EyeOff } from "lucide-react"
+import type { Client } from "../../types/api"
+import { Edit, Trash2, User, Mail, Phone, MapPin, Calendar, Building } from "lucide-react"
 
-interface AddTechnicianModalProps {
+interface ClientDetailsModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddTechnician: (technician: Technician) => void
+  client: Client | null
   darkMode: boolean
+  onUpdateClient: () => Promise<void>
 }
 
-// Mapeo de valores para mostrar en español pero enviar en inglés
-const SPECIALIZATION_OPTIONS: { value: TechnicianSpecialty; label: string }[] = [
-  { value: "MOTORES", label: "Motores" },
-  { value: "AVIONICA", label: "Aviónica" },
-  { value: "ESTRUCTURAS", label: "Estructuras" },
-  { value: "SISTEMAS_HIDRAULICOS", label: "Sistemas Hidráulicos" },
-  { value: "SISTEMAS_ELECTRICOS", label: "Sistemas Eléctricos" },
-  { value: "MANTENIMIENTO_GENERAL", label: "Mantenimiento General" },
-]
-
-const CERTIFICATION_LEVEL_OPTIONS: { value: CertificationLevel; label: string }[] = [
-  { value: "BASICO", label: "Básico" },
-  { value: "INTERMEDIO", label: "Intermedio" },
-  { value: "AVANZADO", label: "Avanzado" },
-  { value: "EXPERTO", label: "Experto" },
-]
-
-const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose, onAddTechnician, darkMode }) => {
+const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
+  isOpen,
+  onClose,
+  client,
+  darkMode,
+  onUpdateClient,
+}) => {
   const { accessToken } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+  const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    name: "",
     email: "",
     phone: "",
-    password: "",
-    specialization: "" as TechnicianSpecialty | "",
-    certificationLevel: "" as CertificationLevel | "",
-    experienceYears: 0,
-    lastCertification: "",
+    address: "",
+    company: "",
   })
 
-  const generateSecurePassword = () => {
-    const length = 12
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
-    let password = ""
-
-    // Asegurar al menos un carácter de cada tipo
-    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]
-    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]
-    password += "0123456789"[Math.floor(Math.random() * 10)]
-    password += "!@#$%^&*"[Math.floor(Math.random() * 8)]
-
-    // Completar el resto de la contraseña
-    for (let i = 4; i < length; i++) {
-      password += charset[Math.floor(Math.random() * charset.length)]
+  // Inicializar datos de edición cuando se abre el modal
+  React.useEffect(() => {
+    if (client && isOpen) {
+      setEditFormData({
+        name: client.name || "",
+        email: client.email || "",
+        phone: client.phone || "",
+        address: client.address || "",
+        company: client.company || "",
+      })
+      setIsEditing(false)
+      setShowDeleteConfirm(false)
+      setError(null)
     }
+  }, [client, isOpen])
 
-    // Mezclar los caracteres
-    password = password
-      .split("")
-      .sort(() => Math.random() - 0.5)
-      .join("")
-
-    setFormData((prev) => ({ ...prev, password }))
-    setConfirmPassword(password)
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setError(null) // Limpiar error al cambiar campos
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "experienceYears" ? Number.parseInt(value) || 0 : value,
-    }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleEdit = () => {
+    setIsEditing(true)
     setError(null)
+  }
 
-    if (!accessToken) {
-      setError("No hay token de autenticación. Por favor, inicia sesión nuevamente.")
-      return
+  const handleCancelEdit = () => {
+    if (client) {
+      setEditFormData({
+        name: client.name || "",
+        email: client.email || "",
+        phone: client.phone || "",
+        address: client.address || "",
+        company: client.company || "",
+      })
     }
+    setIsEditing(false)
+    setError(null)
+  }
 
-    // Validaciones adicionales
-    if (!formData.specialization || !formData.certificationLevel) {
-      setError("Por favor, selecciona una especialización y nivel de certificación.")
-      return
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    setError(null)
+  }
 
-    if (formData.experienceYears < 0 || formData.experienceYears > 50) {
-      setError("Los años de experiencia deben estar entre 0 y 50.")
-      return
-    }
-
-    if (formData.password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.")
+  const handleSaveEdit = async () => {
+    if (!client || !accessToken) {
+      setError("Error: No se puede actualizar el cliente.")
       return
     }
 
     setIsLoading(true)
+    setError(null)
 
     try {
-      const technicianData: CreateTechnicianInput = {
-        user: {
-          firstName: formData.firstName.trim(),
-          lastName: formData.lastName.trim(),
-          email: formData.email.trim().toLowerCase(),
-          phone: formData.phone.trim(),
-          password: formData.password,
+      await updateClient(
+        client.id,
+        {
+          name: editFormData.name.trim(),
+          email: editFormData.email.trim().toLowerCase(),
+          phone: editFormData.phone.trim(),
+          address: editFormData.address.trim(),
+          company: editFormData.company.trim(),
         },
-        specialization: formData.specialization as TechnicianSpecialty,
-        certificationLevel: formData.certificationLevel as CertificationLevel,
-        experienceYears: formData.experienceYears,
-        lastCertification: formData.lastCertification,
-      }
+        accessToken,
+      )
 
-      console.log("Enviando datos del técnico:", technicianData)
-
-      const newTechnician = await createTechnician(technicianData, accessToken)
-
-      console.log("Técnico creado exitosamente:", newTechnician)
-
-      onAddTechnician(newTechnician)
-
-      // Limpiar formulario
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        password: "",
-        specialization: "",
-        certificationLevel: "",
-        experienceYears: 0,
-        lastCertification: "",
-      })
-
-      setConfirmPassword("")
-      setShowPassword(false)
-      setShowConfirmPassword(false)
-
-      onClose()
+      await onUpdateClient()
+      setIsEditing(false)
     } catch (error: any) {
-      console.error("Error al crear técnico:", error)
-
-      // Manejo específico de errores
-      if (error.message?.includes("401")) {
-        setError("Sesión expirada. Por favor, inicia sesión nuevamente.")
-        // Limpiar token inválido
-        localStorage.removeItem("accessToken")
-      } else if (error.message?.includes("403")) {
-        setError("No tienes permisos para crear técnicos.")
-      } else if (error.message?.includes("400")) {
-        setError("Datos inválidos. Verifica que el email no esté en uso.")
-      } else if (error.message?.includes("email")) {
-        setError("El email ya está registrado en el sistema.")
-      } else {
-        setError(error.message || "Error al crear el técnico. Inténtalo nuevamente.")
-      }
+      console.error("Error al actualizar cliente:", error)
+      setError(error.message || "Error al actualizar el cliente.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const isFormValid =
-    formData.firstName.trim() &&
-    formData.lastName.trim() &&
-    formData.email.trim() &&
-    formData.phone.trim() &&
-    formData.password &&
-    confirmPassword &&
-    formData.password === confirmPassword &&
-    formData.specialization &&
-    formData.certificationLevel &&
-    formData.lastCertification &&
-    formData.experienceYears >= 0
+  const handleDelete = async () => {
+    if (!client || !accessToken) {
+      setError("Error: No se puede eliminar el cliente.")
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await deleteClient(client.id, accessToken)
+      await onUpdateClient()
+      onClose()
+    } catch (error: any) {
+      console.error("Error al eliminar cliente:", error)
+      setError(error.message || "Error al eliminar el cliente.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!client) return null
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Agregar Nuevo Técnico" maxWidth="max-w-4xl">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Detalles del Cliente" maxWidth="max-w-2xl">
+      <div className="space-y-6">
         {/* Mostrar error si existe */}
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
-        {/* Información Personal */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <h3 className="col-span-full text-lg font-semibold mb-4">Información Personal</h3>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Nombre *</label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Apellido *</label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Email *</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Teléfono *</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-          </div>
-
-          <div className="col-span-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Información del Cliente */}
+        <div className="space-y-4">
+          {isEditing ? (
+            // Modo de edición
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Contraseña *</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                    minLength={6}
-                    className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-                    } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
-                      title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
+                <label className="block text-sm font-medium mb-2">
+                  <User className="inline w-4 h-4 mr-2" />
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editFormData.name}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                    darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Confirmar Contraseña *</label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value)
-                      setError(null)
-                    }}
-                    required
-                    disabled={isLoading}
-                    minLength={6}
-                    className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                      darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-                    } ${isLoading ? "opacity-50 cursor-not-allowed" : ""} ${
-                      confirmPassword && formData.password !== confirmPassword ? "border-red-500" : ""
-                    }`}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
-                      title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+                <label className="block text-sm font-medium mb-2">
+                  <Mail className="inline w-4 h-4 mr-2" />
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editFormData.email}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                    darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Phone className="inline w-4 h-4 mr-2" />
+                  Teléfono *
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={editFormData.phone}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                    darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Building className="inline w-4 h-4 mr-2" />
+                  Empresa
+                </label>
+                <input
+                  type="text"
+                  name="company"
+                  value={editFormData.company}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                    darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <MapPin className="inline w-4 h-4 mr-2" />
+                  Dirección
+                </label>
+                <textarea
+                  name="address"
+                  value={editFormData.address}
+                  onChange={handleInputChange}
+                  rows={3}
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors resize-none ${
+                    darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                />
+              </div>
+            </div>
+          ) : (
+            // Modo de visualización
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <User className="w-5 h-5 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-500">Nombre</p>
+                  <p className="font-medium">{client.name}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium">{client.email}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Phone className="w-5 h-5 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-500">Teléfono</p>
+                  <p className="font-medium">{client.phone}</p>
+                </div>
+              </div>
+
+              {client.company && (
+                <div className="flex items-center space-x-3">
+                  <Building className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="text-sm text-gray-500">Empresa</p>
+                    <p className="font-medium">{client.company}</p>
                   </div>
+                </div>
+              )}
+
+              {client.address && (
+                <div className="flex items-start space-x-3">
+                  <MapPin className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Dirección</p>
+                    <p className="font-medium">{client.address}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-3">
+                <Calendar className="w-5 h-5 text-orange-600" />
+                <div>
+                  <p className="text-sm text-gray-500">Fecha de registro</p>
+                  <p className="font-medium">{formatDate(client.createdAt)}</p>
                 </div>
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="flex justify-between items-center mt-3">
-              <div className="flex flex-col">
-                <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
-                {confirmPassword && formData.password !== confirmPassword && (
-                  <p className="text-xs text-red-500">Las contraseñas no coinciden</p>
-                )}
-              </div>
+        {/* Confirmación de eliminación */}
+        {showDeleteConfirm && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 font-medium mb-3">¿Estás seguro de que deseas eliminar este cliente?</p>
+            <p className="text-red-600 text-sm mb-4">
+              Esta acción no se puede deshacer. Se eliminará toda la información del cliente.
+            </p>
+            <div className="flex space-x-3">
               <button
-                type="button"
-                onClick={generateSecurePassword}
+                onClick={handleDelete}
                 disabled={isLoading}
-                className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                  darkMode
-                    ? "border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white"
-                    : "border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Generar Contraseña Segura
+                {isLoading ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isLoading}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
               </button>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Información Técnica */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <h3 className="col-span-full text-lg font-semibold mb-4">Información Técnica</h3>
+        {/* Botones de acción */}
+        <div className="flex justify-between pt-6">
+          <div className="flex space-x-3">
+            {!isEditing && !showDeleteConfirm && (
+              <>
+                <button
+                  onClick={handleEdit}
+                  disabled={isLoading}
+                  className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isLoading}
+                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </button>
+              </>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Especialización *</label>
-            <select
-              name="specialization"
-              value={formData.specialization}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <option value="">Seleccionar especialización</option>
-              {SPECIALIZATION_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {isEditing && (
+              <>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={
+                    isLoading || !editFormData.name.trim() || !editFormData.email.trim() || !editFormData.phone.trim()
+                  }
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Guardando..." : "Guardar"}
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isLoading}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+              </>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Nivel de Certificación *</label>
-            <select
-              name="certificationLevel"
-              value={formData.certificationLevel}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            >
-              <option value="">Seleccionar nivel</option>
-              {CERTIFICATION_LEVEL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Años de Experiencia *</label>
-            <input
-              type="number"
-              name="experienceYears"
-              value={formData.experienceYears}
-              onChange={handleInputChange}
-              min="0"
-              max="50"
-              step="1"
-              required
-              disabled={isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-              style={{
-                WebkitAppearance: "auto",
-                MozAppearance: "textfield",
-              }}
-            />
-            <p className="text-xs text-gray-500 mt-1">Usa las flechas o escribe directamente (0-50 años)</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Última Certificación *</label>
-            <input
-              type="date"
-              name="lastCertification"
-              value={formData.lastCertification}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              max={new Date().toISOString().split("T")[0]} // No permitir fechas futuras
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-          </div>
-        </div>
-
-        {/* Botones */}
-        <div className="flex justify-end space-x-3 pt-6">
           <button
-            type="button"
             onClick={onClose}
             disabled={isLoading}
             className={`px-4 py-2 rounded-lg border transition-colors ${
@@ -444,23 +381,12 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
                 : "border-gray-300 text-gray-700 hover:bg-gray-50"
             } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={!isFormValid || isLoading}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              isFormValid && !isLoading
-                ? "bg-orange-600 text-white hover:bg-orange-700"
-                : "bg-gray-400 text-gray-200 cursor-not-allowed"
-            }`}
-          >
-            {isLoading ? "Creando..." : "Crear Técnico"}
+            Cerrar
           </button>
         </div>
-      </form>
+      </div>
     </Modal>
   )
 }
 
-export default AddTechnicianModal
+export default ClientDetailsModal

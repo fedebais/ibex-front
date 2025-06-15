@@ -405,7 +405,7 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 }`}
                 disabled={isLoading}
                 style={{
-                  WebkitAppearance: "auto",
+                 WebkitAppearance: "auto" as any,
                   MozAppearance: "textfield",
                 }}
               />
