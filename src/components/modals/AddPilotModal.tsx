@@ -12,6 +12,7 @@ import type {
   AddPilotModalProps,
   AircraftCertification,
 } from "../../types/api"
+import { Eye, EyeOff } from "lucide-react"
 
 const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddPilotModalProps) => {
   const { accessToken } = useUser()
@@ -33,12 +34,46 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
     aircraftCertifications: [],
   })
 
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [flightHoursValue, setFlightHoursValue] = useState("")
+
   const [certificationTypes, setCertificationTypes] = useState<CertificationType[]>([])
   const [helicopterModels, setHelicopterModels] = useState<HelicopterModel[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [isLoadingData, setIsLoadingData] = useState(false)
   const [dataError, setDataError] = useState("")
+
+  const generateSecurePassword = () => {
+    const length = 12
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+    let password = ""
+
+    // Asegurar al menos un carácter de cada tipo
+    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]
+    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]
+    password += "0123456789"[Math.floor(Math.random() * 10)]
+    password += "!@#$%^&*"[Math.floor(Math.random() * 8)]
+
+    // Completar el resto de la contraseña
+    for (let i = 4; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)]
+    }
+
+    // Mezclar los caracteres
+    password = password
+      .split("")
+      .sort(() => Math.random() - 0.5)
+      .join("")
+
+    setFormData((prev) => ({
+      ...prev,
+      user: { ...prev.user, password },
+    }))
+    setConfirmPassword(password)
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -86,6 +121,32 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
       ...prev,
       [name]: name === "flightHours" ? Number(value) : value,
     }))
+  }
+
+  const handleFlightHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setFlightHoursValue(value)
+
+    // Actualizar el valor numérico en formData
+    const numericValue = value === "" ? 0 : Number.parseInt(value) || 0
+    setFormData((prev) => ({
+      ...prev,
+      flightHours: numericValue,
+    }))
+    setError("")
+  }
+
+  const handleFlightHoursFocus = () => {
+    if (flightHoursValue === "" || flightHoursValue === "0") {
+      setFlightHoursValue("")
+    }
+  }
+
+  const handleFlightHoursBlur = () => {
+    if (flightHoursValue === "") {
+      setFlightHoursValue("0")
+      setFormData((prev) => ({ ...prev, flightHours: 0 }))
+    }
   }
 
   const handleCertificationChange = (certificationId: number) => {
@@ -137,6 +198,11 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
 
     if (!formData.user.password || formData.user.password.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    if (formData.user.password !== confirmPassword) {
+      setError("Las contraseñas no coinciden")
       return
     }
 
@@ -203,6 +269,10 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
     })
     setError("")
     setDataError("")
+    setConfirmPassword("")
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+    setFlightHoursValue("")
     onClose()
   }
 
@@ -339,27 +409,101 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
                 }`}
               />
             </div>
-            <div>
-              <label
-                htmlFor="password"
-                className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
-              >
-                Contraseña *
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.user.password}
-                onChange={handleUserInputChange}
-                required
-                minLength={6}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-              />
+            <div className="col-span-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="password"
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Contraseña *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.user.password}
+                      onChange={handleUserInputChange}
+                      required
+                      minLength={6}
+                      className={`w-full px-3 py-2 pr-12 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                        darkMode
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                      }`}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                        title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="confirmPassword"
+                    className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    Confirmar Contraseña *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        setError("")
+                      }}
+                      required
+                      minLength={6}
+                      className={`w-full px-3 py-2 pr-12 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                        darkMode
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                      } ${confirmPassword && formData.user.password !== confirmPassword ? "border-red-500" : ""}`}
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                        title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-3">
+                <div className="flex flex-col">
+                  <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
+                  {confirmPassword && formData.user.password !== confirmPassword && (
+                    <p className="text-xs text-red-500">Las contraseñas no coinciden</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={generateSecurePassword}
+                  disabled={isLoading}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    darkMode
+                      ? "border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white"
+                      : "border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  Generar Contraseña Segura
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -401,17 +545,21 @@ const AddPilotModal = ({ isOpen, onClose, onPilotAdded, darkMode = false }: AddP
               <input
                 type="number"
                 id="flightHours"
-                name="flightHours"
-                value={formData.flightHours}
-                onChange={handlePilotInputChange}
+                value={flightHoursValue}
+                onChange={handleFlightHoursChange}
+                onFocus={handleFlightHoursFocus}
+                onBlur={handleFlightHoursBlur}
                 required
                 min="0"
+                step="1"
+                placeholder="Ingresa las horas de vuelo"
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                     : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                 }`}
               />
+              <p className="text-xs text-gray-500 mt-1">Haz clic para escribir directamente</p>
             </div>
             <div>
               <label

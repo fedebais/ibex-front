@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { getTechnicianById, updateTechnician } from "../../services/api"
-import type { CertificationLevel, TechnicianSpecialty, UpdateTechnicianInput } from "../../types/api"
+import type { CertificationLevel, TechnicianSpecialty } from "../../types/api"
 import { useUser } from "../../context/UserContext"
 import Modal from "../ui/Modal"
 
@@ -33,7 +33,7 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
- const [specialty, setSpecialty] = useState<TechnicianSpecialty | "">("")
+  const [specialty, setSpecialty] = useState<TechnicianSpecialty | "">("")
   const [certificationLevel, setCertificationLevel] = useState<CertificationLevel | "">("")
   const [yearsOfExperience, setYearsOfExperience] = useState("")
   const [lastCertification, setLastCertification] = useState("")
@@ -116,20 +116,18 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
       setIsSubmitting(true)
       setError(null)
 
-const technicianData: UpdateTechnicianInput = {
-  specialization: specialty as TechnicianSpecialty,
-  certificationLevel: certificationLevel as CertificationLevel,
-  experienceYears: years,
-  lastCertification: lastCertification ? new Date(lastCertification).toISOString() : "",
-  user: {
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    email: email.trim(),
-    phone: phone.trim(),
-  },
-}
-
-
+      const technicianData = {
+        user: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+        },
+        specialty: specialty as TechnicianSpecialty,
+        certificationLevel: certificationLevel as CertificationLevel,
+        yearsOfExperience: years,
+        lastCertification: lastCertification ? new Date(lastCertification).toISOString() : null,
+      }
 
       console.log("Actualizando técnico con datos:", technicianData)
       await updateTechnician(technicianId, technicianData, accessToken)
@@ -167,7 +165,7 @@ const technicianData: UpdateTechnicianInput = {
   if (!isOpen) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} darkMode={darkMode}  title="Editar Técnico">
+    <Modal isOpen={isOpen} onClose={handleClose} darkMode={darkMode}>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Editar Técnico</h2>
         <button
@@ -255,7 +253,7 @@ const technicianData: UpdateTechnicianInput = {
               <label className="block text-sm font-medium mb-2">Especialización *</label>
               <select
                 value={specialty}
-                onChange={(e) => setSpecialty(e.target.value as TechnicianSpecialty)}
+                onChange={(e) => setSpecialty(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
@@ -276,7 +274,7 @@ const technicianData: UpdateTechnicianInput = {
               <label className="block text-sm font-medium mb-2">Nivel de Certificación *</label>
               <select
                 value={certificationLevel}
-                onChange={(e) => setCertificationLevel(e.target.value as CertificationLevel)}
+                onChange={(e) => setCertificationLevel(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
@@ -301,12 +299,18 @@ const technicianData: UpdateTechnicianInput = {
                 onChange={(e) => setYearsOfExperience(e.target.value)}
                 min="0"
                 max="50"
+                step="1"
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
                 required
                 disabled={isSubmitting}
+                style={{
+                  WebkitAppearance: "auto",
+                  MozAppearance: "textfield",
+                }}
               />
+              <p className="text-xs text-gray-500 mt-1">Usa las flechas o escribe directamente (0-50 años)</p>
             </div>
 
             <div>

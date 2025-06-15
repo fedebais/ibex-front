@@ -397,12 +397,19 @@ const EditPilotModal = ({ isOpen, onClose, pilot, onPilotUpdated, darkMode = fal
                 onChange={handlePilotInputChange}
                 required
                 min="0"
+                step="1"
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
                   darkMode
                     ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                     : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                 }`}
+                disabled={isLoading}
+                style={{
+                  WebkitAppearance: "auto",
+                  MozAppearance: "textfield",
+                }}
               />
+              <p className="text-xs text-gray-500 mt-1">Usa las flechas o escribe directamente</p>
             </div>
             <div>
               <label

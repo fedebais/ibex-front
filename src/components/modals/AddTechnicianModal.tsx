@@ -5,7 +5,8 @@ import { useState } from "react"
 import Modal from "../ui/Modal"
 import { createTechnician } from "../../services/api"
 import { useUser } from "../../context/UserContext"
-import type { Technician, TechnicianSpecialty, CertificationLevel, CreateTechnicianInput  } from "../../types/api"
+import type { Technician, TechnicianSpecialty, CertificationLevel, CreateTechnicianInput } from "../../types/api"
+import { Eye, EyeOff } from "lucide-react"
 
 interface AddTechnicianModalProps {
   isOpen: boolean
@@ -35,6 +36,10 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
   const { accessToken } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [experienceYearsValue, setExperienceYearsValue] = useState("")
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -47,6 +52,32 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
     lastCertification: "",
   })
 
+  const generateSecurePassword = () => {
+    const length = 12
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+    let password = ""
+
+    // Asegurar al menos un carácter de cada tipo
+    password += "abcdefghijklmnopqrstuvwxyz"[Math.floor(Math.random() * 26)]
+    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[Math.floor(Math.random() * 26)]
+    password += "0123456789"[Math.floor(Math.random() * 10)]
+    password += "!@#$%^&*"[Math.floor(Math.random() * 8)]
+
+    // Completar el resto de la contraseña
+    for (let i = 4; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)]
+    }
+
+    // Mezclar los caracteres
+    password = password
+      .split("")
+      .sort(() => Math.random() - 0.5)
+      .join("")
+
+    setFormData((prev) => ({ ...prev, password }))
+    setConfirmPassword(password)
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setError(null) // Limpiar error al cambiar campos
@@ -55,6 +86,32 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
       ...prev,
       [name]: name === "experienceYears" ? Number.parseInt(value) || 0 : value,
     }))
+  }
+
+  const handleExperienceYearsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setExperienceYearsValue(value)
+
+    // Actualizar el valor numérico en formData
+    const numericValue = value === "" ? 0 : Number.parseInt(value) || 0
+    setFormData((prev) => ({
+      ...prev,
+      experienceYears: numericValue,
+    }))
+    setError(null)
+  }
+
+  const handleExperienceYearsFocus = () => {
+    if (experienceYearsValue === "" || experienceYearsValue === "0") {
+      setExperienceYearsValue("")
+    }
+  }
+
+  const handleExperienceYearsBlur = () => {
+    if (experienceYearsValue === "") {
+      setExperienceYearsValue("0")
+      setFormData((prev) => ({ ...prev, experienceYears: 0 }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,24 +134,27 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
       return
     }
 
+    if (formData.password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.")
+      return
+    }
+
     setIsLoading(true)
 
     try {
-   const technicianData: CreateTechnicianInput = {
-    user: {
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      email: formData.email.trim().toLowerCase(),
-      phone: formData.phone.trim(),
-      password: formData.password,
-    },
-    specialization: formData.specialization as TechnicianSpecialty,
-    certificationLevel: formData.certificationLevel as CertificationLevel,
-    experienceYears: formData.experienceYears,
-    lastCertification: formData.lastCertification,
-  }
-
-
+      const technicianData: CreateTechnicianInput = {
+        user: {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim().toLowerCase(),
+          phone: formData.phone.trim(),
+          password: formData.password,
+        },
+        specialization: formData.specialization as TechnicianSpecialty,
+        certificationLevel: formData.certificationLevel as CertificationLevel,
+        experienceYears: formData.experienceYears,
+        lastCertification: formData.lastCertification,
+      }
 
       console.log("Enviando datos del técnico:", technicianData)
 
@@ -116,6 +176,11 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
         experienceYears: 0,
         lastCertification: "",
       })
+
+      setExperienceYearsValue("")
+      setConfirmPassword("")
+      setShowPassword(false)
+      setShowConfirmPassword(false)
 
       onClose()
     } catch (error: any) {
@@ -146,6 +211,8 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
     formData.email.trim() &&
     formData.phone.trim() &&
     formData.password &&
+    confirmPassword &&
+    formData.password === confirmPassword &&
     formData.specialization &&
     formData.certificationLevel &&
     formData.lastCertification &&
@@ -222,20 +289,88 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
           </div>
 
           <div className="col-span-full">
-            <label className="block text-sm font-medium mb-2">Contraseña *</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              disabled={isLoading}
-              minLength={6}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
-              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-            />
-            <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Contraseña *</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isLoading}
+                    minLength={6}
+                    className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                      darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                    } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                      title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Confirmar Contraseña *</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      setError(null)
+                    }}
+                    required
+                    disabled={isLoading}
+                    minLength={6}
+                    className={`w-full px-3 py-2 pr-12 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
+                      darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                    } ${isLoading ? "opacity-50 cursor-not-allowed" : ""} ${
+                      confirmPassword && formData.password !== confirmPassword ? "border-red-500" : ""
+                    }`}
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                      title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-3">
+              <div className="flex flex-col">
+                <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
+                {confirmPassword && formData.password !== confirmPassword && (
+                  <p className="text-xs text-red-500">Las contraseñas no coinciden</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={generateSecurePassword}
+                disabled={isLoading}
+                className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  darkMode
+                    ? "border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white"
+                    : "border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                Generar Contraseña Segura
+              </button>
+            </div>
           </div>
         </div>
 
@@ -289,17 +424,21 @@ const AddTechnicianModal: React.FC<AddTechnicianModalProps> = ({ isOpen, onClose
             <label className="block text-sm font-medium mb-2">Años de Experiencia *</label>
             <input
               type="number"
-              name="experienceYears"
-              value={formData.experienceYears}
-              onChange={handleInputChange}
+              value={experienceYearsValue}
+              onChange={handleExperienceYearsChange}
+              onFocus={handleExperienceYearsFocus}
+              onBlur={handleExperienceYearsBlur}
               min="0"
               max="50"
+              step="1"
               required
               disabled={isLoading}
+              placeholder="Ingresa los años de experiencia"
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
                 darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             />
+            <p className="text-xs text-gray-500 mt-1">Haz clic para escribir directamente (0-50 años)</p>
           </div>
 
           <div>

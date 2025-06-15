@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./pages/Login"
 import PilotDashboard from "./pages/pilot/PilotDashboard"
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import TechnicianDashboard from "./pages/technician/TechnicianDashboard"
 import { UserProvider } from "./context/UserContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import ProtectedRoute from "./components/ProtectedRoute"
@@ -34,8 +35,16 @@ function App() {
             <Route
               path="/admin/*"
               element={
-                <ProtectedRoute allowedRoles={["ADMIN", "TECNICO"]}>
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technician/*"
+              element={
+                <ProtectedRoute allowedRoles={["TECNICO"]}>
+                  <TechnicianDashboard />
                 </ProtectedRoute>
               }
             />
