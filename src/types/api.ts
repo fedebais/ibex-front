@@ -151,7 +151,6 @@ export interface CreateTechnicianInput {
   lastCertification: string
 }
 
-
 export interface UpdateTechnicianInput {
   specialization: TechnicianSpecialty
   certificationLevel: CertificationLevel
@@ -164,7 +163,6 @@ export interface UpdateTechnicianInput {
     phone: string
   }
 }
-
 
 // Tipos para registros de vuelo
 export interface FlightLog {
@@ -227,7 +225,7 @@ export interface Client {
   id: number
   name: string
   contact: string
-  cuit: string
+  cuit: string // Campo único requerido
   email: string | null
   phone: string | null
   address: string | null
@@ -236,6 +234,7 @@ export interface Client {
   active: boolean
   status?: string
   contactPerson?: string
+  company?: string | null // Agregar este campo
 }
 
 // Tipos para helicópteros - Actualizado según la respuesta de la API
@@ -428,8 +427,6 @@ export interface EditHelicopterModelModalProps {
   model: HelicopterModel | null
   darkMode?: boolean
 }
-
-
 
 // Props para ClientDetailsModal
 export interface ClientDetailsModalProps {
