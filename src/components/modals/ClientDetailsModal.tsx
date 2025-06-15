@@ -6,6 +6,7 @@ import Modal from "../ui/Modal"
 import { useUser } from "../../context/UserContext"
 import type { Client } from "../../types/api"
 import { Edit, Trash2, User, Mail, Phone, MapPin, Building, FileText } from "lucide-react"
+import { updateClient, deleteClient } from "../../services/api"
 
 interface ClientDetailsModalProps {
   isOpen: boolean
@@ -34,7 +35,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     email: "",
     phone: "",
     address: "",
-    company: "",
     type: "",
     notes: "",
   })
@@ -54,7 +54,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
         email: client.email || "",
         phone: client.phone || "",
         address: client.address || "",
-        company: client.company || "",
         type: client.type || "",
         notes: client.notes || "",
       })
@@ -78,7 +77,6 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
         email: client.email || "",
         phone: client.phone || "",
         address: client.address || "",
-        company: client.company || "",
         type: client.type || "",
         notes: client.notes || "",
       })
@@ -106,8 +104,20 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     setError(null)
 
     try {
-      // Aquí deberías llamar a tu función updateClient de la API
-      // await updateClient(client.id, editFormData, accessToken)
+      await updateClient(
+        client.id,
+        {
+          name: editFormData.name.trim(),
+          contact: editFormData.contact.trim(),
+          cuit: editFormData.cuit.trim(),
+          email: editFormData.email.trim() || null,
+          phone: editFormData.phone.trim() || null,
+          address: editFormData.address.trim() || null,
+          type: editFormData.type || null,
+          notes: editFormData.notes.trim() || null,
+        },
+        accessToken,
+      )
 
       await onUpdateClient()
       setIsEditing(false)
@@ -129,9 +139,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({
     setError(null)
 
     try {
-      // Aquí deberías llamar a tu función deleteClient de la API
-      // await deleteClient(client.id, accessToken)
-
+      await deleteClient(client.id, accessToken)
       await onUpdateClient()
       onClose()
     } catch (error: any) {

@@ -220,7 +220,7 @@ export interface NewFlightLog {
   odometerPhotoUrl?: string
 }
 
-// Tipos para clientes
+// Tipos para clientes - SIN campo company
 export interface Client {
   id: number
   name: string
@@ -234,7 +234,6 @@ export interface Client {
   active: boolean
   status?: string
   contactPerson?: string
-  company?: string | null // Agregar este campo
 }
 
 // Tipos para helicópteros - Actualizado según la respuesta de la API
