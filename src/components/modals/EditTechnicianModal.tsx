@@ -123,9 +123,9 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
           email: email.trim(),
           phone: phone.trim(),
         },
-        specialization: specialty as TechnicianSpecialty, // Cambiar de specialty a specialization
+        specialty: specialty as TechnicianSpecialty, // ✅ CORRECTO
         certificationLevel: certificationLevel as CertificationLevel,
-        experienceYears: years, // Cambiar de yearsOfExperience a experienceYears
+        yearsOfExperience: years, // ✅ CORRECTO
         lastCertification: lastCertification ? new Date(lastCertification).toISOString() : undefined,
       }
 
