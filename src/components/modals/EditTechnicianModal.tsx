@@ -123,12 +123,17 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
           email: email.trim(),
           phone: phone.trim(),
         },
-        specialty: specialty as TechnicianSpecialty,
+        specialization: specialty as TechnicianSpecialty, // Cambiar de specialty a specialization
         certificationLevel: certificationLevel as CertificationLevel,
-        yearsOfExperience: years,
+        experienceYears: years, // Cambiar de yearsOfExperience a experienceYears
         lastCertification: lastCertification ? new Date(lastCertification).toISOString() : undefined,
-
       }
+
+      console.log("=== DATOS ENVIADOS AL BACKEND ===")
+      console.log("Technician ID:", technicianId)
+      console.log("Data:", JSON.stringify(technicianData, null, 2))
+      console.log("Specialty:", specialty)
+      console.log("Years:", years)
 
       console.log("Actualizando técnico con datos:", technicianData)
       await updateTechnician(technicianId, technicianData, accessToken)
@@ -166,7 +171,7 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} darkMode={darkMode}   title="Editar Técnico">
+    <Modal isOpen={isOpen} onClose={handleClose} darkMode={darkMode} title="Editar Técnico">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Editar Técnico</h2>
         <button
@@ -255,7 +260,6 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
               <select
                 value={specialty}
                 onChange={(e) => setSpecialty(e.target.value as TechnicianSpecialty)}
-
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
@@ -277,7 +281,6 @@ const EditTechnicianModal: React.FC<EditTechnicianModalProps> = ({
               <select
                 value={certificationLevel}
                 onChange={(e) => setCertificationLevel(e.target.value as CertificationLevel)}
-
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
                 }`}
