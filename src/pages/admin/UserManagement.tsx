@@ -29,9 +29,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: "",
     email: "",

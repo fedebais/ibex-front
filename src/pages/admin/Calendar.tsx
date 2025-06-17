@@ -12,7 +12,7 @@ type CalendarProps = {}
 type ViewType = "month" | "week" | "day"
 
 const Calendar: React.FC<CalendarProps> = () => {
-  const { user, accessToken, isLoading: userLoading } = useUser()
+  const { accessToken } = useUser()
   const { darkMode } = useTheme()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState<CalendarEvent[]>([])
