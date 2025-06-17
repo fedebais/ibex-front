@@ -58,7 +58,7 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
         }
       } catch (error) {
         console.error("❌ Error loading settings:", error)
-        setError(`Error al cargar la configuración: ${error.message}`)
+        setError(`Error al cargar la configuración: ${error instanceof Error ? error.message : "Error desconocido"}`)
       } finally {
         setIsLoading(false)
       }
@@ -96,7 +96,7 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
       }, 3000)
     } catch (error) {
       console.error("❌ Error updating settings:", error)
-      setError(`Error al actualizar la configuración: ${error.message}`)
+      setError(`Error al actualizar la configuración: ${error instanceof Error ? error.message : "Error desconocido"}`)
     } finally {
       setIsSubmitting(false)
     }
