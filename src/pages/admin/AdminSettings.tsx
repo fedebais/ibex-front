@@ -1,39 +1,122 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { getSettings, updateSettings } from "../../data/mockData"
+import { useState, useEffect } from "react"
+import { getSettings, updateSetting } from "../../services/api"
+import { useUser } from "../../context/UserContext"
 
 interface AdminSettingsProps {
   darkMode: boolean
 }
 
 const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
-  const settings = getSettings()
-  const [hourlyRate, setHourlyRate] = useState<string>(settings.hourlyRate.toString())
+  const { user, accessToken } = useUser()
+  const [hourlyRate, setHourlyRate] = useState<string>("")
+  const [currency, setCurrency] = useState<string>("USD")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [error, setError] = useState<string>("")
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  // Cargar configuraciones al montar el componente
+  useEffect(() => {
+    const loadSettings = async () => {
+      console.log("🔍 Iniciando carga de configuraciones...")
+      console.log("👤 Usuario:", user)
+      console.log("🔑 Token:", accessToken ? "Disponible" : "No disponible")
 
-    // Simulación de envío de datos
-    setTimeout(() => {
-      const updatedSettings = {
-        hourlyRate: Number.parseFloat(hourlyRate),
+      if (!accessToken) {
+        console.log("❌ No hay token, saliendo...")
+        setIsLoading(false)
+        return
       }
 
-      updateSettings(updatedSettings)
-      setIsSubmitting(false)
+      try {
+        setIsLoading(true)
+        setError("")
+
+        console.log("📡 Llamando a getSettings...")
+        const settings = await getSettings(accessToken)
+        console.log("✅ Settings recibidos:", settings)
+
+        // Buscar la configuración de precio por hora de vuelo
+        const flightHourPrice = settings.find((setting) => setting.key === "flight_hour_price")
+        if (flightHourPrice) {
+          console.log("💰 Precio por hora encontrado:", flightHourPrice.value)
+          setHourlyRate(flightHourPrice.value)
+        } else {
+          console.log("⚠️ No se encontró flight_hour_price")
+        }
+
+        // Buscar la configuración de moneda
+        const currencySetting = settings.find((setting) => setting.key === "currency")
+        if (currencySetting) {
+          console.log("💱 Moneda encontrada:", currencySetting.value)
+          setCurrency(currencySetting.value)
+        } else {
+          console.log("⚠️ No se encontró currency")
+        }
+      } catch (error) {
+        console.error("❌ Error loading settings:", error)
+        setError(`Error al cargar la configuración: ${error.message}`)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [accessToken])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    console.log("💾 Iniciando actualización de configuración...")
+    console.log("👤 Usuario:", user)
+    console.log("🔑 Token:", accessToken ? "Disponible" : "No disponible")
+    console.log("💰 Nuevo precio:", hourlyRate)
+
+    if (!accessToken) {
+      setError("No hay token de autenticación")
+      return
+    }
+
+    setIsSubmitting(true)
+    setError("")
+
+    try {
+      console.log("📡 Llamando a updateSetting...")
+      await updateSetting("flight_hour_price", hourlyRate, accessToken)
+      console.log("✅ Configuración actualizada exitosamente")
+
       setShowSuccess(true)
 
       // Ocultar mensaje de éxito después de 3 segundos
       setTimeout(() => {
         setShowSuccess(false)
       }, 3000)
-    }, 1000)
+    } catch (error) {
+      console.error("❌ Error updating settings:", error)
+      setError(`Error al actualizar la configuración: ${error.message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <h1 className="text-2xl font-semibold">Configuración del Sistema</h1>
+        </div>
+        <div className={`${darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"} shadow rounded-lg p-6`}>
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-300 rounded w-1/4 mb-4"></div>
+            <div className="h-10 bg-gray-300 rounded mb-4"></div>
+            <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -41,6 +124,29 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <h1 className="text-2xl font-semibold">Configuración del Sistema</h1>
       </div>
+
+      {error && (
+        <div
+          className={`mb-6 border-l-4 border-red-500 p-4 rounded ${
+            darkMode ? "bg-red-900/20 text-red-300" : "bg-red-50 text-red-800"
+          }`}
+        >
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSuccess && (
         <div
@@ -83,7 +189,7 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
                 htmlFor="hourlyRate"
                 className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
               >
-                Tarifa Estándar por Hora (USD)
+                Tarifa Estándar por Hora ({currency})
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

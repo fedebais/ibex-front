@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import Login from "./pages/Login"
 import PasswordRecovery from "./pages/PasswordRecovery"
+import ResetPassword from "./pages/ResetPassword"
 import PilotDashboard from "./pages/pilot/PilotDashboard"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import TechnicianDashboard from "./pages/technician/TechnicianDashboard"
@@ -26,6 +27,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
              <Route path="/password-recovery" element={<PasswordRecovery />} />
+             <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/pilot/*"
               element={

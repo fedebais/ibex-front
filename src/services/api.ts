@@ -554,6 +554,44 @@ async getScheduleByMonth(month: string, token: string): Promise<CalendarEvent[]>
 }
 
 
+// ==================== SETTINGS ENDPOINTS ====================
+
+async getSettings(token: string): Promise<{ key: string; value: string }[]> {
+  return this.makeRequest<{ key: string; value: string }[]>("/settings", {
+    method: "GET",
+    headers: this.getAuthHeaders(token),
+  })
+}
+
+async updateSetting(key: string, value: string, token: string): Promise<{ key: string; value: string }> {
+  return this.makeRequest<{ key: string; value: string }>("/settings", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...this.getAuthHeaders(token),
+    },
+    body: JSON.stringify({ key, value }),
+  })
+}
+
+// ==================== AUTH: PASSWORD RECOVERY ====================
+
+async recoverPassword(email: string): Promise<{ message: string }> {
+  return this.makeRequest<{ message: string }>("/auth/recover-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })
+}
+
+async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  return this.makeRequest<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  })
+}
+
+
+
 
 }
 
@@ -613,3 +651,8 @@ export const getTechnicianById = api.getTechnicianById.bind(api)
 export const createTechnician = api.createTechnician.bind(api)
 export const updateTechnician = api.updateTechnician.bind(api)
 export const deleteTechnician = api.deleteTechnician.bind(api)
+export const getSettings = api.getSettings.bind(api)
+export const updateSetting = api.updateSetting.bind(api)
+export const recoverPassword = api.recoverPassword.bind(api)
+export const resetPassword = api.resetPassword.bind(api)
+

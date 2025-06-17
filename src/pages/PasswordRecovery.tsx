@@ -5,6 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, Mail, CheckCircle, AlertCircle } from "lucide-react"
+import { api } from "../services/api"
 
 const PasswordRecovery = () => {
   const [email, setEmail] = useState("")
@@ -31,13 +32,12 @@ const PasswordRecovery = () => {
     }
 
     try {
-      // Simular llamada a API
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Por ahora siempre será exitoso
+      // Llamada real a la API
+      await api.recoverPassword(email)
       setIsSuccess(true)
-    } catch (err) {
-      setError("Ocurrió un error. Por favor intenta nuevamente.")
+    } catch (err: any) {
+      console.error("Error al recuperar contraseña:", err)
+      setError(err.message || "Ocurrió un error. Por favor intenta nuevamente.")
     } finally {
       setIsLoading(false)
     }
