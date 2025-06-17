@@ -12,9 +12,6 @@ interface AdminSettingsProps {
 const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
   const settings = getSettings()
   const [hourlyRate, setHourlyRate] = useState<string>(settings.hourlyRate.toString())
-  const [nightHourlyRate, setNightHourlyRate] = useState<string>(settings.nightHourlyRate.toString())
-  const [weekendHourlyRate, setWeekendHourlyRate] = useState<string>(settings.weekendHourlyRate.toString())
-  const [holidayHourlyRate, setHolidayHourlyRate] = useState<string>(settings.holidayHourlyRate.toString())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
@@ -26,9 +23,6 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
     setTimeout(() => {
       const updatedSettings = {
         hourlyRate: Number.parseFloat(hourlyRate),
-        nightHourlyRate: Number.parseFloat(nightHourlyRate),
-        weekendHourlyRate: Number.parseFloat(weekendHourlyRate),
-        holidayHourlyRate: Number.parseFloat(holidayHourlyRate),
       }
 
       updateSettings(updatedSettings)
@@ -82,7 +76,7 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {/* Tarifa estándar */}
             <div className="col-span-1">
               <label
@@ -113,105 +107,6 @@ const AdminSettings = ({ darkMode = false }: AdminSettingsProps) => {
               </div>
               <p className={`mt-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
                 Tarifa base para horas de vuelo en días laborables.
-              </p>
-            </div>
-
-            {/* Tarifa nocturna */}
-            <div className="col-span-1">
-              <label
-                htmlFor="nightHourlyRate"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Tarifa Nocturna por Hora (USD)
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className={`text-gray-500 sm:text-sm`}>$</span>
-                </div>
-                <input
-                  type="number"
-                  id="nightHourlyRate"
-                  value={nightHourlyRate}
-                  onChange={(e) => setNightHourlyRate(e.target.value)}
-                  className={`pl-7 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                  }`}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <p className={`mt-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Tarifa para horas de vuelo nocturnas (20:00 - 06:00).
-              </p>
-            </div>
-
-            {/* Tarifa fin de semana */}
-            <div className="col-span-1">
-              <label
-                htmlFor="weekendHourlyRate"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Tarifa Fin de Semana por Hora (USD)
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className={`text-gray-500 sm:text-sm`}>$</span>
-                </div>
-                <input
-                  type="number"
-                  id="weekendHourlyRate"
-                  value={weekendHourlyRate}
-                  onChange={(e) => setWeekendHourlyRate(e.target.value)}
-                  className={`pl-7 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                  }`}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <p className={`mt-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Tarifa para horas de vuelo en fines de semana (sábado y domingo).
-              </p>
-            </div>
-
-            {/* Tarifa días festivos */}
-            <div className="col-span-1">
-              <label
-                htmlFor="holidayHourlyRate"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Tarifa Días Festivos por Hora (USD)
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className={`text-gray-500 sm:text-sm`}>$</span>
-                </div>
-                <input
-                  type="number"
-                  id="holidayHourlyRate"
-                  value={holidayHourlyRate}
-                  onChange={(e) => setHolidayHourlyRate(e.target.value)}
-                  className={`pl-7 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                    darkMode
-                      ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                  }`}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <p className={`mt-1 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Tarifa para horas de vuelo en días festivos y feriados.
               </p>
             </div>
           </div>

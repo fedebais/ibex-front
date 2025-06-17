@@ -442,3 +442,18 @@ export interface EditHelicopterModelModalProps {
   onClose: () => void
   model: HelicopterModel | null
 }
+
+
+export interface CalendarEvent {
+  id: string
+  type: "flight" | "maintenance"
+  date: string
+  title: string
+  resourceId: number
+  pilot?: string
+  duration?: number
+  technicianName?: string
+  flightStatus?: "SCHEDULED" | "COMPLETED" | "CANCELLED"
+  maintenanceType?: string
+}
+

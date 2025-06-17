@@ -2,8 +2,9 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { mockUsers } from "../../data/mockData"
 import { UserPlus, X, Users, Search, Filter } from "lucide-react"
+import { getUsers } from "../../services/api"
+import { useUser } from "../../context/UserContext"
 
 interface User {
   id: string
@@ -15,6 +16,7 @@ interface User {
   department?: string
   licenseNumber?: string
   flightHours?: number
+  phone?: string
 }
 
 interface UserManagementProps {
@@ -37,12 +39,71 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
     status: "active",
   })
 
-  // Cargar usuarios
-  useEffect(() => {
-  setUsers(mockUsers)
-setFilteredUsers(mockUsers)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  }, [])
+  const { user, accessToken, isLoading: userLoading } = useUser()
+
+  // Función para obtener las iniciales del nombre
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) // Máximo 2 iniciales
+  }
+
+  // Cargar usuarios desde la API
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setLoading(true)
+
+        if (userLoading) {
+          return // Esperar a que termine de cargar el usuario
+        }
+
+        if (!user || !accessToken) {
+          setError("No hay token de autenticación")
+          return
+        }
+
+        console.log("=== Cargando usuarios desde API ===")
+        const response = await getUsers(accessToken)
+        console.log("Usuarios recibidos:", response)
+
+        // Mapear los datos de la API al formato esperado
+        const mappedUsers = response.map((user: any) => ({
+          id: user.id,
+          name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          email: user.email || "",
+          role: user.role ? user.role.toLowerCase() : "operator",
+          status: user.active ? "active" : "inactive", // Usar 'active' en lugar de 'isActive'
+          avatar: user.profileImage || null,
+          department: user.department || null,
+          licenseNumber: user.licenseNumber || null,
+          flightHours: user.flightHours || null,
+          phone: user.phone || null,
+        }))
+
+        console.log("Usuarios mapeados:", mappedUsers)
+
+        setUsers(mappedUsers)
+        setFilteredUsers(mappedUsers)
+        setError(null)
+      } catch (error) {
+        console.error("Error cargando usuarios:", error)
+        setError("Error al cargar usuarios. Intente nuevamente.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (!userLoading && user && accessToken) {
+      loadUsers()
+    }
+  }, [userLoading, user, accessToken])
 
   // Filtrar usuarios
   useEffect(() => {
@@ -89,31 +150,152 @@ setFilteredUsers(mockUsers)
     })
   }
 
-  // Manejar la edición de un usuario
-  const handleEditUser = () => {
+  // Temporalmente comentadas las funciones de edición y eliminación
+  /*
+  const handleEditUser = async () => {
     if (!currentUser) return
 
-    const updatedUsers = users.map((user) => (user.id === currentUser.id ? currentUser : user))
-    setUsers(updatedUsers)
-    setShowEditModal(false)
-    setCurrentUser(null)
+    try {
+      setLoading(true)
+      if (!accessToken) {
+        setError("No hay token de autenticación")
+        return
+      }
+
+      // Preparar datos para la API
+      const [firstName, ...lastNameParts] = currentUser.name.split(" ")
+      const lastName = lastNameParts.join(" ")
+
+      const updateData = {
+        firstName,
+        lastName,
+        email: currentUser.email,
+        phone: currentUser.phone || undefined,
+        role: currentUser.role.toUpperCase(),
+        active: currentUser.status === "active", // Cambiar 'isActive' por 'active'
+      }
+
+      console.log("=== Actualizando usuario ===", updateData)
+      await updateUser(currentUser.id, updateData, accessToken)
+
+      // Recargar usuarios después de actualizar
+      const response = await getUsers(accessToken)
+      const mappedUsers = response.map((user: any) => ({
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        email: user.email || "",
+        role: user.role ? user.role.toLowerCase() : "operator",
+        status: user.active ? "active" : "inactive", // Usar 'active' en lugar de 'isActive'
+        avatar: user.profileImage || null,
+        department: user.department || null,
+        licenseNumber: user.licenseNumber || null,
+        flightHours: user.flightHours || null,
+        phone: user.phone || null,
+      }))
+
+      setUsers(mappedUsers)
+      setShowEditModal(false)
+      setCurrentUser(null)
+      setError(null)
+    } catch (error) {
+      console.error("Error actualizando usuario:", error)
+      setError("Error al actualizar usuario")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Manejar la eliminación (desactivación) de un usuario
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!currentUser) return
 
-    const updatedUsers = users.map((user) => (user.id === currentUser.id ? { ...user, status: "inactive" } : user))
-    setUsers(updatedUsers)
-    setShowDeleteModal(false)
-    setCurrentUser(null)
+    try {
+      setLoading(true)
+      if (!accessToken) {
+        setError("No hay token de autenticación")
+        return
+      }
+
+      console.log("=== Desactivando usuario ===", currentUser.id)
+      await deleteUser(currentUser.id, accessToken)
+
+      // Recargar usuarios después de desactivar
+      const response = await getUsers(accessToken)
+      const mappedUsers = response.map((user: any) => ({
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        email: user.email || "",
+        role: user.role ? user.role.toLowerCase() : "operator",
+        status: user.active ? "active" : "inactive", // Usar 'active' en lugar de 'isActive'
+        avatar: user.profileImage || null,
+        department: user.department || null,
+        licenseNumber: user.licenseNumber || null,
+        flightHours: user.flightHours || null,
+        phone: user.phone || null,
+      }))
+
+      setUsers(mappedUsers)
+      setShowDeleteModal(false)
+      setCurrentUser(null)
+      setError(null)
+    } catch (error) {
+      console.error("Error desactivando usuario:", error)
+      setError("Error al desactivar usuario")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Manejar la reactivación de un usuario
-  const handleReactivateUser = (userId: string) => {
-    const updatedUsers = users.map((user) => (user.id === userId ? { ...user, status: "active" } : user))
-    setUsers(updatedUsers)
+  const handleReactivateUser = async (userId: string) => {
+    try {
+      setLoading(true)
+      if (!accessToken) {
+        setError("No hay token de autenticación")
+        return
+      }
+
+      const userToReactivate = users.find((u) => u.id === userId)
+      if (!userToReactivate) return
+
+      const [firstName, ...lastNameParts] = userToReactivate.name.split(" ")
+      const lastName = lastNameParts.join(" ")
+
+      const updateData = {
+        firstName,
+        lastName,
+        email: userToReactivate.email,
+        phone: userToReactivate.phone || undefined,
+        role: userToReactivate.role.toUpperCase(),
+        active: true, // Cambiar 'isActive' por 'active'
+      }
+
+      console.log("=== Reactivando usuario ===", updateData)
+      await updateUser(userId, updateData, accessToken)
+
+      // Recargar usuarios después de reactivar
+      const response = await getUsers(accessToken)
+      const mappedUsers = response.map((user: any) => ({
+        id: user.id,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        email: user.email || "",
+        role: user.role ? user.role.toLowerCase() : "operator",
+        status: user.active ? "active" : "inactive", // Usar 'active' en lugar de 'isActive'
+        avatar: user.profileImage || null,
+        department: user.department || null,
+        licenseNumber: user.licenseNumber || null,
+        flightHours: user.flightHours || null,
+        phone: user.phone || null,
+      }))
+
+      setUsers(mappedUsers)
+      setError(null)
+    } catch (error) {
+      console.error("Error reactivando usuario:", error)
+      setError("Error al reactivar usuario")
+    } finally {
+      setLoading(false)
+    }
   }
+  */
 
   // Obtener el color de fondo según el rol
   const getRoleBadgeClass = (role: string) => {
@@ -232,31 +414,50 @@ setFilteredUsers(mockUsers)
                 >
                   Estado
                 </th>
-                <th
-                  scope="col"
-                  className={`px-6 py-3 text-left text-xs font-medium ${
-                    darkMode ? "text-gray-300" : "text-gray-500"
-                  } uppercase tracking-wider`}
-                >
-                  Último acceso
-                </th>
                 <th scope="col" className="relative px-6 py-3">
                   <span className="sr-only">Acciones</span>
                 </th>
               </tr>
             </thead>
             <tbody className={`divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
-              {filteredUsers.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                      <span className="ml-2">Cargando usuarios...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-4 text-center">
+                    <div className="text-red-600 mb-2">{error}</div>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-orange-600 hover:text-orange-700 underline"
+                    >
+                      Reintentar
+                    </button>
+                  </td>
+                </tr>
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <tr key={user.id} className={darkMode ? "bg-gray-800" : "bg-white"}>
                     <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? "text-white" : "text-gray-900"}`}>
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
-                          <img
-                            className="h-10 w-10 rounded-full"
-                            src={user.avatar || `/placeholder.svg?height=40&width=40&query=user`}
-                            alt={user.name}
-                          />
+                          {user.avatar ? (
+                            <img
+                              className="h-10 w-10 rounded-full"
+                              src={user.avatar || "/placeholder.svg"}
+                              alt={user.name}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-orange-600 flex items-center justify-center">
+                              <span className="text-white text-sm font-medium">{getInitials(user.name)}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>{user.name}</div>
@@ -285,10 +486,8 @@ setFilteredUsers(mockUsers)
                         {user.status === "active" ? "Activo" : "Inactivo"}
                       </span>
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? "text-gray-300" : "text-gray-500"}`}>
-                      {new Date().toLocaleDateString()}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {/* Temporalmente comentado - botones de acción
                       {user.status === "active" ? (
                         <>
                           <button
@@ -319,12 +518,13 @@ setFilteredUsers(mockUsers)
                           Activar
                         </button>
                       )}
+                      */}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm">
+                  <td colSpan={4} className="px-6 py-4 text-center text-sm">
                     No se encontraron usuarios con los filtros seleccionados
                   </td>
                 </tr>
@@ -445,7 +645,7 @@ setFilteredUsers(mockUsers)
         </div>
       )}
 
-      {/* Modal para editar usuario */}
+      {/* Temporalmente comentados los modales de edición y eliminación
       {showEditModal && currentUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
@@ -556,7 +756,6 @@ setFilteredUsers(mockUsers)
         </div>
       )}
 
-      {/* Modal para confirmar eliminación */}
       {showDeleteModal && currentUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
@@ -598,6 +797,7 @@ setFilteredUsers(mockUsers)
           </div>
         </div>
       )}
+      */}
     </div>
   )
 }

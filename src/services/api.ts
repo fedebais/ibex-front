@@ -18,7 +18,8 @@ import type {
   ErrorResponse,
   AdminDashboardData,
   CertificationType,
-  UpdateTechnicianInput
+  UpdateTechnicianInput,
+  CalendarEvent
 } from "../types/api"
 
 // Base URL de la API - se puede cambiar fácilmente para desarrollo/producción
@@ -540,6 +541,20 @@ async deleteHelicopter(id: number, token: string): Promise<{ message: string }> 
       headers: this.getAuthHeaders(token),
     })
   }
+
+
+  // ==================== SCHEDULE ENDPOINT ====================
+
+async getScheduleByMonth(month: string, token: string): Promise<CalendarEvent[]> {
+  const query = new URLSearchParams({ month })
+  return this.makeRequest<CalendarEvent[]>(`/schedule?${query.toString()}`, {
+    method: "GET",
+    headers: this.getAuthHeaders(token),
+  })
+}
+
+
+
 }
 
 // Instancia exportada de la API
