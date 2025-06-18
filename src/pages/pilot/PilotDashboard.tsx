@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Routes, Route, useLocation } from "react-router-dom"
-import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
 import Navbar from "../../components/ui/Navbar"
 import Sidebar from "../../components/ui/Sidebar"
@@ -14,7 +13,6 @@ import Calendar from "../admin/Calendar"
 import { LayoutDashboard, FileText, Plus, User, Menu, CalendarDays, ChevronDown } from "lucide-react"
 
 const PilotDashboard = () => {
-  const { user } = useUser()
   const { darkMode, toggleDarkMode } = useTheme()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -89,7 +87,7 @@ const PilotDashboard = () => {
     "Diciembre",
   ]
 
-  const handleMonthChange = (monthIndex) => {
+  const handleMonthChange = (monthIndex: number) => {
     setSelectedMonth(monthIndex)
     setIsMonthSelectorOpen(false)
   }

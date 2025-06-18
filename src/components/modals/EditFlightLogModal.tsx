@@ -91,8 +91,8 @@ const EditFlightLogModal = ({
         startTime: flightLog.startTime || "",
         landingTime: flightLog.landingTime || "",
         odometer: flightLog.odometer?.toString() || "",
-        initialOdometer: flightLog.initialOdometer?.toString() || "",
-        finalOdometer: flightLog.finalOdometer?.toString() || "",
+        initialOdometer: flightLog.fuelStart?.toString() || "",
+        finalOdometer: flightLog.fuelEnd?.toString() || "",
         starts: "1", // ✅ Valor por defecto
         landings: "1", // ✅ Valor por defecto
         launches: "0", // ✅ Valor por defecto
