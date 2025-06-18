@@ -41,6 +41,7 @@ export interface User {
   active: boolean
   role: UserRole
   profileImage?: string
+  name?: string // Agregar campo name opcional para compatibilidad
 }
 
 // Tipos para pilotos - Actualizado según la respuesta de la API
@@ -349,6 +350,48 @@ export interface Stats {
     CANCELLED?: number
     [key: string]: number | undefined
   }
+}
+
+// Tipos específicos para el dashboard del piloto
+export interface PilotDashboardData {
+  role: string
+  pilotId: number
+  totalFlights: number
+  totalHours: number
+  upcomingFlights: number
+  completedFlights: number
+  nextFlights: Array<{
+    id: number
+    date: string
+    startTime: string
+    destination: {
+      name: string
+    }
+    helicopter: {
+      registration: string
+      model: {
+        name: string
+      }
+    }
+    status: string
+  }>
+  recentFlights: Array<{
+    id: number
+    date: string
+    startTime: string
+    landingTime: string
+    odometer: number
+    destination: {
+      name: string
+    }
+    helicopter: {
+      registration: string
+      model: {
+        name: string
+      }
+    }
+    status: string
+  }>
 }
 
 // Tipos para respuestas genéricas

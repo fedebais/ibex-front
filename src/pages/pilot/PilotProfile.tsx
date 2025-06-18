@@ -50,6 +50,8 @@ const PilotProfile = ({ darkMode = false }: PilotProfileProps) => {
     loadPilotData()
   }, [user?.id, accessToken])
 
+  console.log(flights);
+
   // Calcular estadísticas
   // const totalFlightHours = flights.reduce((total, flight) => total + (flight.duration || 0), 0) / 60 // Convertir minutos a horas
   // const completedFlights = flights.filter((f) => f.status === "COMPLETED").length

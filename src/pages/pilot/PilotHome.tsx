@@ -3,54 +3,14 @@
 import { useUser } from "../../context/UserContext"
 import { useEffect, useState } from "react"
 import { getStats } from "../../services/api"
-
-interface PilotDashboardData {
-  role: string
-  pilotId: number
-  totalFlights: number
-  totalHours: number
-  upcomingFlights: number
-  completedFlights: number
-  nextFlights: Array<{
-    id: number
-    date: string
-    startTime: string
-    destination: {
-      name: string
-    }
-    helicopter: {
-      registration: string
-      model: {
-        name: string
-      }
-    }
-    status: string
-  }>
-  recentFlights: Array<{
-    id: number
-    date: string
-    startTime: string
-    landingTime: string
-    odometer: number
-    destination: {
-      name: string
-    }
-    helicopter: {
-      registration: string
-      model: {
-        name: string
-      }
-    }
-    status: string
-  }>
-}
+import type { PilotDashboardData } from "../../types/api"
 
 interface PilotHomeProps {
   darkMode: boolean
   selectedMonth: number
 }
 
-const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
+const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
   const { user, accessToken } = useUser()
   const [dashboardData, setDashboardData] = useState<PilotDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -75,7 +35,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
         const response = await getStats({ month: currentMonth }, accessToken)
         console.log("Stats response:", response)
 
-        setDashboardData(response)
+        setDashboardData(response as PilotDashboardData)
         setError(null)
       } catch (error) {
         console.error("Error loading pilot data:", error)
@@ -140,10 +100,8 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
 
   return (
     <div className="space-y-6">
-    
-
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName || user?.name}</h1>
+        <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName}</h1>
         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
           {new Date().toLocaleDateString("es-ES", {
             weekday: "long",
