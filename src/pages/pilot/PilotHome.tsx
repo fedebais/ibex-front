@@ -35,7 +35,8 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
         const response = await getStats({ month: currentMonth }, accessToken)
         console.log("Stats response:", response)
 
-        setDashboardData(response as PilotDashboardData)
+        // Convertir la respuesta al tipo correcto usando unknown primero
+        setDashboardData(response as unknown as PilotDashboardData)
         setError(null)
       } catch (error) {
         console.error("Error loading pilot data:", error)
