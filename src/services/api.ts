@@ -127,6 +127,14 @@ export class ApiService {
     })
   }
 
+  async getPilotByUserId(userId: number, token: string): Promise<Pilot> {
+  return this.makeRequest<Pilot>(`/pilots/user/${userId}`, {
+    method: "GET",
+    headers: this.getAuthHeaders(token),
+  })
+}
+
+
   async createPilot(data: CreatePilotInput, token: string): Promise<Pilot> {
     return this.makeRequest<Pilot>("/pilots", {
       method: "POST",
@@ -610,6 +618,7 @@ export const updateUser = api.updateUser.bind(api)
 export const deleteUser = api.deleteUser.bind(api)
 export const getPilots = api.getPilots.bind(api)
 export const getPilotById = api.getPilotById.bind(api)
+export const getPilotByUserId = api.getPilotByUserId.bind(api)
 export const createPilot = api.createPilot.bind(api)
 export const updatePilot = api.updatePilot.bind(api)
 export const deletePilot = api.deletePilot.bind(api)

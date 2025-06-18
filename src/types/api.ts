@@ -343,6 +343,12 @@ export interface Stats {
     flightCount: number
     flightHours: number
   }[]
+  flightsByStatus?: {
+    SCHEDULED?: number
+    COMPLETED?: number
+    CANCELLED?: number
+    [key: string]: number | undefined
+  }
 }
 
 // Tipos para respuestas genéricas
@@ -370,6 +376,10 @@ export interface AdminDashboardData {
     totalHelicopters: number
     activeHelicopters: number
     maintenanceHelicopters: number
+    flightsByStatus: Record<"SCHEDULED" | "COMPLETED" | "CANCELLED", number>
+    // Agregar campos específicos para fácil acceso
+    completedFlights: number
+    scheduledFlights: number
   }
   fleetStatus: {
     byStatus: Record<string, number>
@@ -443,7 +453,6 @@ export interface EditHelicopterModelModalProps {
   model: HelicopterModel | null
 }
 
-
 export interface CalendarEvent {
   id: string
   type: "flight" | "maintenance"
@@ -456,4 +465,3 @@ export interface CalendarEvent {
   flightStatus?: "SCHEDULED" | "COMPLETED" | "CANCELLED"
   maintenanceType?: string
 }
-

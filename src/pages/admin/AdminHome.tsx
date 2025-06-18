@@ -5,17 +5,7 @@ import { api } from "../../services/api"
 import BarChart from "../../components/charts/BarChart"
 import DoughnutChart from "../../components/charts/DoughnutChart"
 import LineChart from "../../components/charts/LineChart"
-import {
-  FileText,
-  Clock,
-  Users,
-  Plane,
-  TrendingUp,
-  Calendar,
-  CheckCircle,
-  AlertTriangle,
-  RefreshCw,
-} from "lucide-react"
+import { FileText, Clock, Users, Plane, Calendar, CheckCircle, AlertTriangle, RefreshCw } from "lucide-react"
 import type { AdminDashboardData } from "../../types/api"
 
 interface AdminHomeProps {
@@ -191,12 +181,14 @@ export default function AdminHome({
       </div>
       {/* Resto del contenido del dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Tarjeta de Vuelos Totales */}
+        {/* Tarjeta de Vuelos Completados */}
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vuelos Totales</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.totalFlights}</h3>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                Vuelos Completados
+              </p>
+              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightsByStatus?.COMPLETED || 0}</h3>
             </div>
             <div className="p-3 rounded-full bg-orange-100 text-orange-600">
               <FileText className="w-6 h-6" />
@@ -204,9 +196,9 @@ export default function AdminHome({
           </div>
           <div className="flex items-center mt-4">
             <div className="flex items-center text-green-500">
-              <TrendingUp className="w-4 h-4 mr-1" />
+              <Calendar className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">
-                {dashboardData.summary.totalFlights - dashboardData.summary.monthlyFlights} completados
+                {dashboardData.summary.flightsByStatus?.SCHEDULED || 0} programados
               </span>
             </div>
             <div className="flex items-center text-blue-500 ml-4">

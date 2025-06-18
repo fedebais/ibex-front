@@ -1,7 +1,49 @@
 "use client"
 
 import { useUser } from "../../context/UserContext"
-import { mockFlights, getHelicopterInfo, getLocationName } from "../../data/mockData"
+import { useEffect, useState } from "react"
+import { getStats } from "../../services/api"
+
+interface PilotDashboardData {
+  role: string
+  pilotId: number
+  totalFlights: number
+  totalHours: number
+  upcomingFlights: number
+  completedFlights: number
+  nextFlights: Array<{
+    id: number
+    date: string
+    startTime: string
+    destination: {
+      name: string
+    }
+    helicopter: {
+      registration: string
+      model: {
+        name: string
+      }
+    }
+    status: string
+  }>
+  recentFlights: Array<{
+    id: number
+    date: string
+    startTime: string
+    landingTime: string
+    odometer: number
+    destination: {
+      name: string
+    }
+    helicopter: {
+      registration: string
+      model: {
+        name: string
+      }
+    }
+    status: string
+  }>
+}
 
 interface PilotHomeProps {
   darkMode: boolean
@@ -9,65 +51,99 @@ interface PilotHomeProps {
 }
 
 const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
-  const { user } = useUser()
+  const { user, accessToken } = useUser()
+  const [dashboardData, setDashboardData] = useState<PilotDashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Filtrar vuelos del piloto actual
-  const pilotFlights = mockFlights.filter(() => 1 === 1)
+  useEffect(() => {
+    const loadPilotData = async () => {
+      try {
+        console.log("Access token from context:", accessToken ? "exists" : "missing")
+        console.log("User:", user)
 
-  // Filtrar por mes si se ha seleccionado un mes específico (0 = todos los meses)
-  const filteredFlights =
-    selectedMonth === 0
-      ? pilotFlights
-      : pilotFlights.filter((flight) => {
-          const flightDate = new Date(flight.date)
-          return flightDate.getMonth() === selectedMonth - 1 // Restamos 1 porque en el selector 0 es "Todos"
-        })
+        if (!accessToken) {
+          setError("No access token found")
+          return
+        }
 
-  // Obtener próximos vuelos (programados)
-  const upcomingFlights = filteredFlights.filter((flight) => flight.status === "scheduled")
+        // Crear parámetros para el mes actual
+        const currentDate = new Date()
+        const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`
 
-  // Obtener vuelos recientes (completados)
-  const recentFlights = filteredFlights
-    .filter((flight) => flight.status === "completed")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3)
+        console.log("Calling getStats with month:", currentMonth)
+        const response = await getStats({ month: currentMonth }, accessToken)
+        console.log("Stats response:", response)
 
-  // Calcular estadísticas
-  const totalFlights = filteredFlights.length
-  const totalFlightHours = filteredFlights
-    .reduce((total, flight) => {
-      const [hours, minutes] = flight.flightHours.split(":").map(Number)
-      return total + hours + minutes / 60
-    }, 0)
-    .toFixed(1)
+        setDashboardData(response)
+        setError(null)
+      } catch (error) {
+        console.error("Error loading pilot data:", error)
+        setError(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (accessToken) {
+      loadPilotData()
+    } else {
+      setLoading(false)
+      setError("No access token available")
+    }
+  }, [user, accessToken])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className={`mt-4 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>Cargando datos del piloto...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className={`text-center py-8 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+        <p>Error al cargar los datos del piloto:</p>
+        <p className="text-red-500 mt-2">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+        >
+          Reintentar
+        </button>
+      </div>
+    )
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className={`text-center py-8 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+        No se pudieron cargar los datos del piloto.
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+        >
+          Reintentar
+        </button>
+      </div>
+    )
+  }
 
   // Clases condicionales para tarjetas
   const cardClass = darkMode
     ? "bg-gray-800 text-white border border-gray-700"
     : "bg-white text-gray-900 border border-gray-200"
 
-  // Obtener el nombre del mes para mostrar en los títulos
-  const months = [
-    "todos los meses",
-    "enero",
-    "febrero",
-    "marzo",
-    "abril",
-    "mayo",
-    "junio",
-    "julio",
-    "agosto",
-    "septiembre",
-    "octubre",
-    "noviembre",
-    "diciembre",
-  ]
-  const monthName = months[selectedMonth]
-
   return (
     <div className="space-y-6">
+    
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName}</h1>
+        <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName || user?.name}</h1>
         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
           {new Date().toLocaleDateString("es-ES", {
             weekday: "long",
@@ -103,7 +179,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                 <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
                   Total de Vuelos
                 </dt>
-                <dd className="text-lg font-semibold">{totalFlights}</dd>
+                <dd className="text-lg font-semibold">{dashboardData.totalFlights}</dd>
               </dl>
             </div>
           </div>
@@ -132,7 +208,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                 <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
                   Horas de Vuelo
                 </dt>
-                <dd className="text-lg font-semibold">{totalFlightHours}</dd>
+                <dd className="text-lg font-semibold">{dashboardData.totalHours}</dd>
               </dl>
             </div>
           </div>
@@ -161,7 +237,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                 <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
                   Próximos Vuelos
                 </dt>
-                <dd className="text-lg font-semibold">{upcomingFlights.length}</dd>
+                <dd className="text-lg font-semibold">{dashboardData.upcomingFlights}</dd>
               </dl>
             </div>
           </div>
@@ -190,9 +266,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                 <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
                   Vuelos Completados
                 </dt>
-                <dd className="text-lg font-semibold">
-                  {filteredFlights.filter((f) => f.status === "completed").length}
-                </dd>
+                <dd className="text-lg font-semibold">{dashboardData.completedFlights}</dd>
               </dl>
             </div>
           </div>
@@ -202,12 +276,12 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
       {/* Próximos vuelos */}
       <div className={`${cardClass} shadow rounded-lg overflow-hidden`}>
         <div className={`px-4 py-5 sm:px-6 border-b ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
-          <h3 className="text-lg font-medium leading-6">Próximos Vuelos {selectedMonth !== 0 && `(${monthName})`}</h3>
+          <h3 className="text-lg font-medium leading-6">Próximos Vuelos</h3>
         </div>
         <div className={cardClass}>
-          {upcomingFlights.length > 0 ? (
+          {dashboardData.nextFlights && dashboardData.nextFlights.length > 0 ? (
             <ul className={`divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
-              {upcomingFlights.map((flight) => (
+              {dashboardData.nextFlights.map((flight) => (
                 <li key={flight.id} className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col md:flex-row md:items-center">
@@ -215,11 +289,13 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                         {new Date(flight.date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })}
                       </p>
                       <div className="mt-2 md:mt-0 md:ml-4">
-                        <p className="text-sm font-medium">
-                          {getLocationName(flight.originId)} → {getLocationName(flight.destinationId)}
-                        </p>
+                        <p className="text-sm font-medium">Destino: {flight.destination.name}</p>
                         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                          {getHelicopterInfo(flight.helicopterId)} | {flight.departureTime} - {flight.arrivalTime}
+                          {flight.helicopter.model.name} ({flight.helicopter.registration}) |{" "}
+                          {new Date(flight.startTime).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       </div>
                     </div>
@@ -234,7 +310,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
             </ul>
           ) : (
             <div className={`px-4 py-5 sm:px-6 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              No tienes vuelos programados {selectedMonth !== 0 && `para ${monthName}`}.
+              No tienes vuelos programados.
             </div>
           )}
         </div>
@@ -243,12 +319,12 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
       {/* Vuelos recientes */}
       <div className={`${cardClass} shadow rounded-lg overflow-hidden`}>
         <div className={`px-4 py-5 sm:px-6 border-b ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
-          <h3 className="text-lg font-medium leading-6">Vuelos Recientes {selectedMonth !== 0 && `(${monthName})`}</h3>
+          <h3 className="text-lg font-medium leading-6">Vuelos Recientes</h3>
         </div>
         <div className={cardClass}>
-          {recentFlights.length > 0 ? (
+          {dashboardData.recentFlights && dashboardData.recentFlights.length > 0 ? (
             <ul className={`divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
-              {recentFlights.map((flight) => (
+              {dashboardData.recentFlights.slice(0, 3).map((flight) => (
                 <li key={flight.id} className="px-4 py-4 sm:px-6">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col md:flex-row md:items-center">
@@ -256,11 +332,9 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
                         {new Date(flight.date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })}
                       </p>
                       <div className="mt-2 md:mt-0 md:ml-4">
-                        <p className="text-sm font-medium">
-                          {getLocationName(flight.originId)} → {getLocationName(flight.destinationId)}
-                        </p>
+                        <p className="text-sm font-medium">Destino: {flight.destination.name}</p>
                         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                          {getHelicopterInfo(flight.helicopterId)} | {flight.flightHours} horas
+                          {flight.helicopter.model.name} ({flight.helicopter.registration}) | {flight.odometer} horas
                         </p>
                       </div>
                     </div>
@@ -275,7 +349,7 @@ const PilotHome = ({ darkMode = false, selectedMonth = 0 }: PilotHomeProps) => {
             </ul>
           ) : (
             <div className={`px-4 py-5 sm:px-6 text-center ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-              No tienes vuelos recientes {selectedMonth !== 0 && `en ${monthName}`}.
+              No tienes vuelos recientes.
             </div>
           )}
         </div>
