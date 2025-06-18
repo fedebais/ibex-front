@@ -4,8 +4,16 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useUser } from "../../context/UserContext"
-import { createFlightLog, getClients, getDestinations, getHelicopters, getPilots, createDestination } from "../../services/api"
+import {
+  createFlightLog,
+  getClients,
+  getDestinations,
+  getHelicopters,
+  getPilots,
+  createDestination,
+} from "../../services/api"
 import type { NewFlightLog, FlightStatus, PaymentStatus, Client, Destination, Helicopter } from "../../types/api"
+import { uploadFile } from "../../firebase/storage"
 
 interface NewFlightLogProps {
   darkMode: boolean
@@ -13,10 +21,11 @@ interface NewFlightLogProps {
 
 const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const { accessToken, user } = useUser()
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState<string>("")
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   // Estados para datos de la API
   const [clients, setClients] = useState<Client[]>([])
@@ -34,7 +43,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Estados para origen y destino con autocompletado
   const [originInput, setOriginInput] = useState<string>("")
-    const [originId, setOriginId] = useState<number | "">("")
+  const [originId, setOriginId] = useState<number | "">("")
   const [originResults, setOriginResults] = useState<Destination[]>([])
   const [showOriginResults, setShowOriginResults] = useState(false)
   const [customOrigin, setCustomOrigin] = useState(false)
@@ -65,7 +74,6 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Estados para foto de odómetro final
   const [finalOdometerPhoto, setFinalOdometerPhoto] = useState<File | null>(null)
-  console.log(finalOdometerPhoto)
   const [finalOdometerPhotoPreview, setFinalOdometerPhotoPreview] = useState<string>("")
 
   const [isDrawing, setIsDrawing] = useState(false)
@@ -78,12 +86,13 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
   const originRef = useRef<HTMLDivElement>(null)
   const destinationRef = useRef<HTMLDivElement>(null)
 
+  // Variable para determinar si es un vuelo completado
+  const isCompleted = status === "COMPLETED"
+
   // Función para obtener el token de acceso
   const getAccessToken = (): string | null => {
     return accessToken || localStorage.getItem("ibex_access_token")
   }
-
-  
 
   // Cargar datos desde la API
   useEffect(() => {
@@ -104,7 +113,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
           getClients(token),
           getDestinations(token),
           getHelicopters(token),
-          getPilots(token), // Agregar esta llamada
+          getPilots(token),
         ])
 
         console.log("✅ Datos cargados:", {
@@ -180,12 +189,10 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
 
   // Calcular Run Time (SNMF) cuando cambian los tiempos de puesta en marcha y corte
   useEffect(() => {
-    if (startupTime && shutdownTime) {
-      // Convertir a objetos Date para calcular la diferencia
+    if (isCompleted && startupTime && shutdownTime) {
       const startup = new Date(`2000-01-01T${startupTime}:00`)
       const shutdown = new Date(`2000-01-01T${shutdownTime}:00`)
 
-      // Si cruza la medianoche
       let diff = shutdown.getTime() - startup.getTime()
       if (diff < 0) {
         diff += 24 * 60 * 60 * 1000
@@ -195,12 +202,14 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
 
       setRunTime(`${hours}:${minutes.toString().padStart(2, "0")}`)
+    } else if (!isCompleted) {
+      setRunTime("0:00")
     }
-  }, [startupTime, shutdownTime])
+  }, [startupTime, shutdownTime, isCompleted])
 
   // Calcular Flight Time cuando cambian los odómetros
   useEffect(() => {
-    if (initialOdometer && finalOdometer) {
+    if (isCompleted && initialOdometer && finalOdometer) {
       const initial = Number.parseFloat(initialOdometer)
       const final = Number.parseFloat(finalOdometer)
 
@@ -208,17 +217,51 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
         const flightTimeValue = (final - initial).toFixed(1)
         setFlightTime(flightTimeValue)
       }
+    } else if (!isCompleted) {
+      setFlightTime("0.0")
     }
-  }, [initialOdometer, finalOdometer])
+  }, [initialOdometer, finalOdometer, isCompleted])
+
+  // Limpiar campos cuando cambia el estado del vuelo
+  useEffect(() => {
+    if (!isCompleted && status !== "SCHEDULED") {
+      setStartupTime("")
+      setShutdownTime("")
+      setInitialOdometer("")
+      setFinalOdometer("")
+      setFinalOdometerPhoto(null)
+      setFinalOdometerPhotoPreview("")
+      setStarts("1")
+      setLandings("1")
+      setLaunches("0")
+      setRin("0")
+      setGachoTime("0.00")
+      setFuelConsumed("0")
+      clearSignature()
+    } else if (status === "SCHEDULED") {
+      // Para vuelos programados, solo limpiar campos específicos de completados
+      setShutdownTime("")
+      setInitialOdometer("")
+      setFinalOdometer("")
+      setFinalOdometerPhoto(null)
+      setFinalOdometerPhotoPreview("")
+      setStarts("1")
+      setLandings("1")
+      setLaunches("0")
+      setRin("0")
+      setGachoTime("0.00")
+      setFuelConsumed("0")
+      clearSignature()
+    }
+  }, [isCompleted, status])
 
   // Manejar selección de origen
-const handleOriginSelect = (origin: Destination) => {
-  setOriginInput(origin.name)
-  setOriginId(origin.id) 
-  setShowOriginResults(false)
-  setCustomOrigin(false)
-}
-
+  const handleOriginSelect = (origin: Destination) => {
+    setOriginInput(origin.name)
+    setOriginId(origin.id)
+    setShowOriginResults(false)
+    setCustomOrigin(false)
+  }
 
   // Manejar selección de destino
   const handleDestinationSelect = (destination: Destination) => {
@@ -246,6 +289,8 @@ const handleOriginSelect = (origin: Destination) => {
 
   // Funciones para el canvas de firma
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isCompleted) return
+
     setIsDrawing(true)
     setHasSignature(true)
     const canvas = canvasRef.current
@@ -271,7 +316,7 @@ const handleOriginSelect = (origin: Destination) => {
   }
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return
+    if (!isDrawing || !isCompleted) return
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -378,11 +423,18 @@ const handleOriginSelect = (origin: Destination) => {
       if (!destinationId && !customDestination) {
         throw new Error("Debe seleccionar o ingresar un destino")
       }
-      if (!startupTime || !shutdownTime) {
-        throw new Error("Debe ingresar los tiempos de puesta en marcha y corte")
+
+      // Validaciones específicas para vuelos completados
+      if (isCompleted) {
+        if (!startupTime || !shutdownTime) {
+          throw new Error("Para vuelos completados debe ingresar los tiempos de puesta en marcha y corte")
+        }
+        if (!initialOdometer || !finalOdometer) {
+          throw new Error("Para vuelos completados debe ingresar el odómetro inicial y final")
+        }
       }
 
-         let finalOriginId = originId
+      let finalOriginId = originId
       if (customOrigin && originInput) {
         const originPayload = {
           name: originInput.trim(),
@@ -391,12 +443,12 @@ const handleOriginSelect = (origin: Destination) => {
           altitude: 0,
           active: true,
         }
-        if (!accessToken) return 
-      
+        if (!accessToken) return
+
         const newOrigin = await createDestination(originPayload, accessToken)
         finalOriginId = newOrigin.id
       }
-      
+
       let finalDestinationId = destinationId
       if (customDestination && destinationInput) {
         const destinationPayload = {
@@ -406,35 +458,63 @@ const handleOriginSelect = (origin: Destination) => {
           altitude: 0,
           active: true,
         }
-        if (!accessToken) return 
-      
+        if (!accessToken) return
+
         const newDestination = await createDestination(destinationPayload, accessToken)
         finalDestinationId = newDestination.id
       }
-      
+
+      // Subir imagen del odómetro a Firebase si existe
+      let odometerPhotoUrl = ""
+      if (finalOdometerPhoto) {
+        setIsUploadingImage(true)
+        try {
+          const fileName = `flight-logs/odometer/${Date.now()}-${finalOdometerPhoto.name}`
+          odometerPhotoUrl = await uploadFile(finalOdometerPhoto, fileName)
+          console.log("Imagen del odómetro subida exitosamente:", odometerPhotoUrl)
+        } catch (err) {
+          console.error("Error al subir la imagen del odómetro:", err)
+          setError("Error al subir la imagen del odómetro. Intente nuevamente.")
+          setIsSubmitting(false)
+          setIsUploadingImage(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
-        pilotId: currentPilotId, // Usar currentPilotId en lugar de Number(pilotId)
+        pilotId: currentPilotId,
         helicopterId: Number(selectedHelicopter),
         clientId: Number(selectedClient),
         originId: finalOriginId ? Number(finalOriginId) : undefined,
-destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
-         date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
-        startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
-        landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
-        duration: calculateDurationInMinutes(),
+        destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
+        date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
         passengers: passengers ? Number(passengers) : undefined,
         notes: notes.trim() || undefined,
         status: status,
         paymentStatus: "PENDING_INVOICE" as PaymentStatus,
-        odometerPhotoUrl: finalOdometerPhotoPreview || "https://via.placeholder.com/600x400", // o la que prefieras
-       
-       
-        odometer: finalOdometer ? Number(finalOdometer) : undefined,
-        fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
         hookUsed: false,
-        remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}`,
-        fuelStart: initialOdometer ? Number(initialOdometer) : undefined,
+      }
+
+      // Agregar datos específicos para vuelos completados y programados
+      if (isCompleted) {
+        Object.assign(flightLogData, {
+          startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
+          landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
+          duration: calculateDurationInMinutes(),
+          odometer: finalOdometer ? Number(finalOdometer) : undefined,
+          fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
+          fuelStart: initialOdometer ? Number(initialOdometer) : undefined,
+          odometerPhotoUrl: odometerPhotoUrl || undefined,
+          remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}`,
+        })
+      } else if (status === "SCHEDULED" && startupTime) {
+        // Para vuelos programados, solo incluir la hora de inicio planificada
+        Object.assign(flightLogData, {
+          startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
+        })
       }
 
       console.log("📤 Enviando flight log:", flightLogData)
@@ -476,6 +556,7 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
 
   // Función para resetear el formulario
   const resetForm = () => {
+    setStatus("COMPLETED")
     setFlightDate(new Date().toISOString().split("T")[0])
     setSelectedHelicopter("")
     setSelectedClient("")
@@ -486,7 +567,6 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
     setNotes("")
     setPassengers("0")
     setFuelConsumed("0")
-    setStatus("COMPLETED")
     setStartupTime("")
     setShutdownTime("")
     setRunTime("0:00")
@@ -583,6 +663,37 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Status del vuelo - PRIMER CAMPO */}
+            <div className="col-span-2">
+              <label
+                htmlFor="flightStatus"
+                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+              >
+                Status del vuelo *
+              </label>
+              <select
+                id="flightStatus"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as FlightStatus)}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                }`}
+                required
+                disabled={isSubmitting}
+              >
+                <option value="SCHEDULED">Programado</option>
+                <option value="COMPLETED">Completado</option>
+                <option value="CANCELLED">Cancelado</option>
+              </select>
+              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                {isCompleted
+                  ? "Se requieren todos los datos operacionales del vuelo"
+                  : "Solo se requieren datos básicos de planificación"}
+              </p>
+            </div>
+
             {/* Fecha del vuelo */}
             <div className="col-span-1">
               <label
@@ -817,336 +928,6 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
               {customDestination && <p className="mt-1 text-sm text-orange-500">Usando destino personalizado</p>}
             </div>
 
-            {/* Puesta en Marcha */}
-            <div className="col-span-1">
-              <label
-                htmlFor="startupTime"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Puesta en Marcha *
-              </label>
-              <input
-                type="time"
-                id="startupTime"
-                value={startupTime}
-                onChange={(e) => setStartupTime(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Corte */}
-            <div className="col-span-1">
-              <label
-                htmlFor="shutdownTime"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Corte *
-              </label>
-              <input
-                type="time"
-                id="shutdownTime"
-                value={shutdownTime}
-                onChange={(e) => setShutdownTime(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Run Time (SNMF) - calculado automáticamente */}
-            <div className="col-span-1">
-              <label
-                htmlFor="runTime"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Run Time (SNMF)
-              </label>
-              <input
-                type="text"
-                id="runTime"
-                value={runTime}
-                readOnly
-                className={`mt-1 block w-full rounded-md bg-gray-100 shadow-sm text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-              />
-            </div>
-
-            {/* Odómetro Inicial */}
-            <div className="col-span-1">
-              <label
-                htmlFor="initialOdometer"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Odómetro Inicial
-              </label>
-              <input
-                type="number"
-                id="initialOdometer"
-                step="0.1"
-                value={initialOdometer}
-                onChange={(e) => setInitialOdometer(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Odómetro Final */}
-            <div className="col-span-1">
-              <label
-                htmlFor="finalOdometer"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Odómetro Final
-              </label>
-              <input
-                type="number"
-                id="finalOdometer"
-                step="0.1"
-                value={finalOdometer}
-                onChange={(e) => setFinalOdometer(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-
-              {/* Foto del odómetro final */}
-              <div className="mt-2">
-                <label
-                  htmlFor="finalOdometerPhoto"
-                  className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                >
-                  Foto del odómetro final
-                </label>
-                <input
-                  type="file"
-                  id="finalOdometerPhoto"
-                  accept="image/*"
-                  onChange={handleFinalOdometerPhotoChange}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
-                <label
-                  htmlFor="finalOdometerPhoto"
-                  className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
-                    darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {finalOdometerPhotoPreview ? (
-                    <div className="relative w-full">
-                      <img
-                        src={finalOdometerPhotoPreview || "/placeholder.svg"}
-                        alt="Vista previa del odómetro final"
-                        className="h-32 w-full object-cover rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setFinalOdometerPhoto(null)
-                          setFinalOdometerPhotoPreview("")
-                        }}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                        disabled={isSubmitting}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="mx-auto h-8 w-8 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Subir foto</p>
-                    </div>
-                  )}
-                </label>
-              </div>
-            </div>
-
-            {/* Flight Time (calculado automáticamente) */}
-            <div className="col-span-1">
-              <label
-                htmlFor="flightTime"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Flight Time
-              </label>
-              <input
-                type="text"
-                id="flightTime"
-                value={flightTime}
-                readOnly
-                className={`mt-1 block w-full rounded-md bg-gray-100 shadow-sm text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-              />
-            </div>
-
-            {/* Starts */}
-            <div className="col-span-1">
-              <label
-                htmlFor="starts"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Starts
-              </label>
-              <input
-                type="number"
-                id="starts"
-                min="0"
-                value={starts}
-                onChange={(e) => setStarts(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Aterrizajes (ATE) */}
-            <div className="col-span-1">
-              <label
-                htmlFor="landings"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Aterrizajes (ATE)
-              </label>
-              <input
-                type="number"
-                id="landings"
-                min="0"
-                value={landings}
-                onChange={(e) => setLandings(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Lanzamientos */}
-            <div className="col-span-1">
-              <label
-                htmlFor="launches"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Lanzamientos
-              </label>
-              <input
-                type="number"
-                id="launches"
-                min="0"
-                value={launches}
-                onChange={(e) => setLaunches(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* RIN */}
-            <div className="col-span-1">
-              <label
-                htmlFor="rin"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                RIN
-              </label>
-              <input
-                type="number"
-                id="rin"
-                min="0"
-                value={rin}
-                onChange={(e) => setRin(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* Gacho (formato aeronáutico 0.00) */}
-            <div className="col-span-1">
-              <label
-                htmlFor="gachoTime"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Gacho (formato 0.00)
-              </label>
-              <input
-                type="text"
-                id="gachoTime"
-                value={gachoTime}
-                onChange={handleGachoChange}
-                placeholder="0.00"
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Formato aeronáutico (ejemplo: 1.30)
-              </p>
-            </div>
-
             {/* Pasajeros */}
             <div className="col-span-1">
               <label
@@ -1171,54 +952,395 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
               />
             </div>
 
-            {/* Combustible consumido */}
-            <div className="col-span-1">
-              <label
-                htmlFor="fuelConsumed"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Combustible consumido (litros)
-              </label>
-              <input
-                type="number"
-                id="fuelConsumed"
-                min="0"
-                value={fuelConsumed}
-                onChange={(e) => setFuelConsumed(e.target.value)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                disabled={isSubmitting}
-              />
-            </div>
+            {/* Separador visual para campos operacionales */}
+            {(isCompleted || status === "SCHEDULED") && (
+              <div className="col-span-2">
+                <div className={`border-t pt-6 ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
+                  <h4 className={`text-lg font-medium ${darkMode ? "text-white" : "text-gray-900"} mb-4`}>
+                    {isCompleted ? "Datos Operacionales del Vuelo" : "Datos de Planificación"}
+                  </h4>
+                </div>
+              </div>
+            )}
 
-            {/* Status del vuelo */}
-            <div className="col-span-1">
-              <label
-                htmlFor="status"
-                className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-              >
-                Status del vuelo *
-              </label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as FlightStatus)}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                }`}
-                required
-                disabled={isSubmitting}
-              >
-                <option value="SCHEDULED">Programado</option>
-                <option value="COMPLETED">Completado</option>
-                <option value="CANCELLED">Cancelado</option>
-              </select>
-            </div>
+            {/* Campos para vuelos programados y completados */}
+            {(isCompleted || status === "SCHEDULED") && (
+              <>
+                {/* Puesta en Marcha - disponible para programados y completados */}
+                <div className="col-span-1">
+                  <label
+                    htmlFor="startupTime"
+                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                  >
+                    Puesta en Marcha {isCompleted ? "*" : "(Planificada)"}
+                  </label>
+                  <input
+                    type="time"
+                    id="startupTime"
+                    value={startupTime}
+                    onChange={(e) => setStartupTime(e.target.value)}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                      darkMode
+                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                    }`}
+                    required={isCompleted}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Corte - solo para completados */}
+                {isCompleted && (
+                  <div className="col-span-1">
+                    <label
+                      htmlFor="shutdownTime"
+                      className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                    >
+                      Corte *
+                    </label>
+                    <input
+                      type="time"
+                      id="shutdownTime"
+                      value={shutdownTime}
+                      onChange={(e) => setShutdownTime(e.target.value)}
+                      className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                        darkMode
+                          ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                          : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                      }`}
+                      required={isCompleted}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
+
+                {/* Run Time (SNMF) - solo para completados */}
+                {isCompleted && (
+                  <div className="col-span-1">
+                    <label
+                      htmlFor="runTime"
+                      className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                    >
+                      Run Time (SNMF)
+                    </label>
+                    <input
+                      type="text"
+                      id="runTime"
+                      value={runTime}
+                      readOnly
+                      className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
+                        darkMode
+                          ? "bg-gray-600 border-gray-600 text-gray-300"
+                          : "bg-gray-100 border-gray-300 text-gray-600"
+                      }`}
+                    />
+                  </div>
+                )}
+
+                {/* Resto de campos solo para completados */}
+                {isCompleted && (
+                  <>
+                    {/* Odómetro Inicial */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="initialOdometer"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Odómetro Inicial *
+                      </label>
+                      <input
+                        type="number"
+                        id="initialOdometer"
+                        step="0.1"
+                        value={initialOdometer}
+                        onChange={(e) => setInitialOdometer(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        required={isCompleted}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Odómetro Final */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="finalOdometer"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Odómetro Final *
+                      </label>
+                      <input
+                        type="number"
+                        id="finalOdometer"
+                        step="0.1"
+                        value={finalOdometer}
+                        onChange={(e) => setFinalOdometer(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        required={isCompleted}
+                        disabled={isSubmitting}
+                      />
+
+                      {/* Foto del odómetro final */}
+                      <div className="mt-2">
+                        <label
+                          htmlFor="finalOdometerPhoto"
+                          className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                        >
+                          Foto del odómetro final
+                        </label>
+                        <input
+                          type="file"
+                          id="finalOdometerPhoto"
+                          accept="image/*"
+                          onChange={handleFinalOdometerPhotoChange}
+                          className="hidden"
+                          disabled={isSubmitting || isUploadingImage}
+                        />
+                        <label
+                          htmlFor="finalOdometerPhoto"
+                          className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
+                            darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
+                          } ${isSubmitting || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {finalOdometerPhotoPreview ? (
+                            <div className="relative w-full">
+                              <img
+                                src={finalOdometerPhotoPreview || "/placeholder.svg"}
+                                alt="Vista previa del odómetro final"
+                                className="h-32 w-full object-cover rounded"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setFinalOdometerPhoto(null)
+                                  setFinalOdometerPhotoPreview("")
+                                }}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                                disabled={isSubmitting || isUploadingImage}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="mx-auto h-8 w-8 text-gray-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                                Subir foto
+                              </p>
+                            </div>
+                          )}
+                        </label>
+                        {isUploadingImage && (
+                          <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Flight Time (calculado automáticamente) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="flightTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Flight Time
+                      </label>
+                      <input
+                        type="text"
+                        id="flightTime"
+                        value={flightTime}
+                        readOnly
+                        className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-600 border-gray-600 text-gray-300"
+                            : "bg-gray-100 border-gray-300 text-gray-600"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Starts */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="starts"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Starts
+                      </label>
+                      <input
+                        type="number"
+                        id="starts"
+                        min="0"
+                        value={starts}
+                        onChange={(e) => setStarts(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Aterrizajes (ATE) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="landings"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Aterrizajes (ATE)
+                      </label>
+                      <input
+                        type="number"
+                        id="landings"
+                        min="0"
+                        value={landings}
+                        onChange={(e) => setLandings(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Lanzamientos */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="launches"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Lanzamientos
+                      </label>
+                      <input
+                        type="number"
+                        id="launches"
+                        min="0"
+                        value={launches}
+                        onChange={(e) => setLaunches(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* RIN */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="rin"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        RIN
+                      </label>
+                      <input
+                        type="number"
+                        id="rin"
+                        min="0"
+                        value={rin}
+                        onChange={(e) => setRin(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    {/* Gacho (formato aeronáutico 0.00) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="gachoTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Gacho (formato 0.00)
+                      </label>
+                      <input
+                        type="text"
+                        id="gachoTime"
+                        value={gachoTime}
+                        onChange={handleGachoChange}
+                        placeholder="0.00"
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                      <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                        Formato aeronáutico (ejemplo: 1.30)
+                      </p>
+                    </div>
+
+                    {/* Combustible consumido */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="fuelConsumed"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Combustible consumido (litros)
+                      </label>
+                      <input
+                        type="number"
+                        id="fuelConsumed"
+                        min="0"
+                        value={fuelConsumed}
+                        onChange={(e) => setFuelConsumed(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* Notas adicionales */}
@@ -1244,55 +1366,56 @@ destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
             />
           </div>
 
-          {/* Firma digital */}
-          <div className="mt-6">
-            <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}>
-              Firma digital
-            </label>
-            <div className={`border-2 ${darkMode ? "border-gray-600" : "border-gray-300"} rounded-md`}>
-              <canvas
-                ref={canvasRef}
-                width={500}
-                height={150}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={endDrawing}
-                onMouseLeave={endDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={endDrawing}
-                className={`w-full h-40 rounded-md touch-none ${isSubmitting ? "opacity-50" : ""}`}
-                style={{ pointerEvents: isSubmitting ? "none" : "auto" }}
-              />
+          {/* Firma digital - solo para vuelos completados */}
+          {isCompleted && (
+            <div className="mt-6">
+              <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}>
+                Firma digital
+              </label>
+              <div className={`border-2 ${darkMode ? "border-gray-600" : "border-gray-300"} rounded-md`}>
+                <canvas
+                  ref={canvasRef}
+                  width={500}
+                  height={150}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={endDrawing}
+                  onMouseLeave={endDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={endDrawing}
+                  className={`w-full h-40 rounded-md touch-none ${isSubmitting ? "opacity-50" : ""}`}
+                  style={{ pointerEvents: isSubmitting ? "none" : "auto" }}
+                />
+              </div>
+              <div className="mt-2 flex space-x-2">
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  disabled={isSubmitting}
+                  className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
+                    darkMode
+                      ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
+                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  Limpiar firma
+                </button>
+              </div>
+              {hasSignature && <p className="text-sm text-green-500 mt-1">✔ Firma registrada</p>}
             </div>
-            <div className="mt-2 flex space-x-2">
-              <button
-                type="button"
-                onClick={clearSignature}
-                disabled={isSubmitting}
-                className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
-                  darkMode
-                    ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                Limpiar firma
-              </button>
-            </div>
-          </div>
-
-          {hasSignature && <p className="text-sm text-green-500 mt-1">✔ Firma registrada</p>}
+          )}
 
           {/* Botón de envío */}
           <div className="mt-8">
             <button
               type="submit"
-              disabled={isSubmitting || !user || user.role !== "PILOT" || !currentPilotId}
+              disabled={isSubmitting || !user || user.role !== "PILOT" || !currentPilotId || isUploadingImage}
               className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                 darkMode ? "focus:ring-offset-gray-800" : ""
               }`}
             >
-              {isSubmitting ? "Registrando..." : "Registrar Vuelo"}
+              {isSubmitting ? "Registrando..." : isUploadingImage ? "Subiendo imagen..." : "Registrar Vuelo"}
             </button>
           </div>
         </form>

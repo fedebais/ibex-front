@@ -240,7 +240,10 @@ export class ApiService {
   async updateFlightLog(id: string, data: Partial<FlightLog>, token: string): Promise<FlightLog> {
     return this.makeRequest<FlightLog>(`/flightlogs/${id}`, {
       method: "PUT",
-      headers: this.getAuthHeaders(token),
+       headers: {
+        "Content-Type": "application/json", // 👈 esto es esencial
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify(data),
     })
   }

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { getClients, deleteClient } from "../../services/api"
 import type { Client } from "../../types/api"
-import { getClientFlights } from "../../data/mockData"
 import AddClientModal from "../../components/modals/AddClientModal"
 import ClientDetailsModal from "../../components/modals/ClientDetailsModal"
 import { Building2, User, Phone, Mail, MapPin, Trash2 } from "lucide-react"
@@ -371,7 +370,6 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClients.length > 0 ? (
             filteredClients.map((client) => {
-              const clientFlights = getClientFlights(client.id.toString())
               return (
                 <div
                   key={client.id}
@@ -431,45 +429,37 @@ const ClientsList = ({ darkMode = false }: ClientsListProps) => {
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vuelos:</span>
-                          <span className={`ml-1 font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                            {clientFlights.length}
-                          </span>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              console.log("Click en Ver Detalles para cliente:", client.id)
-                              handleViewClient(client.id)
-                            }}
-                            className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
-                              darkMode
-                                ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                                : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
-                          >
-                            Ver Detalles
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteClient(client.id, client.name)
-                            }}
-                            disabled={isDeleting}
-                            className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
-                              darkMode
-                                ? "border-red-800 text-red-300 bg-red-900 hover:bg-red-800"
-                                : "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
-                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            Eliminar
-                          </button>
-                        </div>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log("Click en Ver Detalles para cliente:", client.id)
+                            handleViewClient(client.id)
+                          }}
+                          className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
+                            darkMode
+                              ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
+                              : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                        >
+                          Ver Detalles
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteClient(client.id, client.name)
+                          }}
+                          disabled={isDeleting}
+                          className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-xs font-medium rounded ${
+                            darkMode
+                              ? "border-red-800 text-red-300 bg-red-900 hover:bg-red-800"
+                              : "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+                          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Eliminar
+                        </button>
                       </div>
                     </div>
                   </div>

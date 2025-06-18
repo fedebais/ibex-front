@@ -7,7 +7,8 @@ import Navbar from "../../components/ui/Navbar"
 import Sidebar from "../../components/ui/Sidebar"
 import TechnicianHome from "./TechnicianHome"
 import TechnicianHelicoptersList from "./TechnicianHelicoptersList"
-import { LayoutDashboard, Plane, Menu } from "lucide-react"
+import Calendar from "../admin/Calendar"
+import { LayoutDashboard, Plane, Menu, CalendarIcon } from "lucide-react"
 
 const TechnicianDashboard = () => {
   const { darkMode, toggleDarkMode } = useTheme()
@@ -38,6 +39,11 @@ const TechnicianDashboard = () => {
       label: "Helicópteros",
       icon: <Plane className="w-5 h-5" />,
     },
+    {
+      path: "/technician/calendar",
+      label: "Calendario",
+      icon: <CalendarIcon className="w-5 h-5" />,
+    },
   ]
 
   return (
@@ -60,6 +66,7 @@ const TechnicianDashboard = () => {
             <Routes>
               <Route path="/" element={<TechnicianHome darkMode={darkMode} />} />
               <Route path="/helicopters" element={<TechnicianHelicoptersList darkMode={darkMode} />} />
+              <Route path="/calendar" element={<Calendar />} />
             </Routes>
           </main>
 

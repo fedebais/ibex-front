@@ -2,15 +2,35 @@
 
 import Modal from "../ui/Modal"
 import type { FlightLog } from "../../types/api"
+import { useState } from "react"
+import EditFlightLogModal from "./EditFlightLogModal"
 
 interface FlightDetailsModalProps {
   isOpen: boolean
   onClose: () => void
   flightLog: FlightLog | null
   darkMode?: boolean
+  onUpdateFlight?: () => void
 }
 
-const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: FlightDetailsModalProps) => {
+const FlightDetailsModal = ({
+  isOpen,
+  onClose,
+  flightLog,
+  darkMode = false,
+  onUpdateFlight,
+}: FlightDetailsModalProps) => {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const handleFlightUpdated = () => {
+    // Cerrar el modal de edición
+    setIsEditModalOpen(false)
+    // Si hay una función callback para actualizar, llamarla
+    if (onUpdateFlight) {
+      onUpdateFlight()
+    }
+  }
+
   if (!flightLog) return null
 
   return (
@@ -196,7 +216,7 @@ const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: Fl
           <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
             Odómetro y Combustible
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
@@ -204,15 +224,28 @@ const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: Fl
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Inicial</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro Inicial</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.fuelStart ? `${flightLog.fuelStart} L` : "No registrado"}
+                {flightLog.fuelStart || "No registrado"}
               </p>
             </div>
             <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Final</p>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Odómetro Final</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.fuelEnd ? `${flightLog.fuelEnd} L` : "No registrado"}
+                {flightLog.fuelEnd || "No registrado"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Combustible Consumido</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {(() => {
+                  // Extraer combustible consumido de los remarks
+                  const remarks = flightLog.remarks || ""
+                  const fuelMatch =
+                    remarks.match(/FuelConsumed:\s*(\d+(?:\.\d+)?)/i) ||
+                    remarks.match(/Combustible consumido:\s*(\d+(?:\.\d+)?)/i)
+                  return fuelMatch ? `${fuelMatch[1]} L` : "No registrado"
+                })()}
               </p>
             </div>
           </div>
@@ -283,6 +316,7 @@ const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: Fl
           {flightLog.status === "SCHEDULED" && (
             <button
               type="button"
+              onClick={() => setIsEditModalOpen(true)}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
             >
               Editar Vuelo
@@ -290,6 +324,14 @@ const FlightDetailsModal = ({ isOpen, onClose, flightLog, darkMode = false }: Fl
           )}
         </div>
       </div>
+      {/* Modal de edición */}
+      <EditFlightLogModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        flightLog={flightLog}
+        onFlightUpdated={handleFlightUpdated}
+        darkMode={darkMode}
+      />
     </Modal>
   )
 }

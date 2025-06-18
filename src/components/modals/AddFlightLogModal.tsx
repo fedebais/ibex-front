@@ -209,7 +209,36 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
 
   // Limpiar campos cuando cambia el estado del vuelo
   useEffect(() => {
-    if (!isCompleted) {
+    if (flightStatus === "CANCELLED") {
+      // Para cancelados, limpiar todo incluyendo startupTime
+      setStartupTime("")
+      setShutdownTime("")
+      setInitialOdometer("")
+      setFinalOdometer("")
+      setFinalOdometerPhoto(null)
+      setFinalOdometerPhotoPreview("")
+      setStarts("1")
+      setLandings("1")
+      setLaunches("0")
+      setRin("0")
+      setGachoTime("0.00")
+      setFuelConsumed("0")
+      clearSignature()
+    } else if (flightStatus === "SCHEDULED") {
+      // Para programados, mantener startupTime pero limpiar campos operacionales
+      setShutdownTime("")
+      setInitialOdometer("")
+      setFinalOdometer("")
+      setFinalOdometerPhoto(null)
+      setFinalOdometerPhotoPreview("")
+      setStarts("1")
+      setLandings("1")
+      setLaunches("0")
+      setRin("0")
+      setGachoTime("0.00")
+      setFuelConsumed("0")
+      clearSignature()
+    } else if (!isCompleted) {
       setStartupTime("")
       setShutdownTime("")
       setInitialOdometer("")
@@ -224,7 +253,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
       setFuelConsumed("0")
       clearSignature()
     }
-  }, [isCompleted])
+  }, [flightStatus, isCompleted])
 
   // Manejar selección de origen
 
@@ -463,11 +492,11 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
           startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
           landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
           duration: calculateDurationInMinutes(),
-          odometer: finalOdometer ? Number(finalOdometer) : undefined,
-          fuelEnd: fuelConsumed ? Number(fuelConsumed) : undefined,
-          fuelStart: initialOdometer ? Number(initialOdometer) : undefined,
+          odometer: finalOdometer && initialOdometer ? Number(finalOdometer) - Number(initialOdometer) : undefined, // Flight time (diferencia)
+          fuelEnd: finalOdometer ? Number(finalOdometer) : undefined, // Odómetro final
+          fuelStart: initialOdometer ? Number(initialOdometer) : undefined, // Odómetro inicial
           odometerPhotoUrl: odometerPhotoUrl || undefined,
-          remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}`,
+          remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}, Combustible consumido: ${fuelConsumed}L`,
         })
       }
 
@@ -887,7 +916,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
 
             {/* Separador visual para campos de vuelos completados */}
             {isCompleted && (
-              <div className="col-span-2">
+              <div className="col-span-full">
                 <div className={`border-t pt-6 ${darkMode ? "border-gray-700" : "border-gray-200"}`}>
                   <h4 className={`text-lg font-medium ${darkMode ? "text-white" : "text-gray-900"} mb-4`}>
                     Datos Operacionales del Vuelo
@@ -896,16 +925,16 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
               </div>
             )}
 
-            {/* Campos específicos para vuelos completados */}
-            {isCompleted && (
-              <>
-                {/* Puesta en Marcha */}
+            {/* Campos operacionales */}
+            {(isCompleted || flightStatus === "SCHEDULED") && (
+              <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Puesta en Marcha - para SCHEDULED y COMPLETED */}
                 <div className="col-span-1">
                   <label
                     htmlFor="startupTime"
                     className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
                   >
-                    Puesta en Marcha *
+                    Puesta en Marcha {flightStatus === "SCHEDULED" ? "(Planificada)" : "*"}
                   </label>
                   <input
                     type="time"
@@ -922,346 +951,353 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                   />
                 </div>
 
-                {/* Corte */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="shutdownTime"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Corte *
-                  </label>
-                  <input
-                    type="time"
-                    id="shutdownTime"
-                    value={shutdownTime}
-                    onChange={(e) => setShutdownTime(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required={isCompleted}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                {/* Resto de campos solo para COMPLETED */}
+                {isCompleted && (
+                  <>
+                    {/* Corte */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="shutdownTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Corte *
+                      </label>
+                      <input
+                        type="time"
+                        id="shutdownTime"
+                        value={shutdownTime}
+                        onChange={(e) => setShutdownTime(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        required={isCompleted}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* Run Time (calculado automáticamente) */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="runTime"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Run Time (SNMF)
-                  </label>
-                  <input
-                    type="text"
-                    id="runTime"
-                    value={runTime}
-                    readOnly
-                    className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-600 border-gray-600 text-gray-300"
-                        : "bg-gray-100 border-gray-300 text-gray-600"
-                    }`}
-                  />
-                </div>
+                    {/* Run Time (calculado automáticamente) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="runTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Run Time (SNMF)
+                      </label>
+                      <input
+                        type="text"
+                        id="runTime"
+                        value={runTime}
+                        readOnly
+                        className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-600 border-gray-600 text-gray-300"
+                            : "bg-gray-100 border-gray-300 text-gray-600"
+                        }`}
+                      />
+                    </div>
 
-                {/* Odómetro Inicial */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="initialOdometer"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Odómetro Inicial *
-                  </label>
-                  <input
-                    type="number"
-                    id="initialOdometer"
-                    step="0.1"
-                    value={initialOdometer}
-                    onChange={(e) => setInitialOdometer(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required={isCompleted}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                    {/* Odómetro Inicial */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="initialOdometer"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Odómetro Inicial *
+                      </label>
+                      <input
+                        type="number"
+                        id="initialOdometer"
+                        step="0.1"
+                        value={initialOdometer}
+                        onChange={(e) => setInitialOdometer(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        required={isCompleted}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* Odómetro Final */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="finalOdometer"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Odómetro Final *
-                  </label>
-                  <input
-                    type="number"
-                    id="finalOdometer"
-                    step="0.1"
-                    value={finalOdometer}
-                    onChange={(e) => setFinalOdometer(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    required={isCompleted}
-                    disabled={isSubmitting}
-                  />
+                    {/* Odómetro Final */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="finalOdometer"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Odómetro Final *
+                      </label>
+                      <input
+                        type="number"
+                        id="finalOdometer"
+                        step="0.1"
+                        value={finalOdometer}
+                        onChange={(e) => setFinalOdometer(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        required={isCompleted}
+                        disabled={isSubmitting}
+                      />
 
-                  {/* Foto del odómetro final */}
-                  <div className="mt-2">
-                    <label
-                      htmlFor="finalOdometerPhoto"
-                      className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                    >
-                      Foto del odómetro final
-                    </label>
-                    <input
-                      type="file"
-                      id="finalOdometerPhoto"
-                      accept="image/*"
-                      onChange={handleFinalOdometerPhotoChange}
-                      className="hidden"
-                      disabled={isSubmitting || isUploadingImage}
-                    />
-                    <label
-                      htmlFor="finalOdometerPhoto"
-                      className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
-                        darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
-                      } ${isSubmitting || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      {finalOdometerPhotoPreview ? (
-                        <div className="relative w-full">
-                          <img
-                            src={finalOdometerPhotoPreview || "/placeholder.svg"}
-                            alt="Vista previa del odómetro final"
-                            className="h-32 w-full object-cover rounded"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              setFinalOdometerPhoto(null)
-                              setFinalOdometerPhotoPreview("")
-                            }}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                            disabled={isSubmitting || isUploadingImage}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
+                      {/* Foto del odómetro final */}
+                      <div className="mt-2">
+                        <label
+                          htmlFor="finalOdometerPhoto"
+                          className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                        >
+                          Foto del odómetro final
+                        </label>
+                        <input
+                          type="file"
+                          id="finalOdometerPhoto"
+                          accept="image/*"
+                          onChange={handleFinalOdometerPhotoChange}
+                          className="hidden"
+                          disabled={isSubmitting || isUploadingImage}
+                        />
+                        <label
+                          htmlFor="finalOdometerPhoto"
+                          className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-2 ${
+                            darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
+                          } ${isSubmitting || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {finalOdometerPhotoPreview ? (
+                            <div className="relative w-full">
+                              <img
+                                src={finalOdometerPhotoPreview || "/placeholder.svg"}
+                                alt="Vista previa del odómetro final"
+                                className="h-32 w-full object-cover rounded"
                               />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="mx-auto h-8 w-8 text-gray-400"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                          </svg>
-                          <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Subir foto</p>
-                        </div>
-                      )}
-                    </label>
-                    {isUploadingImage && (
-                      <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>
-                    )}
-                  </div>
-                </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setFinalOdometerPhoto(null)
+                                  setFinalOdometerPhotoPreview("")
+                                }}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
+                                disabled={isSubmitting || isUploadingImage}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="mx-auto h-8 w-8 text-gray-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                                Subir foto
+                              </p>
+                            </div>
+                          )}
+                        </label>
+                        {isUploadingImage && (
+                          <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Flight Time (calculado automáticamente) */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="flightTime"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Flight Time
-                  </label>
-                  <input
-                    type="text"
-                    id="flightTime"
-                    value={flightTime}
-                    readOnly
-                    className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-600 border-gray-600 text-gray-300"
-                        : "bg-gray-100 border-gray-300 text-gray-600"
-                    }`}
-                  />
-                </div>
+                    {/* Flight Time (calculado automáticamente) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="flightTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Flight Time
+                      </label>
+                      <input
+                        type="text"
+                        id="flightTime"
+                        value={flightTime}
+                        readOnly
+                        className={`mt-1 block w-full rounded-md shadow-sm text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-600 border-gray-600 text-gray-300"
+                            : "bg-gray-100 border-gray-300 text-gray-600"
+                        }`}
+                      />
+                    </div>
 
-                {/* Starts */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="starts"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Starts
-                  </label>
-                  <input
-                    type="number"
-                    id="starts"
-                    min="0"
-                    value={starts}
-                    onChange={(e) => setStarts(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                    {/* Starts */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="starts"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Starts
+                      </label>
+                      <input
+                        type="number"
+                        id="starts"
+                        min="0"
+                        value={starts}
+                        onChange={(e) => setStarts(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* Aterrizajes (ATE) */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="landings"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Aterrizajes (ATE)
-                  </label>
-                  <input
-                    type="number"
-                    id="landings"
-                    min="0"
-                    value={landings}
-                    onChange={(e) => setLandings(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                    {/* Aterrizajes (ATE) */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="landings"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Aterrizajes (ATE)
+                      </label>
+                      <input
+                        type="number"
+                        id="landings"
+                        min="0"
+                        value={landings}
+                        onChange={(e) => setLandings(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* Lanzamientos */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="launches"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Lanzamientos
-                  </label>
-                  <input
-                    type="number"
-                    id="launches"
-                    min="0"
-                    value={launches}
-                    onChange={(e) => setLaunches(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                    {/* Lanzamientos */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="launches"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Lanzamientos
+                      </label>
+                      <input
+                        type="number"
+                        id="launches"
+                        min="0"
+                        value={launches}
+                        onChange={(e) => setLaunches(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* RIN */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="rin"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    RIN
-                  </label>
-                  <input
-                    type="number"
-                    id="rin"
-                    min="0"
-                    value={rin}
-                    onChange={(e) => setRin(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                </div>
+                    {/* RIN */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="rin"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        RIN
+                      </label>
+                      <input
+                        type="number"
+                        id="rin"
+                        min="0"
+                        value={rin}
+                        onChange={(e) => setRin(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
 
-                {/* Gacho */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="gachoTime"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Gacho (formato 0.00)
-                  </label>
-                  <input
-                    type="text"
-                    id="gachoTime"
-                    value={gachoTime}
-                    onChange={handleGachoChange}
-                    placeholder="0.00"
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                  <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    Formato aeronáutico (ejemplo: 1.30)
-                  </p>
-                </div>
+                    {/* Gacho */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="gachoTime"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Gacho (formato 0.00)
+                      </label>
+                      <input
+                        type="text"
+                        id="gachoTime"
+                        value={gachoTime}
+                        onChange={handleGachoChange}
+                        placeholder="0.00"
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                      <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                        Formato aeronáutico (ejemplo: 1.30)
+                      </p>
+                    </div>
 
-                {/* Combustible consumido */}
-                <div className="col-span-1">
-                  <label
-                    htmlFor="fuelConsumed"
-                    className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
-                  >
-                    Combustible consumido (litros)
-                  </label>
-                  <input
-                    type="number"
-                    id="fuelConsumed"
-                    min="0"
-                    value={fuelConsumed}
-                    onChange={(e) => setFuelConsumed(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
-                      darkMode
-                        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    }`}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </>
+                    {/* Combustible consumido */}
+                    <div className="col-span-1">
+                      <label
+                        htmlFor="fuelConsumed"
+                        className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                      >
+                        Combustible consumido (litros)
+                      </label>
+                      <input
+                        type="number"
+                        id="fuelConsumed"
+                        min="0"
+                        value={fuelConsumed}
+                        onChange={(e) => setFuelConsumed(e.target.value)}
+                        className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
+                          darkMode
+                            ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                        }`}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
