@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { UserPlus, X, Users, Search, Filter } from "lucide-react"
+import { Users, Search, Filter } from "lucide-react"
 import { getUsers } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 
@@ -28,13 +28,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [newUser, setNewUser] = useState<Partial<User>>({
-    name: "",
-    email: "",
-    role: "pilot",
-    status: "active",
-  })
+
+  // Comentado temporalmente - Estados del modal de creación
+  // const [showAddModal, setShowAddModal] = useState(false)
+  // const [newUser, setNewUser] = useState<Partial<User>>({
+  //   name: "",
+  //   email: "",
+  //   role: "pilot",
+  //   status: "active",
+  // })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,28 +126,28 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
     setFilteredUsers(result)
   }, [searchTerm, selectedRole, users])
 
-  // Manejar la creación de un nuevo usuario
-  const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.role) {
-      alert("Por favor complete todos los campos obligatorios")
-      return
-    }
+  // Comentado temporalmente - Función de creación de usuarios
+  // const handleAddUser = () => {
+  //   if (!newUser.name || !newUser.email || !newUser.role) {
+  //     alert("Por favor complete todos los campos obligatorios")
+  //     return
+  //   }
 
-    const userToAdd = {
-      ...newUser,
-      id: `user${users.length + 1}`,
-      status: "active",
-    } as User
+  //   const userToAdd = {
+  //     ...newUser,
+  //     id: `user${users.length + 1}`,
+  //     status: "active",
+  //   } as User
 
-    setUsers([...users, userToAdd])
-    setShowAddModal(false)
-    setNewUser({
-      name: "",
-      email: "",
-      role: "pilot",
-      status: "active",
-    })
-  }
+  //   setUsers([...users, userToAdd])
+  //   setShowAddModal(false)
+  //   setNewUser({
+  //     name: "",
+  //     email: "",
+  //     role: "pilot",
+  //     status: "active",
+  //   })
+  // }
 
   // Temporalmente comentadas las funciones de edición y eliminación
   /*
@@ -334,6 +336,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
             <Users className="inline mr-2" size={24} />
             Gestión de Usuarios
           </h1>
+          {/* Comentado temporalmente - Botón de crear usuario
           <button
             onClick={() => setShowAddModal(true)}
             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md flex items-center"
@@ -341,6 +344,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
             <UserPlus size={18} className="mr-2" />
             Nuevo Usuario
           </button>
+          */}
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -531,7 +535,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
         </div>
       </div>
 
-      {/* Modal para añadir usuario */}
+      {/* Comentado temporalmente - Modal para añadir usuario
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
@@ -641,6 +645,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
           </div>
         </div>
       )}
+      */}
 
       {/* Temporalmente comentados los modales de edición y eliminación
       {showEditModal && currentUser && (

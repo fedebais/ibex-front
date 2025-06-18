@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Modal from "../ui/Modal"
-import { getPilotById, getFlightLogsByPilotId } from "../../services/api"
+import { getPilotById } from "../../services/api"
 import { useUser } from "../../context/UserContext"
-import type { Pilot, FlightLog, Helicopter } from "../../types/api"
+import type { Pilot } from "../../types/api"
 import EditPilotModal from "./EditPilotModal"
 
 interface PilotDetailsModalProps {
@@ -17,11 +17,11 @@ interface PilotDetailsModalProps {
 const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: PilotDetailsModalProps) => {
   const { user, isLoading: userLoading, accessToken } = useUser()
   const [pilot, setPilot] = useState<Pilot | null>(null)
-  const [pilotFlights, setPilotFlights] = useState<FlightLog[]>([])
-  const [helicopter, setHelicopter] = useState<Helicopter | null>(null)
+  // const [pilotFlights, setPilotFlights] = useState<FlightLog[]>([])
+  // const [helicopter, setHelicopter] = useState<Helicopter | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"info" | "flights" | "documents">("info")
+  // const [activeTab, setActiveTab] = useState<"info" | "flights" | "documents">("info")
   const [showEditModal, setShowEditModal] = useState(false)
 
   // Debug logs
@@ -73,11 +73,11 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         console.log("PilotDetailsModal - Pilot data received:", pilotData)
         setPilot(pilotData)
 
-        // Cargar vuelos del piloto
-        console.log("PilotDetailsModal - Loading flight logs for pilot:", pilotId)
-        const flightsData = await getFlightLogsByPilotId(pilotId, accessToken)
-        console.log("PilotDetailsModal - Flight logs received:", flightsData)
-        setPilotFlights(flightsData)
+        // Cargar vuelos del piloto - COMENTADO
+        // console.log("PilotDetailsModal - Loading flight logs for pilot:", pilotId)
+        // const flightsData = await getFlightLogsByPilotId(pilotId, accessToken)
+        // console.log("PilotDetailsModal - Flight logs received:", flightsData)
+        // setPilotFlights(flightsData)
 
         // Cargar datos del helicóptero asignado (si existe en el piloto)
         // Nota: Removido helicopterId ya que no existe en el tipo Pilot
@@ -97,58 +97,58 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
   const handleClose = () => {
     console.log("PilotDetailsModal - Closing modal and clearing states")
     setPilot(null)
-    setPilotFlights([])
-    setHelicopter(null)
+    // setPilotFlights([])
+    // setHelicopter(null)
     setError(null)
-    setActiveTab("info")
+    // setActiveTab("info")
     setShowEditModal(false)
     onClose()
   }
 
-  // Calcular estadísticas
-  const totalFlights = pilotFlights.length
-  const completedFlights = pilotFlights.filter((f) => f.status === "COMPLETED").length
-  const scheduledFlights = pilotFlights.filter((f) => f.status === "SCHEDULED").length
+  // Calcular estadísticas - COMENTADO
+  // const totalFlights = pilotFlights.length
+  // const completedFlights = pilotFlights.filter((f) => f.status === "COMPLETED").length
+  // const scheduledFlights = pilotFlights.filter((f) => f.status === "SCHEDULED").length
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES")
   }
 
-  // Formatear duración
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return `${hours}h ${mins}m`
-  }
+  // Formatear duración - COMENTADO
+  // const formatDuration = (minutes: number) => {
+  //   const hours = Math.floor(minutes / 60)
+  //   const mins = minutes % 60
+  //   return `${hours}h ${mins}m`
+  // }
 
-  // Función para traducir estado del helicóptero
-  const translateHelicopterStatus = (status: string | null) => {
-    switch (status) {
-      case "ACTIVE":
-        return "Activo"
-      case "MAINTENANCE":
-        return "Mantenimiento"
-      case "INACTIVE":
-        return "Inactivo"
-      default:
-        return "Desconocido"
-    }
-  }
+  // Función para traducir estado del helicóptero - COMENTADO
+  // const translateHelicopterStatus = (status: string | null) => {
+  //   switch (status) {
+  //     case "ACTIVE":
+  //       return "Activo"
+  //     case "MAINTENANCE":
+  //       return "Mantenimiento"
+  //     case "INACTIVE":
+  //       return "Inactivo"
+  //     default:
+  //       return "Desconocido"
+  //   }
+  // }
 
-  // Función para traducir estado de vuelo
-  const translateFlightStatus = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "Completado"
-      case "SCHEDULED":
-        return "Programado"
-      case "CANCELLED":
-        return "Cancelado"
-      default:
-        return status
-    }
-  }
+  // Función para traducir estado de vuelo - COMENTADO
+  // const translateFlightStatus = (status: string) => {
+  //   switch (status) {
+  //     case "COMPLETED":
+  //       return "Completado"
+  //     case "SCHEDULED":
+  //       return "Programado"
+  //     case "CANCELLED":
+  //       return "Cancelado"
+  //     default:
+  //       return status
+  //   }
+  // }
 
   const handlePilotUpdated = () => {
     setShowEditModal(false)
@@ -159,8 +159,8 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
           const pilotData = await getPilotById(pilotId, accessToken)
           setPilot(pilotData)
 
-          const flightsData = await getFlightLogsByPilotId(pilotId, accessToken)
-          setPilotFlights(flightsData)
+          // const flightsData = await getFlightLogsByPilotId(pilotId, accessToken)
+          // setPilotFlights(flightsData)
         } catch (err) {
           console.error("Error reloading pilot data:", err)
         }
@@ -201,8 +201,8 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
         </div>
       ) : pilot ? (
         <div className="space-y-6">
-          {/* Tabs de navegación */}
-          <div className="border-b border-gray-200 dark:border-gray-700">
+          {/* Tabs de navegación - COMENTADO */}
+          {/* <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-6">
               <button
                 onClick={() => setActiveTab("info")}
@@ -235,243 +235,170 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                 Documentos
               </button>
             </nav>
-          </div>
+          </div> */}
 
-          {/* Contenido según la pestaña activa */}
-          {activeTab === "info" && (
-            <>
-              {/* Información básica del piloto */}
-              <div className="flex flex-col sm:flex-row gap-6">
-                <div className="w-full sm:w-1/4 flex justify-center">
-                  <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-orange-500 flex items-center justify-center text-white text-4xl">
-                    {pilot.user.firstName.charAt(0)}
-                  </div>
-                </div>
-
-                <div className="w-full sm:w-3/4 space-y-2 sm:space-y-4">
-                  <div>
-                    <h3 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {pilot.user.firstName} {pilot.user.lastName}
-                    </h3>
-                    <p className={`text-sm sm:text-base ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                      {pilot.user.email}
-                    </p>
-                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Piloto</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        Número de Licencia
-                      </p>
-                      <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {pilot.license}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        Horas de Vuelo
-                      </p>
-                      <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {pilot.flightHours}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</p>
-                      <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {pilot.user.phone}
-                      </p>
-                    </div>
-                    <div>
-                      <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Estado</p>
-                      <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            pilot.user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {pilot.user.active ? "Activo" : "Inactivo"}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+          {/* Contenido - Solo Información Personal */}
+          <>
+            {/* Información básica del piloto */}
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div className="w-full sm:w-1/4 flex justify-center">
+                <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-orange-500 flex items-center justify-center text-white text-4xl">
+                  {pilot.user.firstName.charAt(0)}
                 </div>
               </div>
 
-              {/* Información de licencia y certificaciones */}
-              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  Información de Licencia
-                </h4>
+              <div className="w-full sm:w-3/4 space-y-2 sm:space-y-4">
+                <div>
+                  <h3 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    {pilot.user.firstName} {pilot.user.lastName}
+                  </h3>
+                  <p className={`text-sm sm:text-base ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    {pilot.user.email}
+                  </p>
+                  <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Piloto</p>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Número de Licencia</p>
-                    <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Número de Licencia
+                    </p>
+                    <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
                       {pilot.license}
                     </p>
                   </div>
                   <div>
-                    <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vencimiento Médico</p>
-                    <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {formatDate(pilot.medicalExpiry)}
+                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      Horas de Vuelo
                     </p>
-                  </div>
-                  <div>
-                    <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Último Entrenamiento</p>
-                    <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {formatDate(pilot.lastTraining)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Certificaciones */}
-              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  Certificaciones
-                </h4>
-
-                {pilot.certifications && pilot.certifications.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {pilot.certifications.map((cert) => (
-                      <div
-                        key={cert.id}
-                        className={`px-3 py-2 rounded-md text-sm font-medium ${
-                          darkMode
-                            ? "bg-orange-900 text-orange-200 border border-orange-700"
-                            : "bg-orange-100 text-orange-800 border border-orange-200"
-                        }`}
-                      >
-                        {cert.certificationType.name}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    No hay certificaciones registradas
-                  </p>
-                )}
-              </div>
-
-              {/* Certificaciones por Aeronave */}
-              <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  Certificaciones por Aeronave
-                </h4>
-
-                {pilot.aircraftRatings && pilot.aircraftRatings.length > 0 ? (
-                  <div className="space-y-3">
-                    {pilot.aircraftRatings.map((rating, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-center justify-between p-3 rounded-md ${
-                          darkMode ? "bg-gray-800 border border-gray-600" : "bg-white border border-gray-200"
-                        }`}
-                      >
-                        <div>
-                          <p className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                            {rating.helicopterModel.name}
-                          </p>
-                          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                            Certificado: {formatDate(rating.certificationDate)}
-                          </p>
-                        </div>
-                        <div
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            darkMode ? "bg-green-900 text-green-200" : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          Certificado
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    No hay certificaciones por aeronave registradas
-                  </p>
-                )}
-              </div>
-
-              {/* Helicóptero asignado - Removido ya que no existe helicopterId en Pilot */}
-              {helicopter && (
-                <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
-                  <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                    Helicóptero Asignado
-                  </h4>
-
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <img
-                        src={helicopter.imageUrl || "/placeholder.svg"}
-                        alt={helicopter.model.name}
-                        className="h-16 w-16 object-cover rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                        {helicopter.model.name} - {helicopter.registration}
-                      </p>
-                      <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        Estado:{" "}
-                        <span className={helicopter.status === "ACTIVE" ? "text-green-500" : "text-yellow-500"}>
-                          {translateHelicopterStatus(helicopter.status)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Estadísticas de vuelo */}
-              <div>
-                <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  Estadísticas de Vuelo
-                </h4>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                  <div
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} p-3 sm:p-4 rounded-lg border`}
-                  >
-                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Total Vuelos</p>
-                    <p className={`text-lg sm:text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {totalFlights}
-                    </p>
-                  </div>
-                  <div
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} p-3 sm:p-4 rounded-lg border`}
-                  >
-                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Completados</p>
-                    <p className={`text-lg sm:text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {completedFlights}
-                    </p>
-                  </div>
-                  <div
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} p-3 sm:p-4 rounded-lg border`}
-                  >
-                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Programados</p>
-                    <p className={`text-lg sm:text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {scheduledFlights}
-                    </p>
-                  </div>
-                  <div
-                    className={`${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} p-3 sm:p-4 rounded-lg border`}
-                  >
-                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas Vuelo</p>
-                    <p className={`text-lg sm:text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
                       {pilot.flightHours}
                     </p>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
 
-          {activeTab === "flights" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Teléfono</p>
+                    <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      {pilot.user.phone}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-xs sm:text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Estado</p>
+                    <p className={`text-sm sm:text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          pilot.user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {pilot.user.active ? "Activo" : "Inactivo"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Información de licencia y certificaciones */}
+            <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+              <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                Información de Licencia
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Número de Licencia</p>
+                  <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    {pilot.license}
+                  </p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Vencimiento Médico</p>
+                  <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    {formatDate(pilot.medicalExpiry)}
+                  </p>
+                </div>
+                <div>
+                  <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Último Entrenamiento</p>
+                  <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    {formatDate(pilot.lastTraining)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Certificaciones */}
+            <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+              <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                Certificaciones
+              </h4>
+
+              {pilot.certifications && pilot.certifications.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {pilot.certifications.map((cert) => (
+                    <div
+                      key={cert.id}
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        darkMode
+                          ? "bg-orange-900 text-orange-200 border border-orange-700"
+                          : "bg-orange-100 text-orange-800 border border-orange-200"
+                      }`}
+                    >
+                      {cert.certificationType.name}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  No hay certificaciones registradas
+                </p>
+              )}
+            </div>
+
+            {/* Certificaciones por Aeronave */}
+            <div className={`${darkMode ? "bg-gray-700" : "bg-gray-50"} p-4 rounded-lg`}>
+              <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                Certificaciones por Aeronave
+              </h4>
+
+              {pilot.aircraftRatings && pilot.aircraftRatings.length > 0 ? (
+                <div className="space-y-3">
+                  {pilot.aircraftRatings.map((rating, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-md ${
+                        darkMode ? "bg-gray-800 border border-gray-600" : "bg-white border border-gray-200"
+                      }`}
+                    >
+                      <div>
+                        <p className={`font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
+                          {rating.helicopterModel.name}
+                        </p>
+                        <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          Certificado: {formatDate(rating.certificationDate)}
+                        </p>
+                      </div>
+                      <div
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          darkMode ? "bg-green-900 text-green-200" : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        Certificado
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  No hay certificaciones por aeronave registradas
+                </p>
+              )}
+            </div>
+          </>
+
+          {/* TAB DE VUELOS - COMENTADO */}
+          {/* {activeTab === "flights" && (
             <div>
               <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>
                 Historial de Vuelos
@@ -565,9 +492,10 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                 </div>
               )}
             </div>
-          )}
+          )} */}
 
-          {activeTab === "documents" && (
+          {/* TAB DE DOCUMENTOS - COMENTADO */}
+          {/* {activeTab === "documents" && (
             <div>
               <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>Documentos</h4>
 
@@ -662,7 +590,7 @@ const PilotDetailsModal = ({ isOpen, onClose, pilotId, darkMode = false }: Pilot
                 </ul>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Botones de acción */}
           <div className="flex justify-end space-x-3 pt-2">
