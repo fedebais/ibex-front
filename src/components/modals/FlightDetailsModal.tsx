@@ -3,6 +3,7 @@
 import Modal from "../ui/Modal"
 import type { FlightLog } from "../../types/api"
 import { useState } from "react"
+import { formatDate } from "../../utils/dateUtils"
 import EditFlightLogModal from "./EditFlightLogModal"
 
 interface FlightDetailsModalProps {
@@ -42,11 +43,7 @@ const FlightDetailsModal = ({
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Fecha</p>
               <p className={`text-base font-medium ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {new Date(flightLog.date).toLocaleDateString("es-ES", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                })}
+                {formatDate(flightLog.date)}
               </p>
             </div>
             <div>

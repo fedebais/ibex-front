@@ -7,6 +7,7 @@ import { Search } from "lucide-react"
 import AddFlightLogModal from "../../components/modals/AddFlightLogModal"
 import { useUser } from "../../context/UserContext"
 import type { FlightLog, FlightStatus, PaymentStatus } from "../../types/api"
+import { formatDate } from "../../utils/dateUtils"
 
 interface FlightLogsProps {
   darkMode: boolean
@@ -41,7 +42,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
         })
       }
       return acc
-    }, [] as any[])
+    }, [] as Array<{ id: number; firstName: string; lastName: string }>)
 
   // Función para obtener el texto del estado del vuelo
   const getStatusText = (status: FlightStatus) => {
@@ -448,7 +449,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                     onClick={() => handleViewFlight(flight.id.toString())}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(flight.date).toLocaleDateString()}
+                      {formatDate(flight.date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {flight.pilot?.user

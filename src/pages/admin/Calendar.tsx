@@ -7,8 +7,14 @@ import { api } from "../../services/api"
 import type { CalendarEvent } from "../../types/api"
 import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
+import { 
+  formatDateLong, 
+  formatTime,
+  getMonthName, 
+  isSameDay
+} from "../../utils/dateUtils"
 
-type CalendarProps = {}
+type CalendarProps = Record<string, never>
 type ViewType = "month" | "week" | "day"
 
 const Calendar: React.FC<CalendarProps> = () => {
@@ -21,22 +27,6 @@ const Calendar: React.FC<CalendarProps> = () => {
   const [viewType, setViewType] = useState<ViewType>("month")
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [showEventModal, setShowEventModal] = useState(false)
-
-  // Nombres de los meses
-  const monthNames = [
-    "Enero",
-    "Febrero",
-    "Marzo",
-    "Abril",
-    "Mayo",
-    "Junio",
-    "Julio",
-    "Agosto",
-    "Septiembre",
-    "Octubre",
-    "Noviembre",
-    "Diciembre",
-  ]
 
   // Nombres de los días de la semana
   const weekDays = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
@@ -111,24 +101,14 @@ const Calendar: React.FC<CalendarProps> = () => {
     const date = new Date(targetYear, targetMonth, day)
 
     return events.filter((event) => {
-      const eventDate = new Date(event.date)
-      return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear()
-      )
+      return isSameDay(event.date, date.toISOString())
     })
   }
 
   // Obtener eventos para una fecha específica
   const getEventsForDate = (date: Date) => {
     return events.filter((event) => {
-      const eventDate = new Date(event.date)
-      return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear()
-      )
+      return isSameDay(event.date, date.toISOString())
     })
   }
 
@@ -179,30 +159,12 @@ const Calendar: React.FC<CalendarProps> = () => {
     setShowEventModal(true)
   }
 
-  // Formatear fecha para mostrar
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
 
-  // Formatear hora
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString("es-ES", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
 
   // Obtener título de la vista actual
   const getViewTitle = () => {
     if (viewType === "month") {
-      return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+      return `${getMonthName(currentDate.getMonth() + 1)} ${currentDate.getFullYear()}`
     } else if (viewType === "week") {
       const startOfWeek = new Date(currentDate)
       startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
@@ -210,12 +172,12 @@ const Calendar: React.FC<CalendarProps> = () => {
       endOfWeek.setDate(startOfWeek.getDate() + 6)
 
       if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
-        return `${startOfWeek.getDate()} - ${endOfWeek.getDate()} ${monthNames[startOfWeek.getMonth()]} ${startOfWeek.getFullYear()}`
+        return `${startOfWeek.getDate()} - ${endOfWeek.getDate()} ${getMonthName(startOfWeek.getMonth() + 1)} ${startOfWeek.getFullYear()}`
       } else {
-        return `${startOfWeek.getDate()} ${monthNames[startOfWeek.getMonth()]} - ${endOfWeek.getDate()} ${monthNames[endOfWeek.getMonth()]} ${startOfWeek.getFullYear()}`
+        return `${startOfWeek.getDate()} ${getMonthName(startOfWeek.getMonth() + 1)} - ${endOfWeek.getDate()} ${getMonthName(endOfWeek.getMonth() + 1)} ${startOfWeek.getFullYear()}`
       }
     } else {
-      return `${currentDate.getDate()} ${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+      return `${currentDate.getDate()} ${getMonthName(currentDate.getMonth() + 1)} ${currentDate.getFullYear()}`
     }
   }
 
@@ -436,7 +398,7 @@ const Calendar: React.FC<CalendarProps> = () => {
             {currentDate.getDate()}
           </div>
           <div className={`text-lg ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            {getMonthName(currentDate.getMonth() + 1)} {currentDate.getFullYear()}
           </div>
         </div>
 
@@ -747,7 +709,7 @@ const Calendar: React.FC<CalendarProps> = () => {
                       Fecha y Hora
                     </label>
                     <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {formatDate(selectedEvent.date)} a las {formatTime(selectedEvent.date)}
+                      {formatDateLong(selectedEvent.date)} a las {formatTime(selectedEvent.date)}
                     </p>
                   </div>
 

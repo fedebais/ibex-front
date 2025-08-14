@@ -4,6 +4,7 @@ import { useUser } from "../../context/UserContext"
 import { useEffect, useState } from "react"
 import { getStats } from "../../services/api"
 import type { PilotDashboardData } from "../../types/api"
+import { formatDate, formatDateLong } from "../../utils/dateUtils"
 
 interface PilotHomeProps {
   darkMode: boolean
@@ -104,12 +105,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <h1 className="text-2xl font-semibold">Bienvenido, {user?.firstName}</h1>
         <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-          {new Date().toLocaleDateString("es-ES", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {formatDateLong(new Date().toISOString())}
         </p>
       </div>
 
@@ -245,7 +241,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col md:flex-row md:items-center">
                       <p className={`text-sm font-medium ${darkMode ? "text-orange-400" : "text-orange-600"} md:w-24`}>
-                        {new Date(flight.date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })}
+                        {formatDate(flight.date)}
                       </p>
                       <div className="mt-2 md:mt-0 md:ml-4">
                         <p className="text-sm font-medium">Destino: {flight.destination.name}</p>
@@ -288,7 +284,7 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col md:flex-row md:items-center">
                       <p className={`text-sm font-medium ${darkMode ? "text-orange-400" : "text-orange-600"} md:w-24`}>
-                        {new Date(flight.date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" })}
+                        {formatDate(flight.date)}
                       </p>
                       <div className="mt-2 md:mt-0 md:ml-4">
                         <p className="text-sm font-medium">Destino: {flight.destination.name}</p>
