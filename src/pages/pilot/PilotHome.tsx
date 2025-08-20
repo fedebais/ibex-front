@@ -164,6 +164,9 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
                   Horas de Vuelo
                 </dt>
                 <dd className="text-lg font-semibold">{dashboardData.totalHours}</dd>
+                <dd className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"} mt-1`}>
+                  Solo vuelos completados
+                </dd>
               </dl>
             </div>
           </div>

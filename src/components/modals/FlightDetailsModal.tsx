@@ -22,6 +22,7 @@ const FlightDetailsModal = ({
   onUpdateFlight,
 }: FlightDetailsModalProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
   const handleFlightUpdated = () => {
     // Cerrar el modal de edición
@@ -246,6 +247,45 @@ const FlightDetailsModal = ({
               </p>
             </div>
           </div>
+
+          {/* Imagen del odómetro final */}
+          {flightLog.odometerPhotoUrl && (
+            <div className="mt-4">
+              <h5 className={`text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                Foto del Odómetro Final
+              </h5>
+              <div className="flex justify-center">
+                <div className={`border-2 ${darkMode ? "border-gray-600" : "border-gray-300"} rounded-lg overflow-hidden max-w-md cursor-pointer hover:border-orange-500 transition-colors`}>
+                  <img
+                    src={flightLog.odometerPhotoUrl}
+                    alt="Odómetro final del vuelo"
+                    className="w-full h-auto object-cover hover:opacity-90 transition-opacity"
+                    onClick={() => setIsImageModalOpen(true)}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const container = target.parentElement;
+                      if (container) {
+                        container.innerHTML = `
+                          <div class="flex items-center justify-center h-32 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}">
+                            <div class="text-center">
+                              <svg class="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              <p class="text-sm">Error al cargar la imagen</p>
+                            </div>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <p className={`text-xs text-center mt-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                Haz clic en la imagen para verla en tamaño completo
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Pasajeros y estado de pago */}
@@ -321,6 +361,60 @@ const FlightDetailsModal = ({
           )}
         </div>
       </div>
+
+      {/* Modal de imagen completa */}
+      {isImageModalOpen && flightLog.odometerPhotoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-75 transition-opacity"
+            onClick={() => setIsImageModalOpen(false)}
+          />
+          
+          {/* Modal centrado */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl max-h-screen mx-4 overflow-hidden">
+            {/* Header del modal */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">
+                Foto del Odómetro Final
+              </h3>
+              <button
+                onClick={() => setIsImageModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Contenido del modal */}
+            <div className="p-4 max-h-96 overflow-auto">
+              <img
+                src={flightLog.odometerPhotoUrl}
+                alt="Odómetro final del vuelo - Tamaño completo"
+                className="w-full h-auto object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Q0EzQUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVycm9yIGFsIGNhcmdhciBpbWFnZW48L3RleHQ+Cjwvc3ZnPg==';
+                }}
+              />
+            </div>
+            
+            {/* Footer del modal */}
+            <div className="flex justify-end space-x-3 px-4 py-3 bg-gray-50">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                onClick={() => setIsImageModalOpen(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de edición */}
       <EditFlightLogModal
         isOpen={isEditModalOpen}

@@ -15,6 +15,7 @@ import {
 import type { NewFlightLog, FlightStatus, PaymentStatus, Pilot, Client, Destination, Helicopter } from "../../types/api"
 import Modal from "../ui/Modal"
 import { uploadFile } from "../../firebase/storage"
+import { createFlightDate, createFlightTime, calculateFlightDuration } from "../../utils/dateUtils"
 
 interface AddFlightLogModalProps {
   isOpen: boolean
@@ -300,15 +301,23 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
     if (!ctx) return
 
     ctx.beginPath()
+    ctx.strokeStyle = darkMode ? '#ffffff' : '#000000'
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
 
+    // Obtener coordenadas corregidas
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    
     let x, y
     if ("touches" in e) {
-      const rect = canvas.getBoundingClientRect()
-      x = e.touches[0].clientX - rect.left
-      y = e.touches[0].clientY - rect.top
+      x = (e.touches[0].clientX - rect.left) * scaleX
+      y = (e.touches[0].clientY - rect.top) * scaleY
     } else {
-      x = e.nativeEvent.offsetX
-      y = e.nativeEvent.offsetY
+      x = (e.clientX - rect.left) * scaleX
+      y = (e.clientY - rect.top) * scaleY
     }
 
     ctx.moveTo(x, y)
@@ -323,15 +332,19 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
+    // Obtener coordenadas corregidas
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    
     let x, y
     if ("touches" in e) {
       e.preventDefault()
-      const rect = canvas.getBoundingClientRect()
-      x = e.touches[0].clientX - rect.left
-      y = e.touches[0].clientY - rect.top
+      x = (e.touches[0].clientX - rect.left) * scaleX
+      y = (e.touches[0].clientY - rect.top) * scaleY
     } else {
-      x = e.nativeEvent.offsetX
-      y = e.nativeEvent.offsetY
+      x = (e.clientX - rect.left) * scaleX
+      y = (e.clientY - rect.top) * scaleY
     }
 
     ctx.lineTo(x, y)
@@ -367,25 +380,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
     }
   }
 
-  // Calcular duración en minutos
-  const calculateDurationInMinutes = (): number => {
-    if (!startupTime || !shutdownTime) return 0
 
-    const startup = new Date(`2000-01-01T${startupTime}:00`)
-    const shutdown = new Date(`2000-01-01T${shutdownTime}:00`)
-
-    let diff = shutdown.getTime() - startup.getTime()
-    if (diff < 0) {
-      diff += 24 * 60 * 60 * 1000 // Agregar 24 horas si cruza medianoche
-    }
-
-    return Math.floor(diff / (1000 * 60)) // Convertir a minutos
-  }
-
-  // Función para convertir tiempo HH:MM a DateTime ISO
-  const convertTimeToDateTime = (timeString: string, baseDate: string): Date => {
-    return new Date(`${baseDate}T${timeString}:00Z`)
-  }
 
   // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -478,7 +473,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
         originId: finalOriginId ? Number(finalOriginId) : undefined,
         destinationId: finalDestinationId ? Number(finalDestinationId) : undefined,
 
-        date: new Date(`${flightDate}T00:00:00Z`).toISOString(),
+        date: createFlightDate(flightDate),
         passengers: passengers ? Number(passengers) : undefined,
         notes: notes.trim() || undefined,
         status: flightStatus as FlightStatus,
@@ -489,9 +484,9 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
       // Agregar datos específicos para vuelos completados
       if (isCompleted) {
         Object.assign(flightLogData, {
-          startTime: convertTimeToDateTime(startupTime, flightDate).toISOString(),
-          landingTime: convertTimeToDateTime(shutdownTime, flightDate).toISOString(),
-          duration: calculateDurationInMinutes(),
+          startTime: createFlightTime(startupTime, flightDate),
+          landingTime: createFlightTime(shutdownTime, flightDate),
+          duration: calculateFlightDuration(startupTime, shutdownTime, flightDate),
           odometer: finalOdometer && initialOdometer ? Number(finalOdometer) - Number(initialOdometer) : undefined, // Flight time (diferencia)
           fuelEnd: finalOdometer ? Number(finalOdometer) : undefined, // Odómetro final
           fuelStart: initialOdometer ? Number(initialOdometer) : undefined, // Odómetro inicial
@@ -759,6 +754,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                   }}
                   onFocus={() => setShowOriginResults(true)}
                   placeholder="Buscar o ingresar origen personalizado"
+                  autoComplete="off"
                   className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
                     darkMode
                       ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -835,6 +831,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                   }}
                   onFocus={() => setShowDestinationResults(true)}
                   placeholder="Buscar o ingresar destino personalizado"
+                  autoComplete="off"
                   className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
                     darkMode
                       ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
@@ -902,7 +899,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                 type="number"
                 id="passengers"
                 min="0"
-                max="10"
+                max="50"
                 value={passengers}
                 onChange={(e) => setPassengers(e.target.value)}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-base py-2 px-3 border ${
@@ -1330,23 +1327,30 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
               <label className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}>
                 Firma digital
               </label>
-              <div className={`border-2 ${darkMode ? "border-gray-600" : "border-gray-300"} rounded-md`}>
-                <canvas
-                  ref={canvasRef}
-                  width={500}
-                  height={150}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={endDrawing}
-                  onMouseLeave={endDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={endDrawing}
-                  className={`w-full h-40 rounded-md touch-none ${isSubmitting ? "opacity-50" : ""}`}
-                  style={{ pointerEvents: isSubmitting ? "none" : "auto" }}
-                />
+              <div className="flex justify-center">
+                <div className={`border-2 ${darkMode ? "border-gray-600" : "border-gray-300"} rounded-md`}>
+                  <canvas
+                    ref={canvasRef}
+                    width={400}
+                    height={150}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={endDrawing}
+                    onMouseLeave={endDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={endDrawing}
+                    className={`rounded-md touch-none ${isSubmitting ? "opacity-50" : ""}`}
+                    style={{ 
+                      pointerEvents: isSubmitting ? "none" : "auto",
+                      width: '400px',
+                      height: '150px',
+                      display: 'block'
+                    }}
+                  />
+                </div>
               </div>
-              <div className="mt-2 flex space-x-2">
+              <div className="mt-2 flex justify-center space-x-2">
                 <button
                   type="button"
                   onClick={clearSignature}
@@ -1354,13 +1358,13 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                   className={`inline-flex items-center px-3 py-1.5 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 ${
                     darkMode
                       ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-500"
                   } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Limpiar firma
-                </button>
+                  </button>
               </div>
-              {hasSignature && <p className="text-sm text-green-500 mt-1">✔ Firma registrada</p>}
+              {hasSignature && <p className="text-sm text-green-500 mt-1 text-center">✔ Firma registrada</p>}
             </div>
           )}
 
