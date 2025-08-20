@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { getFlightLogs } from "../../services/api"
+import { getFlightLogs, deleteFlightLog } from "../../services/api"
 import FlightDetailsModal from "../../components/modals/FlightDetailsModal"
-import { Search } from "lucide-react"
+import { Search, Trash2 } from "lucide-react"
 import AddFlightLogModal from "../../components/modals/AddFlightLogModal"
 import { useUser } from "../../context/UserContext"
 import type { FlightLog, FlightStatus, PaymentStatus } from "../../types/api"
@@ -24,11 +24,13 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
   const [pilotFilter, setPilotFilter] = useState("all")
   const [selectedFlightLog, setSelectedFlightLog] = useState<FlightLog | null>(null)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [flightToDelete, setFlightToDelete] = useState<FlightLog | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const isMounted = useRef(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { accessToken, isLoading: userLoading } = useUser()
+  const { accessToken, isLoading: userLoading, user } = useUser()
   // Remover la función loadPilots y el estado pilots
   // En su lugar, obtener pilotos únicos de los vuelos cargados
   const uniquePilots = allFlights
@@ -285,6 +287,35 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
     setIsDetailsModalOpen(true)
   }
 
+  // Manejar la eliminación de un vuelo
+  const handleDeleteFlight = (flight: FlightLog) => {
+    setFlightToDelete(flight)
+    setIsDeleteModalOpen(true)
+  }
+
+  // Confirmar eliminación
+  const confirmDelete = async () => {
+    if (!flightToDelete || !accessToken) return
+
+    try {
+      await deleteFlightLog(flightToDelete.id, accessToken)
+      
+      // Remover el vuelo de la lista
+      setAllFlights(prev => prev.filter(f => f.id !== flightToDelete.id))
+      setFilteredFlights(prev => prev.filter(f => f.id !== flightToDelete.id))
+      
+      // Cerrar modal y limpiar estado
+      setIsDeleteModalOpen(false)
+      setFlightToDelete(null)
+      
+      // Mostrar mensaje de éxito
+      alert('Vuelo eliminado exitosamente')
+    } catch (error) {
+      console.error('Error al eliminar vuelo:', error)
+      alert('Error al eliminar el vuelo')
+    }
+  }
+
   // Clases condicionales
   const cardClass = darkMode
     ? "bg-gray-800 text-white border border-gray-700"
@@ -479,17 +510,31 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleViewFlight(flight.id.toString())
-                        }}
-                        className={`text-orange-600 hover:text-orange-900 font-medium ${
-                          darkMode ? "hover:text-orange-400" : ""
-                        }`}
-                      >
-                        Ver detalles
-                      </button>
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleViewFlight(flight.id.toString())
+                          }}
+                          className={`text-orange-600 hover:text-orange-900 font-medium ${
+                            darkMode ? "hover:text-orange-400" : ""
+                          }`}
+                        >
+                          Ver detalles
+                        </button>
+                        {user?.role === 'ADMIN' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteFlight(flight)
+                            }}
+                            className="text-red-600 hover:text-red-900 font-medium"
+                            title="Eliminar vuelo"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -522,6 +567,62 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
           window.location.reload() // Temporal, se puede mejorar
         }}
       />
+
+      {/* Modal de confirmación de eliminación */}
+      {isDeleteModalOpen && flightToDelete && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          {/* Overlay opacado */}
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => setIsDeleteModalOpen(false)}
+          />
+          
+          {/* Modal centrado */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+            {/* Header del modal */}
+            <div className="flex items-center p-6 border-b border-gray-200">
+              <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-red-100">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Confirmar eliminación
+                </h3>
+              </div>
+            </div>
+            
+            {/* Contenido del modal */}
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600 mb-4">
+                ¿Estás seguro de que quieres eliminar el vuelo a{' '}
+                <strong className="text-gray-900">{flightToDelete.destination?.name}</strong> del{' '}
+                <strong className="text-gray-900">{formatDate(flightToDelete.date)}</strong>?
+              </p>
+              <p className="text-sm text-red-600 font-medium">
+                ⚠️ Esta acción no se puede deshacer.
+              </p>
+            </div>
+            
+            {/* Footer del modal */}
+            <div className="flex justify-end space-x-3 px-6 py-4 bg-gray-50 rounded-b-lg">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                onClick={confirmDelete}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

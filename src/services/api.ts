@@ -50,7 +50,19 @@ export class ApiService {
         throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
       }
 
-      return await response.json()
+      // Para respuestas 204 (No Content), no intentar parsear JSON
+      if (response.status === 204) {
+        return {} as T
+      }
+
+      // Solo intentar parsear JSON si hay contenido
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json()
+      }
+
+      // Si no hay contenido JSON, devolver respuesta vacía
+      return {} as T
     } catch (error) {
       console.error(`API Error (${endpoint}):`, error)
       throw error
@@ -256,8 +268,8 @@ export class ApiService {
     })
   }
 
-  async deleteFlightLog(id: string, token: string): Promise<{ message: string }> {
-    return this.makeRequest<{ message: string }>(`/flightlogs/${id}`, {
+  async deleteFlightLog(id: number, token: string): Promise<void> {
+    return this.makeRequest<void>(`/flightlogs/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(token),
     })
