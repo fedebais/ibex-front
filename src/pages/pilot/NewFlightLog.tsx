@@ -323,7 +323,7 @@ const NewFlightLogComponent = ({ darkMode = false }: NewFlightLogProps) => {
     ctx.moveTo(x, y)
   }
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasEvent>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !isCompleted) return
 
     const canvas = canvasRef.current
