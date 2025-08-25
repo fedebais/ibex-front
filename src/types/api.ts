@@ -196,6 +196,7 @@ export interface FlightLog {
   pilot?: Pilot
   helicopter?: Helicopter
   client?: Client
+  origin?: Destination
   destination?: Destination
 }
 

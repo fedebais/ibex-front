@@ -85,6 +85,12 @@ const FlightDetailsModal = ({
               </p>
             </div>
             <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Origen</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.origin?.name || "N/A"}
+              </p>
+            </div>
+            <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Destino</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
                 {flightLog.destination?.name || "N/A"}
@@ -281,139 +287,37 @@ const FlightDetailsModal = ({
                   />
                 </div>
               </div>
-              <p className={`text-xs text-center mt-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                Haz clic en la imagen para verla en tamaño completo
+              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"} text-center mt-2`}>
+                Haz clic para ver en pantalla completa
               </p>
             </div>
           )}
         </div>
-
-        {/* Pasajeros y estado de pago */}
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Pasajeros</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>{flightLog.passengers || 0}</p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Estado de Pago</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.paymentStatus === "PAID"
-                  ? "Pagado"
-                  : flightLog.paymentStatus === "PENDING_INVOICE"
-                    ? "Factura Pendiente"
-                    : flightLog.paymentStatus === "PENDING_PAYMENT"
-                      ? "Pago Pendiente"
-                      : "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Gacho Usado</p>
-              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.hookUsed ? "Sí" : "No"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Notas y observaciones */}
-        <div>
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Notas</p>
-          <p
-            className={`text-base ${darkMode ? "bg-gray-700" : "bg-gray-50"} p-3 rounded-md mt-1 ${darkMode ? "text-white" : "text-gray-900"}`}
-          >
-            {flightLog.notes || "Sin notas adicionales"}
-          </p>
-        </div>
-
-        {/* Observaciones técnicas */}
-        {flightLog.remarks && (
-          <div>
-            <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Observaciones Técnicas</p>
-            <p
-              className={`text-base ${darkMode ? "bg-gray-700" : "bg-gray-50"} p-3 rounded-md mt-1 ${darkMode ? "text-white" : "text-gray-900"}`}
-            >
-              {flightLog.remarks}
-            </p>
-          </div>
-        )}
 
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-3 pt-2">
+        <div className="flex justify-end space-x-3">
           <button
-            type="button"
-            className={`px-4 py-2 border rounded-md text-sm font-medium ${
+            onClick={() => setIsEditModalOpen(true)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               darkMode
-                ? "border-gray-600 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
           >
-            Descargar PDF
+            Editar Vuelo
           </button>
-          {flightLog.status === "SCHEDULED" && (
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-            >
-              Editar Vuelo
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              darkMode
+                ? "bg-gray-600 hover:bg-gray-700 text-white"
+                : "bg-gray-600 hover:bg-gray-700 text-white"
+            }`}
+          >
+            Cerrar
+          </button>
         </div>
       </div>
-
-      {/* Modal de imagen completa */}
-      {isImageModalOpen && flightLog.odometerPhotoUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Overlay */}
-          <div
-            className="absolute inset-0 bg-black bg-opacity-75 transition-opacity"
-            onClick={() => setIsImageModalOpen(false)}
-          />
-          
-          {/* Modal centrado */}
-          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl max-h-screen mx-4 overflow-hidden">
-            {/* Header del modal */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">
-                Foto del Odómetro Final
-              </h3>
-              <button
-                onClick={() => setIsImageModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Contenido del modal */}
-            <div className="p-4 max-h-96 overflow-auto">
-              <img
-                src={flightLog.odometerPhotoUrl}
-                alt="Odómetro final del vuelo - Tamaño completo"
-                className="w-full h-auto object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Q0EzQUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVycm9yIGFsIGNhcmdhciBpbWFnZW48L3RleHQ+Cjwvc3ZnPg==';
-                }}
-              />
-            </div>
-            
-            {/* Footer del modal */}
-            <div className="flex justify-end space-x-3 px-4 py-3 bg-gray-50">
-              <button
-                type="button"
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-                onClick={() => setIsImageModalOpen(false)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de edición */}
       <EditFlightLogModal
@@ -423,6 +327,28 @@ const FlightDetailsModal = ({
         onFlightUpdated={handleFlightUpdated}
         darkMode={darkMode}
       />
+
+      {/* Modal de imagen en pantalla completa */}
+      {isImageModalOpen && flightLog.odometerPhotoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div className="relative max-w-4xl max-h-full p-4">
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-2 right-2 text-white hover:text-gray-300 text-2xl font-bold bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center"
+            >
+              ×
+            </button>
+            <img
+              src={flightLog.odometerPhotoUrl}
+              alt="Odómetro final del vuelo"
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

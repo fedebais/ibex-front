@@ -449,7 +449,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                   Piloto
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                  Ruta
+                  Origen → Destino
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                   Helicóptero
@@ -488,7 +488,15 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                         : `Piloto ${flight.pilotId}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {flight.destination?.name || `Destino ${flight.destinationId}`}
+                      {flight.origin?.name ? (
+                        <span>
+                          <span className="font-medium">{flight.origin.name}</span>
+                          <span className="mx-2 text-gray-400">→</span>
+                          <span className="font-medium">{flight.destination?.name || `Destino ${flight.destinationId}`}</span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">→ {flight.destination?.name || `Destino ${flight.destinationId}`}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`}
