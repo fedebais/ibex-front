@@ -1,0 +1,690 @@
+import { useState, useEffect } from "react";
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Award,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
+
+interface QualificationsProps {
+  darkMode?: boolean;
+}
+
+interface Qualification {
+  id: number;
+  pilotId: number;
+  type: string;
+  certificateNumber?: string;
+  description?: string;
+  issueDate: string;
+  expiryDate?: string;
+  issuingAuthority: string;
+  documentUrl?: string;
+  active: boolean;
+  createdAt: string;
+  pilot: {
+    id: number;
+    licenseNumber: string;
+    user: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  };
+}
+
+const QUALIFICATION_TYPES = [
+  { value: "COMPETENCIA_LINGUISTICA", label: "Competencia Lingüística" },
+  { value: "RADIOTELEFONISTA_RESTRINGIDO", label: "Radiotelefonista Restringido" },
+  { value: "CONDUCTOR_B2", label: "Conductor B2" },
+  { value: "CONDUCTOR_PROFESIONAL", label: "Conductor Profesional" },
+];
+
+const Qualifications = ({ darkMode }: QualificationsProps) => {
+  const [qualifications, setQualifications] = useState<Qualification[]>([]);
+  const [pilots, setPilots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedQualification, setSelectedQualification] = useState<Qualification | null>(null);
+
+  const [formData, setFormData] = useState({
+    pilotId: "",
+    type: "",
+    certificateNumber: "",
+    description: "",
+    issueDate: "",
+    expiryDate: "",
+    issuingAuthority: "",
+    documentUrl: "",
+    active: true,
+  });
+
+  useEffect(() => {
+    fetchQualifications();
+    fetchPilots();
+  }, []);
+
+  const fetchQualifications = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("ibex_access_token");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/qualifications`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQualifications(data);
+      }
+    } catch (error) {
+      console.error("Error fetching qualifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPilots = async () => {
+    try {
+      const token = localStorage.getItem("ibex_access_token");
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/pilots`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPilots(data);
+      }
+    } catch (error) {
+      console.error("Error fetching pilots:", error);
+    }
+  };
+
+  const filteredQualifications = qualifications.filter((qual) =>
+    `${qual.pilot.user.firstName} ${qual.pilot.user.lastName} ${qual.type} ${qual.issuingAuthority}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const expiringQualifications = qualifications.filter((qual) => {
+    if (!qual.expiryDate) return false;
+    const expiry = new Date(qual.expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 30 && diffDays > 0;
+  });
+
+  const expiredQualifications = qualifications.filter((qual) => {
+    if (!qual.expiryDate) return false;
+    const expiry = new Date(qual.expiryDate);
+    const today = new Date();
+    return expiry < today;
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("ibex_access_token");
+      const url = showEditModal
+        ? `${import.meta.env.VITE_API_URL}/qualifications/${selectedQualification?.id}`
+        : `${import.meta.env.VITE_API_URL}/qualifications`;
+
+      const response = await fetch(url, {
+        method: showEditModal ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          pilotId: parseInt(formData.pilotId),
+        }),
+      });
+
+      if (response.ok) {
+        fetchQualifications();
+        closeModal();
+        alert(
+          showEditModal
+            ? "Habilitación actualizada exitosamente"
+            : "Habilitación creada exitosamente"
+        );
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "Error al procesar la habilitación");
+      }
+    } catch (error) {
+      console.error("Error submitting qualification:", error);
+      alert("Error al procesar la habilitación");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Está seguro de que desea eliminar esta habilitación?")) {
+      try {
+        const token = localStorage.getItem("ibex_access_token");
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/qualifications/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          fetchQualifications();
+          alert("Habilitación eliminada exitosamente");
+        } else {
+          alert("Error al eliminar la habilitación");
+        }
+      } catch (error) {
+        console.error("Error deleting qualification:", error);
+        alert("Error al eliminar la habilitación");
+      }
+    }
+  };
+
+  const openAddModal = () => {
+    setFormData({
+      pilotId: "",
+      type: "",
+      certificateNumber: "",
+      description: "",
+      issueDate: "",
+      expiryDate: "",
+      issuingAuthority: "",
+      documentUrl: "",
+      active: true,
+    });
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (qualification: Qualification) => {
+    setSelectedQualification(qualification);
+    setFormData({
+      pilotId: qualification.pilot.id.toString(),
+      type: qualification.type,
+      certificateNumber: qualification.certificateNumber || "",
+      description: qualification.description || "",
+      issueDate: qualification.issueDate.split('T')[0],
+      expiryDate: qualification.expiryDate ? qualification.expiryDate.split('T')[0] : "",
+      issuingAuthority: qualification.issuingAuthority,
+      documentUrl: qualification.documentUrl || "",
+      active: qualification.active,
+    });
+    setShowEditModal(true);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setShowEditModal(false);
+    setSelectedQualification(null);
+  };
+
+  const getStatusColor = (qualification: Qualification) => {
+    if (!qualification.expiryDate) return "text-blue-600";
+
+    const expiry = new Date(qualification.expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "text-red-600";
+    if (diffDays <= 30) return "text-yellow-600";
+    return "text-green-600";
+  };
+
+  const getStatusText = (qualification: Qualification) => {
+    if (!qualification.expiryDate) return "Sin vencimiento";
+
+    const expiry = new Date(qualification.expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "Vencido";
+    if (diffDays <= 30) return `Vence en ${diffDays} días`;
+    return "Vigente";
+  };
+
+  return (
+    <div className={`p-6 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} min-h-screen`}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Habilitaciones
+          </h1>
+          <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Gestión de habilitaciones y certificaciones de pilotos
+          </p>
+        </div>
+        <button
+          onClick={openAddModal}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          <Plus className="h-5 w-5" />
+          <span>Agregar Habilitación</span>
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <div className="flex items-center justify-between">
+            <Award className="h-8 w-8 text-blue-500" />
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{qualifications.length}</p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Habilitaciones</p>
+            </div>
+          </div>
+        </div>
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <div className="flex items-center justify-between">
+            <AlertCircle className="h-8 w-8 text-yellow-500" />
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{expiringQualifications.length}</p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Por Vencer (30 días)</p>
+            </div>
+          </div>
+        </div>
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <div className="flex items-center justify-between">
+            <X className="h-8 w-8 text-red-500" />
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{expiredQualifications.length}</p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Vencidas</p>
+            </div>
+          </div>
+        </div>
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <div className="flex items-center justify-between">
+            <CheckCircle className="h-8 w-8 text-green-500" />
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                {qualifications.filter(q => q.active).length}
+              </p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Activas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-4 mb-6`}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <input
+            type="text"
+            placeholder="Buscar por piloto, tipo de habilitación..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              darkMode
+                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900'
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* Qualifications Table */}
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-hidden`}>
+        <div className="overflow-x-auto">
+          <table className={`min-w-full divide-y ${darkMode ? 'divide-gray-600' : 'divide-gray-200'}`}>
+            <thead className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <tr>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Piloto
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Tipo de Habilitación
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Autoridad Emisora
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Vencimiento
+                </th>
+                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Estado
+                </th>
+                <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
+                  darkMode ? 'text-gray-300' : 'text-gray-500'
+                }`}>
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${darkMode ? 'bg-gray-800 divide-gray-600' : 'bg-white divide-gray-200'}`}>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className={`px-6 py-12 text-center ${
+                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    Cargando habilitaciones...
+                  </td>
+                </tr>
+              ) : filteredQualifications.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className={`px-6 py-12 text-center ${
+                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    No se encontraron habilitaciones
+                  </td>
+                </tr>
+              ) : (
+                filteredQualifications.map((qualification) => (
+                  <tr key={qualification.id} className={`${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {qualification.pilot.user.firstName} {qualification.pilot.user.lastName}
+                        </p>
+                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {qualification.pilot.user.email}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {qualification.type}
+                        </p>
+                        {qualification.description && (
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {qualification.description}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {qualification.issuingAuthority}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {qualification.expiryDate
+                          ? new Date(qualification.expiryDate).toLocaleDateString()
+                          : "Sin vencimiento"
+                        }
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`text-sm font-medium ${getStatusColor(qualification)}`}>
+                        {getStatusText(qualification)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => openEditModal(qualification)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(qualification.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add/Edit Modal */}
+      {(showAddModal || showEditModal) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className={`p-6 ${darkMode ? 'border-gray-700' : 'border-gray-200'} border-b`}>
+              <div className="flex justify-between items-center">
+                <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  {showEditModal ? "Editar Habilitación" : "Agregar Habilitación"}
+                </h2>
+                <button
+                  onClick={closeModal}
+                  className={`${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                  Piloto
+                </label>
+                <select
+                  name="pilotId"
+                  value={formData.pilotId}
+                  onChange={handleInputChange}
+                  required
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value="">Seleccionar piloto</option>
+                  {pilots.map((pilot) => (
+                    <option key={pilot.id} value={pilot.id}>
+                      {pilot.user.firstName} {pilot.user.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    Tipo de Habilitación
+                  </label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    required
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    {QUALIFICATION_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    Número de Certificado
+                  </label>
+                  <input
+                    type="text"
+                    name="certificateNumber"
+                    value={formData.certificateNumber}
+                    onChange={handleInputChange}
+                    placeholder="Número del certificado"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                  Autoridad Emisora
+                </label>
+                <input
+                  type="text"
+                  name="issuingAuthority"
+                  value={formData.issuingAuthority}
+                  onChange={handleInputChange}
+                  required
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                  Descripción
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="Descripción de la habilitación..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    Fecha de Emisión
+                  </label>
+                  <input
+                    type="date"
+                    name="issueDate"
+                    value={formData.issueDate}
+                    onChange={handleInputChange}
+                    required
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                    Fecha de Vencimiento
+                  </label>
+                  <input
+                    type="date"
+                    name="expiryDate"
+                    value={formData.expiryDate}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      darkMode
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                  URL del Documento
+                </label>
+                <input
+                  type="url"
+                  name="documentUrl"
+                  value={formData.documentUrl}
+                  onChange={handleInputChange}
+                  placeholder="https://ejemplo.com/documento.pdf"
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="active"
+                  name="active"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="active" className={`ml-2 text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Habilitación activa
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    darkMode
+                      ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  {showEditModal ? "Actualizar" : "Crear"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Qualifications;

@@ -14,6 +14,7 @@ interface PilotHomeProps {
 const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
   const { user, accessToken } = useUser()
   const [dashboardData, setDashboardData] = useState<PilotDashboardData | null>(null)
+  const [medicalCertificate, setMedicalCertificate] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,6 +39,28 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
 
         // Convertir la respuesta al tipo correcto usando unknown primero
         setDashboardData(response as unknown as PilotDashboardData)
+
+        // Fetch medical certificate data
+        try {
+          const medicalResponse = await fetch("http://localhost:8080/medical-certificates/my-certificates", {
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Content-Type": "application/json"
+            }
+          })
+
+          if (medicalResponse.ok) {
+            const medicalData = await medicalResponse.json()
+            // Get the most recent active medical certificate
+            const activeCert = medicalData
+              .filter((cert: any) => cert.active)
+              .sort((a: any, b: any) => new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime())[0]
+            setMedicalCertificate(activeCert)
+          }
+        } catch (medicalError) {
+          console.warn("Could not fetch medical certificate data:", medicalError)
+        }
+
         setError(null)
       } catch (error) {
         console.error("Error loading pilot data:", error)
@@ -99,6 +122,24 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
   const cardClass = darkMode
     ? "bg-gray-800 text-white border border-gray-700"
     : "bg-white text-gray-900 border border-gray-200"
+
+  // Functions for medical certificate alerts
+  const getDaysUntilExpiry = (expiryDate: string) => {
+    const today = new Date()
+    const expiry = new Date(expiryDate)
+    return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const getMedicalAlertStatus = (expiryDate: string) => {
+    const daysUntilExpiry = getDaysUntilExpiry(expiryDate)
+
+    if (daysUntilExpiry <= 7) {
+      return { status: 'critical', color: 'red', message: `¡Vence en ${daysUntilExpiry} días!` }
+    } else if (daysUntilExpiry <= 30) {
+      return { status: 'warning', color: 'yellow', message: `Vence en ${daysUntilExpiry} días` }
+    }
+    return { status: 'good', color: 'green', message: `Vigente por ${daysUntilExpiry} días más` }
+  }
 
   return (
     <div className="space-y-6">
@@ -230,6 +271,103 @@ const PilotHome = ({ darkMode = false }: PilotHomeProps) => {
           </div>
         </div>
       </div>
+
+      {/* Medical Certificate Alert */}
+      {medicalCertificate && (
+        <div className={`${cardClass} rounded-lg shadow p-5 ${
+          getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical'
+            ? 'border-l-4 border-red-500'
+            : getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'warning'
+            ? 'border-l-4 border-yellow-500'
+            : 'border-l-4 border-green-500'
+        }`}>
+          <div className="flex items-center">
+            <div className={`flex-shrink-0 rounded-md p-3 ${
+              getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical'
+                ? (darkMode ? 'bg-red-900/30' : 'bg-red-100')
+                : getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'warning'
+                ? (darkMode ? 'bg-yellow-900/30' : 'bg-yellow-100')
+                : (darkMode ? 'bg-green-900/30' : 'bg-green-100')
+            }`}>
+              <svg
+                className={`h-6 w-6 ${
+                  getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical'
+                    ? (darkMode ? 'text-red-400' : 'text-red-600')
+                    : getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'warning'
+                    ? (darkMode ? 'text-yellow-400' : 'text-yellow-600')
+                    : (darkMode ? 'text-green-400' : 'text-green-600')
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </div>
+            <div className="ml-5 w-0 flex-1">
+              <dl>
+                <dt className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>
+                  Certificado Médico (Psicofísico)
+                </dt>
+                <dd className={`text-lg font-semibold ${
+                  getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical'
+                    ? 'text-red-600'
+                    : getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'warning'
+                    ? 'text-yellow-600'
+                    : 'text-green-600'
+                }`}>
+                  {getMedicalAlertStatus(medicalCertificate.expiryDate).message}
+                </dd>
+                <dd className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"} mt-1`}>
+                  Vence: {new Date(medicalCertificate.expiryDate).toLocaleDateString('es-ES')}
+                </dd>
+              </dl>
+            </div>
+            {(getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical' ||
+              getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'warning') && (
+              <div className="ml-4">
+                {getMedicalAlertStatus(medicalCertificate.expiryDate).status === 'critical' ? (
+                  <svg
+                    className="h-8 w-8 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-8 w-8 text-yellow-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Próximos vuelos */}
       <div className={`${cardClass} shadow rounded-lg overflow-hidden`}>

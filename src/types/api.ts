@@ -18,7 +18,7 @@ export interface RegisterData {
 }
 
 // Tipos para usuarios - Corregido para coincidir con el enum del backend
-export type UserRole = "ADMIN" | "PILOT" | "TECNICO"
+export type UserRole = "ADMIN" | "PILOT" | "TECNICO" | "GROUND_SUPPORT"
 export type FlightStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED"
 export type PaymentStatus = "PENDING_INVOICE" | "INVOICED" | "PENDING_PAYMENT" | "PAID"
 export type HelicopterStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE"
@@ -167,6 +167,7 @@ export interface UpdateTechnicianInput {
 
 // Tipos para registros de vuelo
 export interface FlightLog {
+  weightBalanceUrl?: string;
   id: number
   date: string
   pilotId: number
@@ -413,8 +414,10 @@ export interface AdminDashboardData {
   summary: {
     totalFlights: number
     flightHours: number
+    flightHoursWithoutRotorway: number
     monthlyFlights: number
     monthlyHours: number
+    monthlyHoursWithoutRotorway: number
     totalPilots: number
     activePilots: number
     totalHelicopters: number

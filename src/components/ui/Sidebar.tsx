@@ -3,14 +3,22 @@ import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useUser } from "../../context/UserContext"
 import { useTheme } from "../../context/ThemeContext"
-import { ChevronLeft, LogOut } from "lucide-react"
+import { ChevronLeft, LogOut, ChevronDown, ChevronRight } from "lucide-react"
 
-interface SidebarProps {
-  items: {
+interface SidebarItem {
+  path?: string
+  label: string
+  icon: React.ReactNode
+  isSection?: boolean
+  subsections?: {
     path: string
     label: string
     icon: React.ReactNode
   }[]
+}
+
+interface SidebarProps {
+  items: SidebarItem[]
   isCollapsed: boolean
   toggleCollapse: () => void
 }
@@ -21,6 +29,7 @@ const Sidebar = ({ items, isCollapsed, toggleCollapse }: SidebarProps) => {
   const {  logout } = useUser()
   const { darkMode } = useTheme()
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const handleResize = () => {
@@ -34,6 +43,17 @@ const Sidebar = ({ items, isCollapsed, toggleCollapse }: SidebarProps) => {
   const isActive = (path: string) => {
     // Verificar si la ruta actual coincide exactamente con la ruta del elemento
     return location.pathname === path
+  }
+
+  const isSubsectionActive = (subsections: any[]) => {
+    return subsections.some(sub => location.pathname === sub.path)
+  }
+
+  const toggleSection = (sectionLabel: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionLabel]: !prev[sectionLabel]
+    }))
   }
 
   const handleLogout = () => {
@@ -74,22 +94,73 @@ const Sidebar = ({ items, isCollapsed, toggleCollapse }: SidebarProps) => {
         <ul className="space-y-1">
           {items.map((item, index) => (
             <li key={index}>
-              <Link
-                to={item.path}
-                className={`flex items-center px-4 py-3 text-sm font-medium rounded-md ${
-                  isActive(item.path)
-                    ? darkMode
-                      ? "bg-orange-900/30 text-orange-300"
-                      : "bg-orange-100 text-orange-700"
-                    : darkMode
-                      ? "text-gray-300 hover:bg-gray-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                } ${isCollapsed ? "justify-center" : ""}`}
-                title={isCollapsed ? item.label : ""}
-              >
-                {item.icon}
-                {!isCollapsed && <span className="ml-3">{item.label}</span>}
-              </Link>
+              {item.isSection ? (
+                <>
+                  <button
+                    onClick={() => !isCollapsed && toggleSection(item.label)}
+                    className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-md ${
+                      isSubsectionActive(item.subsections || [])
+                        ? darkMode
+                          ? "bg-orange-900/30 text-orange-300"
+                          : "bg-orange-100 text-orange-700"
+                        : darkMode
+                          ? "text-gray-300 hover:bg-gray-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                    } ${isCollapsed ? "justify-center" : "justify-between"}`}
+                    title={isCollapsed ? item.label : ""}
+                  >
+                    <div className="flex items-center">
+                      {item.icon}
+                      {!isCollapsed && <span className="ml-3">{item.label}</span>}
+                    </div>
+                    {!isCollapsed && (
+                      expandedSections[item.label] ?
+                        <ChevronDown className="w-4 h-4" /> :
+                        <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  {!isCollapsed && expandedSections[item.label] && item.subsections && (
+                    <ul className="ml-6 mt-1 space-y-1">
+                      {item.subsections.map((subItem, subIndex) => (
+                        <li key={subIndex}>
+                          <Link
+                            to={subItem.path}
+                            className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                              isActive(subItem.path)
+                                ? darkMode
+                                  ? "bg-orange-900/30 text-orange-300"
+                                  : "bg-orange-100 text-orange-700"
+                                : darkMode
+                                  ? "text-gray-400 hover:bg-gray-700 hover:text-gray-300"
+                                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-700"
+                            }`}
+                          >
+                            {subItem.icon}
+                            <span className="ml-2">{subItem.label}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to={item.path || '#'}
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-md ${
+                    isActive(item.path || '')
+                      ? darkMode
+                        ? "bg-orange-900/30 text-orange-300"
+                        : "bg-orange-100 text-orange-700"
+                      : darkMode
+                        ? "text-gray-300 hover:bg-gray-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                  } ${isCollapsed ? "justify-center" : ""}`}
+                  title={isCollapsed ? item.label : ""}
+                >
+                  {item.icon}
+                  {!isCollapsed && <span className="ml-3">{item.label}</span>}
+                </Link>
+              )}
             </li>
           ))}
         </ul>

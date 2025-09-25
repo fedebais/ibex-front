@@ -15,6 +15,7 @@ import AdminSettings from "./AdminSettings"
 // Importar los componentes UserManagement y Calendar
 import UserManagement from "./UserManagement"
 import Calendar from "./Calendar"
+import Library from "./Library"
 import {
   LayoutDashboard,
   Users,
@@ -29,10 +30,16 @@ import {
   UserCog,
   Wrench,
   MapPin,
+  Stethoscope,
 } from "lucide-react"
 import HelicopterModels from "./HelicopterModels"
 import TechniciansList from "./TechniciansList"
 import DestinationsList from "./DestinationsList"
+import GroundSupportManagement from "./GroundSupportManagement"
+import MedicalCertificatesManagement from "./MedicalCertificatesManagement"
+import Qualifications from "./Qualifications"
+import TrainingCourses from "./TrainingCourses"
+import PracticalTraining from "./PracticalTraining"
 
 const AdminDashboard = () => {
   const { darkMode, toggleDarkMode } = useTheme()
@@ -63,19 +70,36 @@ const AdminDashboard = () => {
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
-      path: "/admin/pilots",
-      label: "Pilotos",
+      label: "Equipo",
       icon: <Users className="w-5 h-5" />,
-    },
-    {
-      path: "/admin/technicians",
-      label: "Técnicos",
-      icon: <Wrench className="w-5 h-5" />,
+      isSection: true,
+      subsections: [
+        {
+          path: "/admin/pilots",
+          label: "Pilotos",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/ground-support",
+          label: "Personal en Tierra",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/technicians",
+          label: "Técnicos",
+          icon: <Wrench className="w-4 h-4" />,
+        },
+      ],
     },
     {
       path: "/admin/helicopters",
       label: "Helicópteros",
       icon: <Plane className="w-5 h-5" />,
+    },
+    {
+      path: "/admin/helicopter-models",
+      label: "Modelos de Helicópteros",
+      icon: <Send className="w-5 h-5" />,
     },
     {
       path: "/admin/flights",
@@ -91,6 +115,38 @@ const AdminDashboard = () => {
       path: "/admin/destinations",
       label: "Destinos",
       icon: <MapPin className="w-5 h-5" />,
+    },
+    {
+      label: "Documentos",
+      icon: <FileText className="w-5 h-5" />,
+      isSection: true,
+      subsections: [
+        {
+          path: "/admin/library",
+          label: "Biblioteca",
+          icon: <FileText className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/qualifications",
+          label: "Habilitaciones",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/training-courses",
+          label: "Cursos de Capacitación",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/practical-training",
+          label: "Entrenamiento Práctico",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/admin/medical-certificates",
+          label: "Psicofísicos",
+          icon: <Stethoscope className="w-4 h-4" />,
+        },
+      ],
     },
     {
       path: "/admin/hours-analysis",
@@ -111,11 +167,6 @@ const AdminDashboard = () => {
       path: "/admin/settings",
       label: "Configuración",
       icon: <Settings className="w-5 h-5" />,
-    },
-    {
-      path: "/admin/helicopter-models",
-      label: "Modelos de Helicópteros",
-      icon: <Send className="w-5 h-5" />,
     },
   ]
 
@@ -151,6 +202,7 @@ const AdminDashboard = () => {
               />
               <Route path="/pilots" element={<PilotsList darkMode={darkMode} />} />
               <Route path="/technicians" element={<TechniciansList darkMode={darkMode} />} />
+              <Route path="/ground-support" element={<GroundSupportManagement darkMode={darkMode} />} />
               <Route path="/helicopters" element={<HelicoptersList darkMode={darkMode} />} />
               <Route
                 path="/flights"
@@ -158,6 +210,7 @@ const AdminDashboard = () => {
               />
               <Route path="/clients" element={<ClientsList darkMode={darkMode} />} />
               <Route path="/destinations" element={<DestinationsList darkMode={darkMode} />} />
+              <Route path="/medical-certificates" element={<MedicalCertificatesManagement darkMode={darkMode} />} />
               <Route
                 path="/hours-analysis"
                 element={
@@ -168,7 +221,11 @@ const AdminDashboard = () => {
               {/* Añadir las rutas para UserManagement y Calendar */}
               <Route path="/user-management" element={<UserManagement darkMode={darkMode} />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/library" element={<Library darkMode={darkMode} />} />
               <Route path="/helicopter-models" element={<HelicopterModels  />} />
+              <Route path="/qualifications" element={<Qualifications darkMode={darkMode} />} />
+              <Route path="/training-courses" element={<TrainingCourses darkMode={darkMode} />} />
+              <Route path="/practical-training" element={<PracticalTraining darkMode={darkMode} />} />
             </Routes>
           </main>
 

@@ -5,6 +5,7 @@ import ResetPassword from "./pages/ResetPassword"
 import PilotDashboard from "./pages/pilot/PilotDashboard"
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import TechnicianDashboard from "./pages/technician/TechnicianDashboard"
+import GroundSupportDashboard from "./pages/groundSupport/GroundSupportDashboard"
 import { UserProvider } from "./context/UserContext"
 import { ThemeProvider } from "./context/ThemeContext"
 import ProtectedRoute from "./components/ProtectedRoute"
@@ -49,6 +50,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["TECNICO"]}>
                   <TechnicianDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ground-support/*"
+              element={
+                <ProtectedRoute allowedRoles={["GROUND_SUPPORT"]}>
+                  <GroundSupportDashboard />
                 </ProtectedRoute>
               }
             />

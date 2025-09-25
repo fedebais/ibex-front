@@ -62,6 +62,8 @@ const EditFlightLogModal = ({
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [odometerImage, setOdometerImage] = useState<File | null>(null)
   const [odometerImageUrl, setOdometerImageUrl] = useState<string>("")
+  const [weightBalanceFile, setWeightBalanceFile] = useState<File | null>(null)
+  const [weightBalanceUrl, setWeightBalanceUrl] = useState<string>("")
 
   const { accessToken } = useUser()
 
@@ -103,6 +105,7 @@ const EditFlightLogModal = ({
         remarks: flightLog.remarks || "",
       })
       setOdometerImageUrl(flightLog.odometerPhotoUrl || "")
+      setWeightBalanceUrl(flightLog.weightBalanceUrl || "")
     }
   }, [isOpen, flightLog])
 
@@ -170,6 +173,19 @@ const EditFlightLogModal = ({
     const file = e.target.files?.[0]
     if (file) {
       setOdometerImage(file)
+    }
+  }
+
+  const handleWeightBalanceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      // Validar que sea un archivo Excel
+      const allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.xls') && !file.name.endsWith('.xlsx')) {
+        setError('Solo se permiten archivos Excel (.xls, .xlsx)')
+        return
+      }
+      setWeightBalanceFile(file)
     }
   }
 
@@ -261,6 +277,7 @@ const EditFlightLogModal = ({
       }
 
       let finalOdometerImageUrl = odometerImageUrl
+      let finalWeightBalanceUrl = weightBalanceUrl
 
       // Subir imagen del odómetro si hay una nueva
       if (odometerImage) {
@@ -271,6 +288,20 @@ const EditFlightLogModal = ({
         } catch (uploadError) {
           console.error("Error subiendo imagen:", uploadError)
           throw new Error("Error al subir la imagen del odómetro")
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
+      // Subir archivo Excel de Pesos y Balanceo si hay uno nuevo
+      if (weightBalanceFile) {
+        setIsUploadingImage(true)
+        try {
+          const excelUrl = await uploadFile(weightBalanceFile, `flight-logs/weight-balance/${Date.now()}_${weightBalanceFile.name}`)
+          finalWeightBalanceUrl = excelUrl
+        } catch (uploadError) {
+          console.error("Error subiendo archivo Excel:", uploadError)
+          throw new Error("Error al subir el archivo de Pesos y Balanceo")
         } finally {
           setIsUploadingImage(false)
         }
@@ -328,6 +359,7 @@ const EditFlightLogModal = ({
           hookUsed: formData.hookUsed,
           remarks: finalRemarks, // ✅ Remarks con todos los datos operacionales
           odometerPhotoUrl: finalOdometerImageUrl,
+          weightBalanceUrl: finalWeightBalanceUrl,
         }
       } else if (formData.status === "SCHEDULED" && formData.startTime) {
         // Vuelo programado con hora de inicio planificada
@@ -821,6 +853,52 @@ const EditFlightLogModal = ({
                     </div>
                   )}
                   {isUploadingImage && <p className="text-sm text-orange-600 mt-1">Subiendo imagen...</p>}
+                </div>
+
+                {/* Archivo Excel de Pesos y Balanceo */}
+                <div className="md:col-span-2">
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                    Pesos y Balanceo (Excel)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    onChange={handleWeightBalanceFileChange}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                      darkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300 text-gray-900"
+                    }`}
+                  />
+                  {(weightBalanceUrl || weightBalanceFile) && (
+                    <div className="mt-2 flex items-center space-x-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-green-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                        {weightBalanceFile ? `Nuevo archivo: ${weightBalanceFile.name}` : "Archivo actual disponible"}
+                      </p>
+                      {weightBalanceFile && (
+                        <button
+                          type="button"
+                          onClick={() => setWeightBalanceFile(null)}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {isUploadingImage && <p className="text-sm text-orange-600 mt-1">Subiendo archivo...</p>}
                 </div>
 
                 {/* Observaciones técnicas */}

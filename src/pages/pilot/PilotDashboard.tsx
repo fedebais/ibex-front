@@ -10,7 +10,12 @@ import FlightHistory from "./FlightHistory"
 import NewFlightLog from "./NewFlightLog"
 import PilotProfile from "./PilotProfile"
 import Calendar from "../admin/Calendar"
-import { LayoutDashboard, FileText, Plus, User, Menu, CalendarDays, ChevronDown } from "lucide-react"
+import PilotQualifications from "./PilotQualifications"
+import PilotTrainingCourses from "./PilotTrainingCourses"
+import PilotPracticalTraining from "./PilotPracticalTraining"
+import PilotMedicalCertificates from "./PilotMedicalCertificates"
+import PilotLibrary from "./PilotLibrary"
+import { LayoutDashboard, FileText, Plus, User, Menu, CalendarDays, ChevronDown, Users, BookOpen, Plane, Stethoscope, Library } from "lucide-react"
 
 const PilotDashboard = () => {
   const { darkMode, toggleDarkMode } = useTheme()
@@ -63,6 +68,38 @@ const PilotDashboard = () => {
       path: "/pilot/calendar",
       label: "Calendario",
       icon: <CalendarDays className="w-5 h-5" />,
+    },
+    {
+      label: "Mis Documentos",
+      icon: <FileText className="w-5 h-5" />,
+      isSection: true,
+      subsections: [
+        {
+          path: "/pilot/qualifications",
+          label: "Habilitaciones",
+          icon: <Users className="w-4 h-4" />,
+        },
+        {
+          path: "/pilot/training-courses",
+          label: "Cursos de Capacitación",
+          icon: <BookOpen className="w-4 h-4" />,
+        },
+        {
+          path: "/pilot/practical-training",
+          label: "Entrenamiento Práctico",
+          icon: <Plane className="w-4 h-4" />,
+        },
+        {
+          path: "/pilot/medical-certificates",
+          label: "Psicofísicos",
+          icon: <Stethoscope className="w-4 h-4" />,
+        },
+      ],
+    },
+    {
+      path: "/pilot/library",
+      label: "Biblioteca",
+      icon: <Library className="w-5 h-5" />,
     },
     {
       path: "/pilot/profile",
@@ -173,6 +210,11 @@ const PilotDashboard = () => {
               <Route path="/history" element={<FlightHistory darkMode={darkMode} />} />
               <Route path="/new-flight" element={<NewFlightLog darkMode={darkMode} />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/qualifications" element={<PilotQualifications darkMode={darkMode} />} />
+              <Route path="/training-courses" element={<PilotTrainingCourses darkMode={darkMode} />} />
+              <Route path="/practical-training" element={<PilotPracticalTraining darkMode={darkMode} />} />
+              <Route path="/medical-certificates" element={<PilotMedicalCertificates darkMode={darkMode} />} />
+              <Route path="/library" element={<PilotLibrary darkMode={darkMode} />} />
               <Route path="/profile" element={<PilotProfile darkMode={darkMode} />} />
             </Routes>
           </main>

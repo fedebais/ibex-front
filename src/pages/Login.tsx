@@ -43,6 +43,9 @@ const Login = () => {
           } else if (user.role === "TECNICO") {
             console.log("Redirigiendo a /technician")
             navigate("/technician")
+          } else if (user.role === "GROUND_SUPPORT") {
+            console.log("Redirigiendo a /ground-support")
+            navigate("/ground-support")
           } else {
             console.log("Redirigiendo a /admin")
             navigate("/admin")

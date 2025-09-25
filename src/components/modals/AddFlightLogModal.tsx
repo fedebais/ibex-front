@@ -75,6 +75,9 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
   const [finalOdometerPhoto, setFinalOdometerPhoto] = useState<File | null>(null)
   const [finalOdometerPhotoPreview, setFinalOdometerPhotoPreview] = useState<string>("")
 
+  // Estados para archivo Excel de Pesos y Balanceo
+  const [weightBalanceFile, setWeightBalanceFile] = useState<File | null>(null)
+
   const [isDrawing, setIsDrawing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string>("")
@@ -288,6 +291,19 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
     }
   }
 
+  const handleWeightBalanceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      // Validar que sea un archivo Excel
+      const allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+      if (!allowedTypes.includes(file.type) && !file.name.endsWith('.xls') && !file.name.endsWith('.xlsx')) {
+        setError('Solo se permiten archivos Excel (.xls, .xlsx)')
+        return
+      }
+      setWeightBalanceFile(file)
+    }
+  }
+
   // Funciones para el canvas de firma
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isCompleted) return
@@ -465,6 +481,25 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
         }
       }
 
+      // Subir archivo Excel de Pesos y Balanceo a Firebase si existe
+      let weightBalanceUrl = ""
+      if (weightBalanceFile) {
+        setIsUploadingImage(true)
+        try {
+          const fileName = `flight-logs/weight-balance/${Date.now()}-${weightBalanceFile.name}`
+          weightBalanceUrl = await uploadFile(weightBalanceFile, fileName)
+          console.log("Archivo de Pesos y Balanceo subido exitosamente:", weightBalanceUrl)
+        } catch (err) {
+          console.error("Error al subir el archivo de Pesos y Balanceo:", err)
+          setError("Error al subir el archivo de Pesos y Balanceo. Intente nuevamente.")
+          setIsSubmitting(false)
+          setIsUploadingImage(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+
       // Preparar datos para la API
       const flightLogData: Partial<NewFlightLog> = {
         pilotId: Number(selectedPilot),
@@ -491,6 +526,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
           fuelEnd: finalOdometer ? Number(finalOdometer) : undefined, // Odómetro final
           fuelStart: initialOdometer ? Number(initialOdometer) : undefined, // Odómetro inicial
           odometerPhotoUrl: odometerPhotoUrl || undefined,
+          weightBalanceUrl: weightBalanceUrl || undefined,
           remarks: `Starts: ${starts}, Landings: ${landings}, Launches: ${launches}, RIN: ${rin}, Gacho: ${gachoTime}, Combustible consumido: ${fuelConsumed}L`,
         })
       }
@@ -560,6 +596,7 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
     setGachoTime("0.00")
     setFinalOdometerPhoto(null)
     setFinalOdometerPhotoPreview("")
+    setWeightBalanceFile(null)
     setCustomOrigin(false)
     setCustomDestination(false)
     setError("")
@@ -1128,6 +1165,98 @@ const AddFlightLogModal: React.FC<AddFlightLogModalProps> = ({ isOpen, onClose, 
                         {isUploadingImage && (
                           <p className="mt-2 text-sm text-orange-500">Subiendo imagen, por favor espere...</p>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Archivo Excel de Pesos y Balanceo */}
+                    <div className="col-span-2">
+                      <div className="mt-2">
+                        <label
+                          htmlFor="weightBalanceFile"
+                          className={`block text-sm font-medium ${darkMode ? "text-gray-300" : "text-gray-700"} mb-1`}
+                        >
+                          Pesos y Balanceo (Excel)
+                        </label>
+                        <input
+                          type="file"
+                          id="weightBalanceFile"
+                          accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                          onChange={handleWeightBalanceFileChange}
+                          className="hidden"
+                          disabled={isSubmitting || isUploadingImage}
+                        />
+                        <label
+                          htmlFor="weightBalanceFile"
+                          className={`cursor-pointer flex items-center justify-center border-2 border-dashed rounded-md p-3 ${
+                            darkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
+                          } ${isSubmitting || isUploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {weightBalanceFile ? (
+                            <div className="flex items-center space-x-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-6 w-6 text-green-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                              <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+                                {weightBalanceFile.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setWeightBalanceFile(null)
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                                disabled={isSubmitting || isUploadingImage}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="mx-auto h-8 w-8 text-gray-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                              <p className={`mt-1 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                                Subir archivo Excel de Pesos y Balanceo
+                              </p>
+                            </div>
+                          )}
+                        </label>
                       </div>
                     </div>
 

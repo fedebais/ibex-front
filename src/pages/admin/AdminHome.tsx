@@ -180,7 +180,7 @@ export default function AdminHome({
         </div>
       </div>
       {/* Resto del contenido del dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
         {/* Tarjeta de Vuelos Completados */}
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
@@ -223,6 +223,25 @@ export default function AdminHome({
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">{dashboardData.summary.monthlyHours} horas este mes</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Horas sin Rotorway */}
+        <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas sin Rotorway</p>
+              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursWithoutRotorway}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4">
+            <div className="flex items-center text-gray-500">
+              <Calendar className="w-4 h-4 mr-1" />
+              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursWithoutRotorway} horas este mes</span>
             </div>
           </div>
         </div>
