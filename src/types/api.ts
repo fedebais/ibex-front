@@ -415,9 +415,13 @@ export interface AdminDashboardData {
     totalFlights: number
     flightHours: number
     flightHoursWithoutRotorway: number
+    flightHoursWithoutRotorwayAndIbex: number
+    flightHoursRotorwayAndIbexHeliski: number
     monthlyFlights: number
     monthlyHours: number
     monthlyHoursWithoutRotorway: number
+    monthlyHoursWithoutRotorwayAndIbex: number
+    monthlyHoursRotorwayAndIbexHeliski: number
     totalPilots: number
     activePilots: number
     totalHelicopters: number
@@ -436,10 +440,14 @@ export interface AdminDashboardData {
     flightsPerMonth: Array<{
       month: string
       count: number
+      countWithoutRotorwayAndIbex: number
+      countRotorwayAndIbexHeliski: number
     }>
     hoursPerMonth: Array<{
       month: string
       hours: number
+      hoursWithoutRotorwayAndIbex: number
+      hoursRotorwayAndIbexHeliski: number
     }>
   }
 }
