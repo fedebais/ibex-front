@@ -1,8 +1,16 @@
 import { useEffect, useRef } from "react"
 import Chart from "chart.js/auto"
 
-interface LineChartProps {
+interface Dataset {
+  label: string
   data: number[]
+  color: string
+  fill?: boolean
+}
+
+interface LineChartProps {
+  data?: number[]
+  datasets?: Dataset[]
   labels: string[]
   title?: string
   color?: string
@@ -10,7 +18,7 @@ interface LineChartProps {
   darkMode?: boolean
 }
 
-const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkMode = false }: LineChartProps) => {
+const LineChart = ({ data, datasets, labels, title, color = "#f97316", fill = false, darkMode = false }: LineChartProps) => {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<Chart | null>(null)
 
@@ -23,14 +31,25 @@ const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkM
 
       const ctx = chartRef.current.getContext("2d")
       if (ctx) {
-        chartInstance.current = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels,
-            datasets: [
+        // Determinar qué datasets usar
+        const chartDatasets = datasets
+          ? datasets.map((dataset) => ({
+              label: dataset.label,
+              data: dataset.data,
+              borderColor: dataset.color,
+              backgroundColor: dataset.fill ? `${dataset.color}20` : undefined,
+              fill: dataset.fill || false,
+              tension: 0.3,
+              pointBackgroundColor: dataset.color,
+              pointBorderColor: darkMode ? "#1f2937" : "#fff",
+              pointBorderWidth: 1,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            }))
+          : [
               {
                 label: title || "",
-                data,
+                data: data || [],
                 borderColor: color,
                 backgroundColor: fill ? `${color}20` : undefined,
                 fill,
@@ -41,14 +60,20 @@ const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkM
                 pointRadius: 4,
                 pointHoverRadius: 6,
               },
-            ],
+            ]
+
+        chartInstance.current = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: chartDatasets,
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
               legend: {
-                display: !!title,
+                display: !!(title || datasets),
                 position: "top",
                 labels: {
                   font: {
@@ -113,7 +138,7 @@ const LineChart = ({ data, labels, title, color = "#f97316", fill = false, darkM
         chartInstance.current.destroy()
       }
     }
-  }, [data, labels, title, color, fill, darkMode])
+  }, [data, datasets, labels, title, color, fill, darkMode])
 
   return <canvas ref={chartRef} height={300} />
 }

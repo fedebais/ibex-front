@@ -129,11 +129,38 @@ export default function AdminHome({
   }
 
   // Preparar datos para los gráficos
-  const flightsPerMonthData = dashboardData.flightActivity.flightsPerMonth.map((item) => item.count)
   const flightsPerMonthLabels = dashboardData.flightActivity.flightsPerMonth.map((item) => item.month)
-
-  const hoursPerMonthData = dashboardData.flightActivity.hoursPerMonth.map((item) => item.hours)
   const hoursPerMonthLabels = dashboardData.flightActivity.hoursPerMonth.map((item) => item.month)
+
+  // Preparar datasets para el LineChart con múltiples líneas (horas de vuelo)
+  const hoursDatasets = [
+    {
+      label: "Sin Rotorway e IBEX Heliski",
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursWithoutRotorwayAndIbex),
+      color: "#10b981", // Verde
+      fill: true,
+    },
+    {
+      label: "Rotorway + IBEX Heliski",
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursRotorwayAndIbexHeliski),
+      color: "#06b6d4", // Cyan
+      fill: true,
+    },
+  ]
+
+  // Preparar datasets para el BarChart con múltiples series (número de vuelos)
+  const flightsDatasets = [
+    {
+      label: "Sin Rotorway e IBEX Heliski",
+      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countWithoutRotorwayAndIbex),
+      color: "#10b981", // Verde
+    },
+    {
+      label: "Rotorway + IBEX Heliski",
+      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countRotorwayAndIbexHeliski),
+      color: "#06b6d4", // Cyan
+    },
+  ]
 
   // Preparar datos para el gráfico de modelos de helicópteros
   const helicopterModelsData = Object.values(dashboardData.fleetStatus.byModel)
@@ -179,8 +206,8 @@ export default function AdminHome({
           </button>
         </div>
       </div>
-      {/* Resto del contenido del dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+      {/* Primera fila de cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         {/* Tarjeta de Vuelos Completados */}
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
@@ -227,25 +254,6 @@ export default function AdminHome({
           </div>
         </div>
 
-        {/* Tarjeta de Horas sin Rotorway */}
-        <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
-          <div className="flex justify-between items-start">
-            <div>
-              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas sin Rotorway</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursWithoutRotorway}</h3>
-            </div>
-            <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
-              <Clock className="w-6 h-6" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4">
-            <div className="flex items-center text-gray-500">
-              <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursWithoutRotorway} horas este mes</span>
-            </div>
-          </div>
-        </div>
-
         {/* Tarjeta de Pilotos */}
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
@@ -261,6 +269,47 @@ export default function AdminHome({
             <div className="flex items-center text-gray-500">
               <CheckCircle className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">{dashboardData.summary.activePilots} activos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Segunda fila de cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {/* Tarjeta de Horas sin Rotorway e IBEX Heliski */}
+        <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas sin Rotorway e IBEX Heliski</p>
+              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursWithoutRotorwayAndIbex}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4">
+            <div className="flex items-center text-gray-500">
+              <Calendar className="w-4 h-4 mr-1" />
+              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursWithoutRotorwayAndIbex} horas este mes</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Horas Rotorway e IBEX Heliski */}
+        <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Rotorway + IBEX Heliski</p>
+              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursRotorwayAndIbexHeliski}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-cyan-100 text-cyan-600">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4">
+            <div className="flex items-center text-gray-500">
+              <Calendar className="w-4 h-4 mr-1" />
+              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursRotorwayAndIbexHeliski} horas este mes</span>
             </div>
           </div>
         </div>
@@ -330,20 +379,15 @@ export default function AdminHome({
             <div className="p-6">
               <div className="h-64 mb-6">
                 <BarChart
-                  data={flightsPerMonthData}
+                  datasets={flightsDatasets}
                   labels={flightsPerMonthLabels}
-                  title="Vuelos por Mes"
-                  color="#f97316"
                   darkMode={darkMode}
                 />
               </div>
               <div className="h-64">
                 <LineChart
-                  data={hoursPerMonthData}
+                  datasets={hoursDatasets}
                   labels={hoursPerMonthLabels}
-                  title="Horas de Vuelo por Mes"
-                  fill={true}
-                  color="#f97316"
                   darkMode={darkMode}
                 />
               </div>
