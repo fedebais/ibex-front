@@ -135,13 +135,13 @@ export default function AdminHome({
   // Preparar datasets para el LineChart con múltiples líneas (horas de vuelo)
   const hoursDatasets = [
     {
-      label: "Sin Rotorway e IBEX Heliski",
+      label: "Horas Facturables",
       data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursWithoutRotorwayAndIbex),
       color: "#10b981", // Verde
       fill: true,
     },
     {
-      label: "Rotorway + IBEX Heliski",
+      label: "Solo Rotorway",
       data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursRotorwayAndIbexHeliski),
       color: "#06b6d4", // Cyan
       fill: true,
@@ -151,12 +151,12 @@ export default function AdminHome({
   // Preparar datasets para el BarChart con múltiples series (número de vuelos)
   const flightsDatasets = [
     {
-      label: "Sin Rotorway e IBEX Heliski",
+      label: "Horas Facturables",
       data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countWithoutRotorwayAndIbex),
       color: "#10b981", // Verde
     },
     {
-      label: "Rotorway + IBEX Heliski",
+      label: "Solo Rotorway",
       data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countRotorwayAndIbexHeliski),
       color: "#06b6d4", // Cyan
     },
@@ -280,7 +280,7 @@ export default function AdminHome({
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas sin Rotorway e IBEX Heliski</p>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas Facturables</p>
               <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursWithoutRotorwayAndIbex}</h3>
             </div>
             <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
@@ -299,7 +299,7 @@ export default function AdminHome({
         <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Rotorway + IBEX Heliski</p>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Solo Rotorway</p>
               <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursRotorwayAndIbexHeliski}</h3>
             </div>
             <div className="p-3 rounded-full bg-cyan-100 text-cyan-600">
