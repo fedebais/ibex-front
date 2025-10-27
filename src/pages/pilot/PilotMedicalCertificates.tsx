@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Calendar, Clock, User, Stethoscope, AlertTriangle, CheckCircle, Plus, Upload, FileText } from "lucide-react"
+import { Search, Calendar, Clock, User, Stethoscope, AlertTriangle, CheckCircle, Plus, Upload, FileText, Trash2 } from "lucide-react"
 import { uploadFile } from "../../firebase/storage"
 
 interface MedicalCertificate {
-  id: string
+  id: number
+  pilotId: number
   certificateNumber: string
   issueDate: string
   expiryDate: string
@@ -16,6 +17,15 @@ interface MedicalCertificate {
   active: boolean
   status: 'active' | 'expired' | 'expiring_soon'
   createdAt: string
+  pilot: {
+    id: number
+    user: {
+      firstName: string
+      lastName: string
+      email: string
+    }
+    licenseNumber: string
+  }
 }
 
 interface PilotMedicalCertificatesProps {
@@ -107,10 +117,24 @@ const PilotMedicalCertificates = ({ darkMode }: PilotMedicalCertificatesProps) =
     try {
       const token = localStorage.getItem("ibex_access_token")
       const userStr = localStorage.getItem("ibex_user")
-      if (!userStr) return
+      if (!userStr) {
+        console.error("No user data found in localStorage")
+        return
+      }
 
       const user = JSON.parse(userStr)
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/medical-certificates?pilotId=${user.pilot?.id}`, {
+      console.log("User data:", user)
+      console.log("Pilot ID:", user.pilot?.id)
+
+      if (!user.pilot?.id) {
+        console.error("User does not have a pilot ID")
+        return
+      }
+
+      const url = `${import.meta.env.VITE_API_URL}/medical-certificates?pilotId=${user.pilot.id}`
+      console.log("Fetching certificates from:", url)
+
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -119,6 +143,7 @@ const PilotMedicalCertificates = ({ darkMode }: PilotMedicalCertificatesProps) =
 
       if (response.ok) {
         const data = await response.json()
+        console.log("Certificates received:", data)
         // Process certificates to determine status
         const processedData = data.map((cert: any) => ({
           ...cert,
@@ -221,6 +246,34 @@ const PilotMedicalCertificates = ({ darkMode }: PilotMedicalCertificatesProps) =
 
   const isExpired = (expiryDate: string) => {
     return new Date(expiryDate) < new Date()
+  }
+
+  const handleDelete = async (certificateId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este certificado médico?')) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem("ibex_access_token")
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/medical-certificates/${certificateId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        // Refresh certificates list
+        fetchCertificates()
+      } else {
+        console.error('Error deleting certificate:', response.statusText)
+        alert('Error al eliminar el certificado médico')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al eliminar el certificado médico')
+    }
   }
 
   const isExpiringSoon = (expiryDate: string) => {
@@ -345,10 +398,19 @@ const PilotMedicalCertificates = ({ darkMode }: PilotMedicalCertificatesProps) =
                   {certificate.medicalClass}
                 </p>
               </div>
-              <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${statusColors[certificate.status]}`}>
-                {statusIcons[certificate.status]}
-                <span className="ml-1">{statusLabels[certificate.status]}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${statusColors[certificate.status]}`}>
+                  {statusIcons[certificate.status]}
+                  <span className="ml-1">{statusLabels[certificate.status]}</span>
+                </span>
+                <button
+                  onClick={() => handleDelete(certificate.id)}
+                  className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  title="Eliminar certificado médico"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">

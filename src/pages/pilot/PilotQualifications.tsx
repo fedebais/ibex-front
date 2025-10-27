@@ -1,18 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Calendar, Clock, User, BookOpen, AlertTriangle, CheckCircle, Plus } from "lucide-react"
+import { Search, Calendar, Clock, User, BookOpen, AlertTriangle, CheckCircle, Plus, Trash2 } from "lucide-react"
 
 interface Qualification {
   id: number
   pilotId: number
-  qualificationType: string
-  issuedDate: string
+  type: string
+  issueDate: string
   expiryDate: string
   issuingAuthority: string
   certificateNumber: string
   documentUrl?: string
-  notes?: string
+  description?: string
   active: boolean
   createdAt: string
   status?: 'active' | 'expired' | 'expiring_soon'
@@ -39,12 +39,12 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
-    qualificationType: "",
-    issuedDate: "",
+    type: "",
+    issueDate: "",
     expiryDate: "",
     issuingAuthority: "",
     certificateNumber: "",
-    notes: "",
+    description: "",
     documentUrl: ""
   })
   const [selectedType, setSelectedType] = useState("all")
@@ -82,13 +82,13 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
 
   useEffect(() => {
     let filtered = qualifications.filter(qualification =>
-      qualification.qualificationType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      qualification.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       qualification.issuingAuthority.toLowerCase().includes(searchTerm.toLowerCase()) ||
       qualification.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     if (selectedType !== "all") {
-      filtered = filtered.filter(qualification => qualification.qualificationType === selectedType)
+      filtered = filtered.filter(qualification => qualification.type === selectedType)
     }
 
     setFilteredQualifications(filtered)
@@ -99,10 +99,22 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
     try {
       const token = localStorage.getItem("ibex_access_token")
       const userStr = localStorage.getItem("ibex_user")
-      if (!userStr) return
+      if (!userStr) {
+        console.error("No user data found in localStorage")
+        return
+      }
 
       const user = JSON.parse(userStr)
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/qualifications?pilotId=${user.pilot?.id}`, {
+
+      if (!user.pilot?.id) {
+        console.error("User does not have a pilot ID")
+        return
+      }
+
+      const url = `${import.meta.env.VITE_API_URL}/qualifications?pilotId=${user.pilot.id}`
+      console.log("Fetching qualifications from:", url)
+
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -111,6 +123,7 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
 
       if (response.ok) {
         const data = await response.json()
+        console.log("Qualifications received:", data)
         // Process qualifications to determine status
         const processedData = data.map((qual: any) => ({
           ...qual,
@@ -194,12 +207,12 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
         },
         body: JSON.stringify({
           pilotId: user.pilot?.id,
-          qualificationType: formData.qualificationType,
-          issuedDate: formData.issuedDate,
+          type: formData.type,
+          issueDate: formData.issueDate,
           expiryDate: formData.expiryDate,
           issuingAuthority: formData.issuingAuthority,
           certificateNumber: formData.certificateNumber,
-          notes: formData.notes,
+          description: formData.description,
           documentUrl: documentUrl
         })
       })
@@ -207,12 +220,12 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
       if (response.ok) {
         // Reset form and close modal
         setFormData({
-          qualificationType: "",
-          issuedDate: "",
+          type: "",
+          issueDate: "",
           expiryDate: "",
           issuingAuthority: "",
           certificateNumber: "",
-          notes: "",
+          description: "",
           documentUrl: ""
         })
         setSelectedFile(null)
@@ -224,6 +237,34 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
       }
     } catch (error) {
       console.error('Error:', error)
+    }
+  }
+
+  const handleDelete = async (qualificationId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta habilitación?')) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem("ibex_access_token")
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/qualifications/${qualificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        // Refresh qualifications list
+        fetchQualifications()
+      } else {
+        console.error('Error deleting qualification:', response.statusText)
+        alert('Error al eliminar la habilitación')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al eliminar la habilitación')
     }
   }
 
@@ -333,15 +374,24 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
           }`}>
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-1">{qualification.qualificationType}</h3>
+                <h3 className="font-semibold text-lg mb-1">{qualification.type}</h3>
                 <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   {qualification.issuingAuthority}
                 </p>
               </div>
-              <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${statusColors[qualification.status || 'active']}`}>
-                {statusIcons[qualification.status || 'active']}
-                <span className="ml-1">{statusLabels[qualification.status || 'active']}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center px-2 py-1 text-xs rounded-full ${statusColors[qualification.status || 'active']}`}>
+                  {statusIcons[qualification.status || 'active']}
+                  <span className="ml-1">{statusLabels[qualification.status || 'active']}</span>
+                </span>
+                <button
+                  onClick={() => handleDelete(qualification.id)}
+                  className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                  title="Eliminar habilitación"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -355,7 +405,7 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
               <div className="flex items-center text-sm">
                 <Calendar className="w-4 h-4 mr-2 text-gray-400" />
                 <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-                  Emitida: {new Date(qualification.issuedDate).toLocaleDateString()}
+                  Emitida: {new Date(qualification.issueDate).toLocaleDateString()}
                 </span>
               </div>
 
@@ -378,10 +428,10 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
                 </div>
               )}
 
-              {qualification.notes && (
+              {qualification.description && (
                 <div className="text-sm">
                   <p className={`italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {qualification.notes}
+                    {qualification.description}
                   </p>
                 </div>
               )}
@@ -434,8 +484,8 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
                 </label>
                 <select
                   required
-                  value={formData.qualificationType}
-                  onChange={(e) => setFormData({ ...formData, qualificationType: e.target.value })}
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                     darkMode
                       ? 'bg-gray-700 border-gray-600 text-white'
@@ -456,8 +506,8 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
                 <input
                   type="date"
                   required
-                  value={formData.issuedDate}
-                  onChange={(e) => setFormData({ ...formData, issuedDate: e.target.value })}
+                  value={formData.issueDate}
+                  onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                     darkMode
                       ? 'bg-gray-700 border-gray-600 text-white'
@@ -518,11 +568,11 @@ const PilotQualifications = ({ darkMode }: PilotQualificationsProps) => {
 
               <div>
                 <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Notas
+                  Descripción
                 </label>
                 <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                     darkMode

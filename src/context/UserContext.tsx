@@ -66,6 +66,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         phone: response.phone,
         active: response.active,
         role: response.role as UserRole,
+        pilot: response.pilot, // Include pilot data if present
       }
 
       console.log("Datos de usuario procesados:", userData)

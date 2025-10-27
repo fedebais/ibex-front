@@ -8,6 +8,15 @@ export interface LoginResponse {
   active: boolean
   role: UserRole
   accessToken: string
+  pilot?: {
+    id: number
+    userId: number
+    license: string
+    flightHours: number
+    medicalExpiry: string
+    lastTraining: string
+    active: boolean
+  }
 }
 
 export interface RegisterData {
@@ -42,6 +51,15 @@ export interface User {
   role: UserRole
   profileImage?: string
   name?: string // Agregar campo name opcional para compatibilidad
+  pilot?: {
+    id: number
+    userId: number
+    license: string
+    flightHours: number
+    medicalExpiry: string
+    lastTraining: string
+    active: boolean
+  }
 }
 
 // Tipos para pilotos - Actualizado según la respuesta de la API
