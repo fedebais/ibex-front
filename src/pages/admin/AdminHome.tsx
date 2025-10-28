@@ -146,6 +146,12 @@ export default function AdminHome({
       color: "#06b6d4", // Cyan
       fill: true,
     },
+    {
+      label: "Solo SMNF",
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursSMNF),
+      color: "#8b5cf6", // Purple
+      fill: true,
+    },
   ]
 
   // Preparar datasets para el BarChart con múltiples series (número de vuelos)
@@ -159,6 +165,11 @@ export default function AdminHome({
       label: "Solo Rotorway",
       data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countRotorwayAndIbexHeliski),
       color: "#06b6d4", // Cyan
+    },
+    {
+      label: "Solo SMNF",
+      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countSMNF),
+      color: "#8b5cf6", // Purple
     },
   ]
 
@@ -310,6 +321,25 @@ export default function AdminHome({
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursRotorwayAndIbexHeliski} horas este mes</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Horas SMNF */}
+        <div className={`p-6 rounded-lg shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`}>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Solo SMNF</p>
+              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursSMNF}</h3>
+            </div>
+            <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+          <div className="flex items-center mt-4">
+            <div className="flex items-center text-gray-500">
+              <Calendar className="w-4 h-4 mr-1" />
+              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursSMNF} horas este mes</span>
             </div>
           </div>
         </div>
