@@ -105,9 +105,9 @@ const HoursAnalysis = ({ darkMode = false, selectedMonth, selectedYear }: HoursA
         discrepancies.push({
           type: "helicopter",
           id: selectedHelicopter,
-          registeredHours: helicopterHours.toFixed(1),
-          calculatedHours: totalPilotHours.toFixed(1),
-          difference: (helicopterHours - totalPilotHours).toFixed(1),
+          registeredHours: helicopterHours.toFixed(2),
+          calculatedHours: totalPilotHours.toFixed(2),
+          difference: (helicopterHours - totalPilotHours).toFixed(2),
         })
       }
     }
@@ -260,7 +260,7 @@ const HoursAnalysis = ({ darkMode = false, selectedMonth, selectedYear }: HoursA
                               darkMode ? "text-white" : "text-gray-900"
                             }`}
                           >
-                            {totalHours.toFixed(1)} horas
+                            {totalHours.toFixed(2)} horas
                           </td>
                           <td
                             className={`px-6 py-4 whitespace-nowrap text-sm ${
@@ -336,7 +336,7 @@ const HoursAnalysis = ({ darkMode = false, selectedMonth, selectedYear }: HoursA
                                 darkMode ? "text-white" : "text-gray-900"
                               }`}
                             >
-                              {totalHours.toFixed(1)} horas
+                              {totalHours.toFixed(2)} horas
                             </td>
                             <td
                               className={`px-6 py-4 whitespace-nowrap text-sm ${
