@@ -251,7 +251,7 @@ export default function AdminHome({
           <div className="flex justify-between items-start">
             <div>
               <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas de Vuelo</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHours}</h3>
+              <h3 className="text-3xl font-bold mt-1">{Number(dashboardData.summary.flightHours).toFixed(2)}</h3>
             </div>
             <div className="p-3 rounded-full bg-blue-100 text-blue-600">
               <Clock className="w-6 h-6" />
@@ -260,7 +260,7 @@ export default function AdminHome({
           <div className="flex items-center mt-4">
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">{dashboardData.summary.monthlyHours} horas este mes</span>
+              <span className="text-sm font-medium">{Number(dashboardData.summary.monthlyHours).toFixed(2)} horas este mes</span>
             </div>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function AdminHome({
           <div className="flex justify-between items-start">
             <div>
               <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Horas Facturables</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursWithoutRotorwayAndIbex}</h3>
+              <h3 className="text-3xl font-bold mt-1">{Number(dashboardData.summary.flightHoursWithoutRotorwayAndIbex).toFixed(2)}</h3>
             </div>
             <div className="p-3 rounded-full bg-emerald-100 text-emerald-600">
               <Clock className="w-6 h-6" />
@@ -301,7 +301,7 @@ export default function AdminHome({
           <div className="flex items-center mt-4">
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursWithoutRotorwayAndIbex} horas este mes</span>
+              <span className="text-sm font-medium">{Number(dashboardData.summary.monthlyHoursWithoutRotorwayAndIbex).toFixed(2)} horas este mes</span>
             </div>
           </div>
         </div>
@@ -311,7 +311,7 @@ export default function AdminHome({
           <div className="flex justify-between items-start">
             <div>
               <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Solo Rotorway</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursRotorwayAndIbexHeliski}</h3>
+              <h3 className="text-3xl font-bold mt-1">{Number(dashboardData.summary.flightHoursRotorwayAndIbexHeliski).toFixed(2)}</h3>
             </div>
             <div className="p-3 rounded-full bg-cyan-100 text-cyan-600">
               <Clock className="w-6 h-6" />
@@ -320,7 +320,7 @@ export default function AdminHome({
           <div className="flex items-center mt-4">
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursRotorwayAndIbexHeliski} horas este mes</span>
+              <span className="text-sm font-medium">{Number(dashboardData.summary.monthlyHoursRotorwayAndIbexHeliski).toFixed(2)} horas este mes</span>
             </div>
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function AdminHome({
           <div className="flex justify-between items-start">
             <div>
               <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Solo SMNF</p>
-              <h3 className="text-3xl font-bold mt-1">{dashboardData.summary.flightHoursSMNF}</h3>
+              <h3 className="text-3xl font-bold mt-1">{Number(dashboardData.summary.flightHoursSMNF).toFixed(2)}</h3>
             </div>
             <div className="p-3 rounded-full bg-purple-100 text-purple-600">
               <Clock className="w-6 h-6" />
@@ -339,7 +339,7 @@ export default function AdminHome({
           <div className="flex items-center mt-4">
             <div className="flex items-center text-gray-500">
               <Calendar className="w-4 h-4 mr-1" />
-              <span className="text-sm font-medium">{dashboardData.summary.monthlyHoursSMNF} horas este mes</span>
+              <span className="text-sm font-medium">{Number(dashboardData.summary.monthlyHoursSMNF).toFixed(2)} horas este mes</span>
             </div>
           </div>
         </div>
