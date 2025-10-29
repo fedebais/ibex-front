@@ -129,7 +129,6 @@ export default function AdminHome({
   }
 
   // Preparar datos para los gráficos
-  const flightsPerMonthLabels = dashboardData.flightActivity.flightsPerMonth.map((item) => item.month)
   const hoursPerMonthLabels = dashboardData.flightActivity.hoursPerMonth.map((item) => item.month)
 
   // Preparar datasets para el LineChart con múltiples líneas (horas de vuelo)
@@ -154,21 +153,21 @@ export default function AdminHome({
     },
   ]
 
-  // Preparar datasets para el BarChart con múltiples series (número de vuelos)
+  // Preparar datasets para el BarChart con múltiples series (horas de vuelo)
   const flightsDatasets = [
     {
       label: "Horas Facturables",
-      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countWithoutRotorwayAndIbex),
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursWithoutRotorwayAndIbex),
       color: "#10b981", // Verde
     },
     {
       label: "Solo Rotorway",
-      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countRotorwayAndIbexHeliski),
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursRotorwayAndIbexHeliski),
       color: "#06b6d4", // Cyan
     },
     {
       label: "Solo SMNF",
-      data: dashboardData.flightActivity.flightsPerMonth.map((item) => item.countSMNF),
+      data: dashboardData.flightActivity.hoursPerMonth.map((item) => item.hoursSMNF),
       color: "#8b5cf6", // Purple
     },
   ]
@@ -410,7 +409,7 @@ export default function AdminHome({
               <div className="h-64 mb-6">
                 <BarChart
                   datasets={flightsDatasets}
-                  labels={flightsPerMonthLabels}
+                  labels={hoursPerMonthLabels}
                   darkMode={darkMode}
                 />
               </div>
