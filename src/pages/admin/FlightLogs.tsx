@@ -346,7 +346,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
       'Duración (min)': flight.duration,
       'Estado': getStatusText(flight.status),
       'Estado de Facturación': getPaymentStatusText(flight.paymentStatus),
-      'Observaciones': flight.observations || 'N/A',
+      'Observaciones': flight.remarks || 'N/A',
     }))
 
     // Crear el libro de trabajo (workbook)
