@@ -89,10 +89,29 @@ export const formatDateTime = (dateString: string): string => {
 
 /**
  * Formatea una fecha para mostrar solo la hora
+ * DEPRECATED: Usa formatTimeFromUTC para horas que vienen en UTC
  */
 export const formatTime = (dateString: string): string => {
   const date = parseDBDateAsLocalFromUTC(dateString)
   return date.toFormat('HH:mm')
+}
+
+/**
+ * Formatea una hora/fecha UTC a hora local de Argentina
+ * Convierte correctamente de UTC a zona horaria de Argentina (UTC-3)
+ * Uso: Para mostrar startTime y landingTime que vienen del backend en UTC
+ */
+export const formatTimeFromUTC = (dateString: string): string => {
+  // Parsear como UTC
+  const utcDate = DateTime.fromISO(dateString, { zone: 'utc' })
+
+  if (!utcDate.isValid) {
+    console.warn('Fecha/hora inválida:', dateString)
+    return 'N/A'
+  }
+
+  // Convertir a zona horaria de Argentina y formatear solo la hora
+  return utcDate.setZone(ARGENTINA_ZONE).toFormat('HH:mm')
 }
 
 /**

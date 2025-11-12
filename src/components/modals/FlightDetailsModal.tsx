@@ -3,7 +3,7 @@
 import Modal from "../ui/Modal"
 import type { FlightLog } from "../../types/api"
 import { useState } from "react"
-import { formatDate } from "../../utils/dateUtils"
+import { formatDate, formatTimeFromUTC } from "../../utils/dateUtils"
 import EditFlightLogModal from "./EditFlightLogModal"
 
 interface FlightDetailsModalProps {
@@ -193,17 +193,13 @@ const FlightDetailsModal = ({
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Inicio</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.startTime
-                  ? new Date(flightLog.startTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-                  : "No registrado"}
+                {flightLog.startTime ? formatTimeFromUTC(flightLog.startTime) : "No registrado"}
               </p>
             </div>
             <div>
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Hora de Aterrizaje</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                {flightLog.landingTime
-                  ? new Date(flightLog.landingTime).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })
-                  : "No registrado"}
+                {flightLog.landingTime ? formatTimeFromUTC(flightLog.landingTime) : "No registrado"}
               </p>
             </div>
             <div>

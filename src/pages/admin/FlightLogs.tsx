@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from "react"
 import { getFlightLogs, deleteFlightLog } from "../../services/api"
 import FlightDetailsModal from "../../components/modals/FlightDetailsModal"
-import { Search, Trash2 } from "lucide-react"
+import { Search, Trash2, Download } from "lucide-react"
 import AddFlightLogModal from "../../components/modals/AddFlightLogModal"
 import { useUser } from "../../context/UserContext"
 import type { FlightLog, FlightStatus, PaymentStatus } from "../../types/api"
-import { formatDate } from "../../utils/dateUtils"
+import { formatDate, formatTimeFromUTC } from "../../utils/dateUtils"
+import * as XLSX from "xlsx"
 
 interface FlightLogsProps {
   darkMode: boolean
@@ -31,6 +32,8 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { accessToken, isLoading: userLoading, user } = useUser()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   // Remover la función loadPilots y el estado pilots
   // En su lugar, obtener pilotos únicos de los vuelos cargados
   const uniquePilots = allFlights
@@ -45,6 +48,17 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
       }
       return acc
     }, [] as Array<{ id: number; firstName: string; lastName: string }>)
+
+  // Calcular la paginación
+  const totalPages = Math.ceil(filteredFlights.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedFlights = filteredFlights.slice(startIndex, endIndex)
+
+  // Resetear a la primera página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter, billingFilter, pilotFilter])
 
   // Función para obtener el texto del estado del vuelo
   const getStatusText = (status: FlightStatus) => {
@@ -299,21 +313,71 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
 
     try {
       await deleteFlightLog(flightToDelete.id, accessToken)
-      
+
       // Remover el vuelo de la lista
       setAllFlights(prev => prev.filter(f => f.id !== flightToDelete.id))
       setFilteredFlights(prev => prev.filter(f => f.id !== flightToDelete.id))
-      
+
       // Cerrar modal y limpiar estado
       setIsDeleteModalOpen(false)
       setFlightToDelete(null)
-      
+
       // Mostrar mensaje de éxito
       alert('Vuelo eliminado exitosamente')
     } catch (error) {
       console.error('Error al eliminar vuelo:', error)
       alert('Error al eliminar el vuelo')
     }
+  }
+
+  // Exportar bitácoras de vuelo a Excel
+  const handleExportToExcel = () => {
+    // Preparar los datos para el Excel
+    const excelData = filteredFlights.map((flight) => ({
+      'Fecha': formatDate(flight.date),
+      'Piloto': flight.pilot?.user ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}` : `Piloto ${flight.pilotId}`,
+      'Origen': flight.origin?.name || 'N/A',
+      'Destino': flight.destination?.name || `Destino ${flight.destinationId}`,
+      'Helicóptero': flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`,
+      'Modelo': flight.helicopter?.model?.name || 'N/A',
+      'Cliente': flight.client?.name || 'N/A',
+      'Hora Inicio': flight.startTime ? formatTimeFromUTC(flight.startTime) : 'N/A',
+      'Hora Aterrizaje': flight.landingTime ? formatTimeFromUTC(flight.landingTime) : 'N/A',
+      'Duración (min)': flight.duration,
+      'Estado': getStatusText(flight.status),
+      'Estado de Facturación': getPaymentStatusText(flight.paymentStatus),
+      'Observaciones': flight.observations || 'N/A',
+    }))
+
+    // Crear el libro de trabajo (workbook)
+    const ws = XLSX.utils.json_to_sheet(excelData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Bitácoras de Vuelo")
+
+    // Ajustar el ancho de las columnas
+    const colWidths = [
+      { wch: 12 }, // Fecha
+      { wch: 25 }, // Piloto
+      { wch: 20 }, // Origen
+      { wch: 20 }, // Destino
+      { wch: 15 }, // Helicóptero
+      { wch: 20 }, // Modelo
+      { wch: 25 }, // Cliente
+      { wch: 12 }, // Hora Inicio
+      { wch: 15 }, // Hora Aterrizaje
+      { wch: 15 }, // Duración
+      { wch: 15 }, // Estado
+      { wch: 22 }, // Estado de Facturación
+      { wch: 30 }, // Observaciones
+    ]
+    ws['!cols'] = colWidths
+
+    // Generar el nombre del archivo con fecha actual
+    const today = new Date()
+    const fileName = `Bitacoras_Vuelo_${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}.xlsx`
+
+    // Descargar el archivo
+    XLSX.writeFile(wb, fileName)
   }
 
   // Clases condicionales
@@ -345,12 +409,23 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
     <div className="pt-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Bitácoras de Vuelo</h1>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-        >
-          Nuevo Vuelo
-        </button>
+        <div className="flex gap-3">
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={handleExportToExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              <Download size={18} />
+              Descargar Excel
+            </button>
+          )}
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+          >
+            Nuevo Vuelo
+          </button>
+        </div>
       </div>
 
       <div className={`${cardClass} rounded-lg shadow-md p-6 mb-6`}>
@@ -429,11 +504,32 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
         </div>
       </div>
 
-      {/* Información de resultados */}
-      <div className="mb-4">
+      {/* Información de resultados y selector de items por página */}
+      <div className="mb-4 flex justify-between items-center">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Mostrando {filteredFlights.length} de {allFlights.length} vuelos
+          Mostrando {startIndex + 1} - {Math.min(endIndex, filteredFlights.length)} de {filteredFlights.length} vuelos
+          {filteredFlights.length !== allFlights.length && ` (filtrados de ${allFlights.length} total)`}
         </p>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 dark:text-gray-400">Mostrar:</label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value))
+              setCurrentPage(1)
+            }}
+            className={`rounded-md border py-1 px-2 text-sm ${
+              darkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white text-gray-900 border-gray-300"
+            } focus:outline-none focus:ring-2 focus:ring-orange-500`}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className="text-sm text-gray-600 dark:text-gray-400">por página</span>
+        </div>
       </div>
 
       {/* Tabla de vuelos */}
@@ -472,8 +568,8 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
               </tr>
             </thead>
             <tbody className={`divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
-              {filteredFlights.length > 0 ? (
-                filteredFlights.map((flight) => (
+              {paginatedFlights.length > 0 ? (
+                paginatedFlights.map((flight) => (
                   <tr
                     key={flight.id}
                     className={`cursor-pointer ${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
@@ -502,7 +598,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                       {flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {flight.startTime} - {flight.landingTime}
+                      {flight.startTime ? formatTimeFromUTC(flight.startTime) : 'N/A'} - {flight.landingTime ? formatTimeFromUTC(flight.landingTime) : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{flight.duration} min</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -557,6 +653,70 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
           </table>
         </div>
       </div>
+
+      {/* Controles de paginación */}
+      {filteredFlights.length > 0 && totalPages > 1 && (
+        <div className="flex justify-between items-center mt-4">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-md font-medium ${
+              currentPage === 1
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                : "bg-orange-600 text-white hover:bg-orange-700"
+            }`}
+          >
+            Anterior
+          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Botones de páginas */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Mostrar solo algunas páginas alrededor de la página actual
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 2 && page <= currentPage + 2)
+              ) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1 rounded-md font-medium ${
+                      currentPage === page
+                        ? "bg-orange-600 text-white"
+                        : darkMode
+                        ? "bg-gray-700 text-white hover:bg-gray-600"
+                        : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              } else if (page === currentPage - 3 || page === currentPage + 3) {
+                return (
+                  <span key={page} className="px-2 text-gray-500">
+                    ...
+                  </span>
+                )
+              }
+              return null
+            })}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 rounded-md font-medium ${
+              currentPage === totalPages
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500"
+                : "bg-orange-600 text-white hover:bg-orange-700"
+            }`}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
 
       {/* Modal de detalles de vuelo */}
       <FlightDetailsModal
