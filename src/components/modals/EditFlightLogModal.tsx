@@ -8,6 +8,7 @@ import { updateFlightLog, getPilots, getHelicopters, getClients, getDestinations
 import { uploadFile } from "../../firebase/storage"
 import { useUser } from "../../context/UserContext"
 import type { FlightLog, Pilot, Helicopter, Client, Destination, FlightStatus, PaymentStatus } from "../../types/api"
+import { formatTimeFromUTC, calculateFlightDuration } from "../../utils/dateUtils"
 
 interface EditFlightLogModalProps {
   isOpen: boolean
@@ -80,6 +81,19 @@ const EditFlightLogModal = ({
   // Cargar datos del vuelo cuando se abre el modal
   useEffect(() => {
     if (isOpen && flightLog) {
+      // Parsear tiempos de ISO a HH:MM para los inputs type="time"
+      const parsedStartTime = flightLog.startTime ? formatTimeFromUTC(flightLog.startTime) : ""
+      const parsedLandingTime = flightLog.landingTime ? formatTimeFromUTC(flightLog.landingTime) : ""
+
+      // Extraer datos operacionales del remarks si existen
+      const remarks = flightLog.remarks || ""
+      const startsMatch = remarks.match(/Starts:\s*(\d+)/i)
+      const landingsMatch = remarks.match(/Landings:\s*(\d+)/i)
+      const launchesMatch = remarks.match(/Launches:\s*(\d+)/i)
+      const rinMatch = remarks.match(/RIN:\s*(\d+)/i)
+      const gachoMatch = remarks.match(/Gacho:\s*([\d.]+)/i)
+      const fuelMatch = remarks.match(/FuelConsumed:\s*([\d.]+)/i)
+
       setFormData({
         date: flightLog.date ? new Date(flightLog.date).toISOString().split("T")[0] : "",
         pilotId: flightLog.pilotId?.toString() || "",
@@ -90,17 +104,17 @@ const EditFlightLogModal = ({
         notes: flightLog.notes || "",
         status: flightLog.status || "SCHEDULED",
         paymentStatus: flightLog.paymentStatus || "PENDING_INVOICE",
-        startTime: flightLog.startTime || "",
-        landingTime: flightLog.landingTime || "",
+        startTime: parsedStartTime,
+        landingTime: parsedLandingTime,
         odometer: flightLog.odometer?.toString() || "",
         initialOdometer: flightLog.fuelStart?.toString() || "",
         finalOdometer: flightLog.fuelEnd?.toString() || "",
-        starts: "1", // ✅ Valor por defecto
-        landings: "1", // ✅ Valor por defecto
-        launches: "0", // ✅ Valor por defecto
-        rin: "0", // ✅ Valor por defecto
-        gachoTime: "0.00", // ✅ Valor por defecto
-        fuelConsumed: "0", // ✅ Valor por defecto
+        starts: startsMatch ? startsMatch[1] : "1",
+        landings: landingsMatch ? landingsMatch[1] : "1",
+        launches: launchesMatch ? launchesMatch[1] : "0",
+        rin: rinMatch ? rinMatch[1] : "0",
+        gachoTime: gachoMatch ? gachoMatch[1] : "0.00",
+        fuelConsumed: fuelMatch ? fuelMatch[1] : "0",
         hookUsed: flightLog.hookUsed || false,
         remarks: flightLog.remarks || "",
       })
@@ -331,7 +345,13 @@ const EditFlightLogModal = ({
           ? new Date(`${formData.date}T${formData.landingTime}:00`).toISOString()
           : null
 
-        // ✅ Construir remarks con todos los datos operacionales
+        // Calcular duración en minutos usando la misma lógica que NewFlightLog
+        let durationMinutes = 0
+        if (formData.startTime && formData.landingTime) {
+          durationMinutes = calculateFlightDuration(formData.startTime, formData.landingTime, formData.date)
+        }
+
+        // Construir remarks con todos los datos operacionales
         const remarksData = [
           `Starts: ${formData.starts}`,
           `Landings: ${formData.landings}`,
@@ -350,14 +370,15 @@ const EditFlightLogModal = ({
           ...baseData,
           startTime: startDateTime,
           landingTime: landingDateTime,
+          duration: durationMinutes, // Duración calculada en minutos
           odometer:
             formData.initialOdometer && formData.finalOdometer
               ? Number.parseFloat(formData.finalOdometer) - Number.parseFloat(formData.initialOdometer)
-              : 0, // ✅ Flight time (diferencia de odómetros)
-          fuelEnd: Number.parseFloat(formData.finalOdometer) || 0, // ✅ Odómetro final
-          fuelStart: Number.parseFloat(formData.initialOdometer) || 0, // ✅ Odómetro inicial
+              : 0, // Flight time (diferencia de odómetros)
+          fuelEnd: Number.parseFloat(formData.finalOdometer) || 0, // Odómetro final
+          fuelStart: Number.parseFloat(formData.initialOdometer) || 0, // Odómetro inicial
           hookUsed: formData.hookUsed,
-          remarks: finalRemarks, // ✅ Remarks con todos los datos operacionales
+          remarks: finalRemarks, // Remarks con todos los datos operacionales
           odometerPhotoUrl: finalOdometerImageUrl,
           weightBalanceUrl: finalWeightBalanceUrl,
         }
