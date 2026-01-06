@@ -46,7 +46,7 @@ const AdminDashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const [selectedYear] = useState(new Date().getFullYear())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
 
 
@@ -196,7 +196,7 @@ const AdminDashboard = () => {
                     selectedMonth={selectedMonth}
                     selectedYear={selectedYear}
                     onMonthChange={setSelectedMonth}
-                     
+                    onYearChange={setSelectedYear}
                   />
                 }
               />

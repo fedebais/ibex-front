@@ -13,6 +13,7 @@ interface AdminHomeProps {
   selectedMonth?: number
   selectedYear?: number
   onMonthChange?: (month: number) => void
+  onYearChange?: (year: number) => void
 }
 
 export default function AdminHome({
@@ -20,6 +21,7 @@ export default function AdminHome({
   selectedMonth = new Date().getMonth(),
   selectedYear = new Date().getFullYear(),
   onMonthChange,
+  onYearChange,
 }: AdminHomeProps) {
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -202,7 +204,21 @@ export default function AdminHome({
             >
               {months.map((month, index) => (
                 <option key={index} value={index}>
-                  {month} {selectedYear}
+                  {month}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => onYearChange && onYearChange(Number.parseInt(e.target.value))}
+              className={`rounded-md border-gray-300 py-1 px-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                darkMode ? "bg-gray-700 text-white border-gray-600" : "bg-white text-gray-900 border-gray-200"
+              }`}
+              aria-label="Seleccionar año"
+            >
+              {[2024, 2025, 2026].map((year) => (
+                <option key={year} value={year}>
+                  {year}
                 </option>
               ))}
             </select>
