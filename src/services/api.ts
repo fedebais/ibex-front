@@ -119,7 +119,10 @@ export class ApiService {
   async adminChangePassword(id: number, newPassword: string, token: string): Promise<User> {
     return this.makeRequest<User>(`/users/${id}/password`, {
       method: "PATCH",
-      headers: this.getAuthHeaders(token),
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify({ newPassword }),
     })
   }
@@ -127,7 +130,10 @@ export class ApiService {
   async changeUserRole(id: number, role: string, token: string): Promise<User> {
     return this.makeRequest<User>(`/users/${id}/role`, {
       method: "PATCH",
-      headers: this.getAuthHeaders(token),
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
       body: JSON.stringify({ role }),
     })
   }
