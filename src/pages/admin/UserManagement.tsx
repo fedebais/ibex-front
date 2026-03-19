@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Users, Search, Filter, Key, Shield, X, Eye, EyeOff } from "lucide-react"
-import { getUsers, adminChangePassword, changeUserRole } from "../../services/api"
+import { Users, Search, Filter, Key, Shield, X, Eye, EyeOff, UserPlus } from "lucide-react"
+import { getUsers, adminChangePassword, changeUserRole, adminCreateUser } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 
 interface User {
@@ -29,14 +29,15 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRole, setSelectedRole] = useState("all")
 
-  // Comentado temporalmente - Estados del modal de creación
-  // const [showAddModal, setShowAddModal] = useState(false)
-  // const [newUser, setNewUser] = useState<Partial<User>>({
-  //   name: "",
-  //   email: "",
-  //   role: "pilot",
-  //   status: "active",
-  // })
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newUserForm, setNewUserForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    role: "ADMIN",
+  })
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -137,28 +138,35 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
     setFilteredUsers(result)
   }, [searchTerm, selectedRole, users])
 
-  // Comentado temporalmente - Función de creación de usuarios
-  // const handleAddUser = () => {
-  //   if (!newUser.name || !newUser.email || !newUser.role) {
-  //     alert("Por favor complete todos los campos obligatorios")
-  //     return
-  //   }
+  // Crear usuario
+  const handleCreateUser = async () => {
+    if (!accessToken) return
+    const { firstName, lastName, email, phone, password } = newUserForm
 
-  //   const userToAdd = {
-  //     ...newUser,
-  //     id: `user${users.length + 1}`,
-  //     status: "active",
-  //   } as User
+    if (!firstName || !lastName || !email || !phone || !password) {
+      setError("Todos los campos son obligatorios")
+      return
+    }
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
 
-  //   setUsers([...users, userToAdd])
-  //   setShowAddModal(false)
-  //   setNewUser({
-  //     name: "",
-  //     email: "",
-  //     role: "pilot",
-  //     status: "active",
-  //   })
-  // }
+    try {
+      setActionLoading(true)
+      setError(null)
+      await adminCreateUser(newUserForm, accessToken)
+      await reloadUsers()
+      setShowAddModal(false)
+      setNewUserForm({ firstName: "", lastName: "", email: "", phone: "", password: "", role: "ADMIN" })
+      setSuccessMessage(`Usuario ${firstName} ${lastName} creado correctamente`)
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err: any) {
+      setError(err.message || "Error al crear usuario")
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   // Temporalmente comentadas las funciones de edición y eliminación
   /*
@@ -422,15 +430,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
             <Users className="inline mr-2" size={24} />
             Gestión de Usuarios
           </h1>
-          {/* Comentado temporalmente - Botón de crear usuario
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setNewUserForm({ firstName: "", lastName: "", email: "", phone: "", password: "", role: "ADMIN" })
+              setError(null)
+              setShowAddModal(true)
+            }}
             className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md flex items-center"
           >
             <UserPlus size={18} className="mr-2" />
             Nuevo Usuario
           </button>
-          */}
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -622,6 +632,134 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
           </table>
         </div>
       </div>
+
+      {/* Modal para crear usuario */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-lg ${
+              darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Nuevo Usuario</h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nombre *</label>
+                  <input
+                    type="text"
+                    className={`w-full px-4 py-2 rounded-md border ${
+                      darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                    }`}
+                    value={newUserForm.firstName}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, firstName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Apellido *</label>
+                  <input
+                    type="text"
+                    className={`w-full px-4 py-2 rounded-md border ${
+                      darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                    }`}
+                    value={newUserForm.lastName}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, lastName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input
+                  type="email"
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  }`}
+                  value={newUserForm.email}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Teléfono *</label>
+                <input
+                  type="text"
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  }`}
+                  value={newUserForm.phone}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                  placeholder="+5491155551234"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Contraseña *</label>
+                <input
+                  type="password"
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  }`}
+                  value={newUserForm.password}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Rol *</label>
+                <select
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  }`}
+                  value={newUserForm.role}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
+                >
+                  <option value="ADMIN">Administrador</option>
+                  <option value="PILOT">Piloto</option>
+                  <option value="TECNICO">Técnico</option>
+                  <option value="GROUND_SUPPORT">Apoyo en Tierra</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className={`px-4 py-2 rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateUser}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? "Creando..." : "Crear Usuario"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal para cambiar contraseña */}
       {showPasswordModal && selectedUser && (

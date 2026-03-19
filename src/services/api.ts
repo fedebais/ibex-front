@@ -116,6 +116,17 @@ export class ApiService {
     })
   }
 
+  async adminCreateUser(data: { firstName: string; lastName: string; email: string; phone: string; password: string; role: string }, token: string): Promise<User> {
+    return this.makeRequest<User>("/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...this.getAuthHeaders(token),
+      },
+      body: JSON.stringify(data),
+    })
+  }
+
   async adminChangePassword(id: number, newPassword: string, token: string): Promise<User> {
     return this.makeRequest<User>(`/users/${id}/password`, {
       method: "PATCH",
@@ -701,6 +712,7 @@ export const getSettings = api.getSettings.bind(api)
 export const updateSetting = api.updateSetting.bind(api)
 export const recoverPassword = api.recoverPassword.bind(api)
 export const resetPassword = api.resetPassword.bind(api)
+export const adminCreateUser = api.adminCreateUser.bind(api)
 export const adminChangePassword = api.adminChangePassword.bind(api)
 export const changeUserRole = api.changeUserRole.bind(api)
 
