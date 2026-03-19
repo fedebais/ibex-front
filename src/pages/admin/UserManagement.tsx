@@ -2,8 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Users, Search, Filter } from "lucide-react"
-import { getUsers } from "../../services/api"
+import { Users, Search, Filter, Key, Shield, X, Eye, EyeOff } from "lucide-react"
+import { getUsers, adminChangePassword, changeUserRole } from "../../services/api"
 import { useUser } from "../../context/UserContext"
 
 interface User {
@@ -40,6 +40,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Modal states
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showRoleModal, setShowRoleModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [newRole, setNewRole] = useState("")
+  const [actionLoading, setActionLoading] = useState(false)
 
   const { user, accessToken, isLoading: userLoading } = useUser()
 
@@ -296,6 +307,75 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
   }
   */
 
+  // Recargar usuarios desde la API
+  const reloadUsers = async () => {
+    if (!accessToken) return
+    const response = await getUsers(accessToken)
+    const mappedUsers = response.map((u: any) => ({
+      id: u.id,
+      name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+      email: u.email || "",
+      role: u.role ? u.role.toLowerCase() : "operator",
+      status: u.active ? "active" : "inactive",
+      avatar: u.profileImage || null,
+      department: u.department || null,
+      licenseNumber: u.licenseNumber || null,
+      flightHours: u.flightHours || null,
+      phone: u.phone || null,
+    }))
+    setUsers(mappedUsers)
+    setFilteredUsers(mappedUsers)
+  }
+
+  // Cambiar contraseña de usuario
+  const handleChangePassword = async () => {
+    if (!selectedUser || !accessToken) return
+
+    if (newPassword.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      setError(null)
+      await adminChangePassword(Number(selectedUser.id), newPassword, accessToken)
+      setShowPasswordModal(false)
+      setNewPassword("")
+      setConfirmPassword("")
+      setShowPassword(false)
+      setSuccessMessage(`Contraseña de ${selectedUser.name} actualizada correctamente`)
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err: any) {
+      setError(err.message || "Error al cambiar contraseña")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Cambiar rol de usuario
+  const handleChangeRole = async () => {
+    if (!selectedUser || !accessToken || !newRole) return
+
+    try {
+      setActionLoading(true)
+      setError(null)
+      await changeUserRole(Number(selectedUser.id), newRole.toUpperCase(), accessToken)
+      await reloadUsers()
+      setShowRoleModal(false)
+      setSuccessMessage(`Rol de ${selectedUser.name} actualizado correctamente`)
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err: any) {
+      setError(err.message || "Error al cambiar rol")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   // Obtener el color de fondo según el rol
   const getRoleBadgeClass = (role: string) => {
     switch (role) {
@@ -306,7 +386,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
       case "operator":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
       case "technician":
+      case "tecnico":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+      case "ground_support":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
     }
@@ -322,7 +405,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
       case "operator":
         return "Operador"
       case "technician":
+      case "tecnico":
         return "Técnico"
+      case "ground_support":
+        return "Apoyo en Tierra"
       default:
         return role
     }
@@ -371,8 +457,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
               <option value="all">Todos los roles</option>
               <option value="admin">Administrador</option>
               <option value="pilot">Piloto</option>
-              <option value="operator">Operador</option>
-              <option value="technician">Técnico</option>
+              <option value="tecnico">Técnico</option>
+              <option value="ground_support">Apoyo en Tierra</option>
             </select>
             <button
               className={`px-4 py-2 rounded-md border flex items-center ${
@@ -386,6 +472,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
             </button>
           </div>
         </div>
+
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md text-sm">
+            {successMessage}
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className={`min-w-full divide-y ${darkMode ? "divide-gray-700" : "divide-gray-200"}`}>
@@ -488,38 +580,34 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {/* Temporalmente comentado - botones de acción
-                      {user.status === "active" ? (
-                        <>
-                          <button
-                            onClick={() => {
-                              setCurrentUser(user)
-                              setShowEditModal(true)
-                            }}
-                            className="text-orange-600 hover:text-orange-900 mr-3"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => {
-                              setCurrentUser(user)
-                              setShowDeleteModal(true)
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Desactivar
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => handleReactivateUser(user.id)}
-                          className="text-green-600 hover:text-green-900"
-                          title="Reactivar"
-                        >
-                          Activar
-                        </button>
-                      )}
-                      */}
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setNewPassword("")
+                          setConfirmPassword("")
+                          setShowPassword(false)
+                          setError(null)
+                          setShowPasswordModal(true)
+                        }}
+                        className="text-orange-600 hover:text-orange-900 mr-3 inline-flex items-center"
+                        title="Cambiar contraseña"
+                      >
+                        <Key size={16} className="mr-1" />
+                        Contraseña
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setNewRole(user.role)
+                          setError(null)
+                          setShowRoleModal(true)
+                        }}
+                        className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                        title="Cambiar rol"
+                      >
+                        <Shield size={16} className="mr-1" />
+                        Rol
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -534,6 +622,175 @@ const UserManagement: React.FC<UserManagementProps> = ({ darkMode }) => {
           </table>
         </div>
       </div>
+
+      {/* Modal para cambiar contraseña */}
+      {showPasswordModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-lg ${
+              darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Cambiar Contraseña</h3>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <p className={`mb-4 text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+              Cambiar contraseña de <strong>{selectedUser.name}</strong> ({selectedUser.email})
+            </p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium mb-1">
+                  Nueva Contraseña *
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="newPassword"
+                    className={`w-full px-4 py-2 pr-10 rounded-md border ${
+                      darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                    }`}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+                  Confirmar Contraseña *
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  } ${confirmPassword && newPassword !== confirmPassword ? "border-red-500" : ""}`}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repetir contraseña"
+                />
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-red-500 text-xs mt-1">Las contraseñas no coinciden</p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className={`px-4 py-2 rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={actionLoading || !newPassword || newPassword !== confirmPassword}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? "Guardando..." : "Cambiar Contraseña"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para cambiar rol */}
+      {showRoleModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div
+            className={`w-full max-w-md p-6 rounded-lg shadow-lg ${
+              darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Cambiar Rol</h3>
+              <button
+                onClick={() => setShowRoleModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <p className={`mb-4 text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+              Cambiar rol de <strong>{selectedUser.name}</strong> ({selectedUser.email})
+            </p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="changeRole" className="block text-sm font-medium mb-1">
+                  Nuevo Rol *
+                </label>
+                <select
+                  id="changeRole"
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    darkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-300"
+                  }`}
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                >
+                  <option value="admin">Administrador</option>
+                  <option value="pilot">Piloto</option>
+                  <option value="tecnico">Técnico</option>
+                  <option value="ground_support">Apoyo en Tierra</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowRoleModal(false)}
+                  className={`px-4 py-2 rounded-md ${
+                    darkMode
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleChangeRole}
+                  disabled={actionLoading || newRole === selectedUser.role}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading ? "Guardando..." : "Cambiar Rol"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Comentado temporalmente - Modal para añadir usuario
       {showAddModal && (

@@ -116,6 +116,22 @@ export class ApiService {
     })
   }
 
+  async adminChangePassword(id: number, newPassword: string, token: string): Promise<User> {
+    return this.makeRequest<User>(`/users/${id}/password`, {
+      method: "PATCH",
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ newPassword }),
+    })
+  }
+
+  async changeUserRole(id: number, role: string, token: string): Promise<User> {
+    return this.makeRequest<User>(`/users/${id}/role`, {
+      method: "PATCH",
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ role }),
+    })
+  }
+
   async deleteUser(id: string, token: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/users/${id}`, {
       method: "DELETE",
@@ -679,4 +695,6 @@ export const getSettings = api.getSettings.bind(api)
 export const updateSetting = api.updateSetting.bind(api)
 export const recoverPassword = api.recoverPassword.bind(api)
 export const resetPassword = api.resetPassword.bind(api)
+export const adminChangePassword = api.adminChangePassword.bind(api)
+export const changeUserRole = api.changeUserRole.bind(api)
 
