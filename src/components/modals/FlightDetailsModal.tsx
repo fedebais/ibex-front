@@ -5,6 +5,7 @@ import type { FlightLog } from "../../types/api"
 import { useState } from "react"
 import { formatDate, formatTimeFromUTC } from "../../utils/dateUtils"
 import EditFlightLogModal from "./EditFlightLogModal"
+import { Trash2 } from "lucide-react"
 
 interface FlightDetailsModalProps {
   isOpen: boolean
@@ -12,6 +13,7 @@ interface FlightDetailsModalProps {
   flightLog: FlightLog | null
   darkMode?: boolean
   onUpdateFlight?: () => void
+  onDeleteFlight?: (flight: FlightLog) => void
 }
 
 const FlightDetailsModal = ({
@@ -20,6 +22,7 @@ const FlightDetailsModal = ({
   flightLog,
   darkMode = false,
   onUpdateFlight,
+  onDeleteFlight,
 }: FlightDetailsModalProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
@@ -136,9 +139,9 @@ const FlightDetailsModal = ({
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Capacidad</p>
+                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Capacidad Máx.</p>
                 <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {flightLog.helicopter.capacity || "N/A"} pasajeros
+                  {flightLog.helicopter.capacity || "N/A"} PAX
                 </p>
               </div>
               <div>
@@ -206,6 +209,67 @@ const FlightDetailsModal = ({
               <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Duración</p>
               <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
                 {flightLog.duration ? `${flightLog.duration} min` : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Tiempo de Bloque</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.blockTime != null ? `${flightLog.blockTime} hrs` : "No registrado"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Tiempo de Vuelo</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.flightTime != null ? `${flightLog.flightTime} hrs` : "No registrado"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Datos Operativos */}
+        <div>
+          <h4 className={`text-base font-medium mb-3 ${darkMode ? "text-white" : "text-gray-900"}`}>Datos Operativos</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Nro. de Vuelo</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.flightNumber || "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Pasajeros (PAX)</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.passengers != null ? flightLog.passengers : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Aterrizajes</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.landings != null ? flightLog.landings : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Lanzamientos</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.launches != null ? flightLog.launches : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Tiempo de Gancho</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.hookTime != null ? `${flightLog.hookTime} hrs` : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Cantidad de Cargas</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.loadCount != null ? flightLog.loadCount : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>RIN</p>
+              <p className={`text-base ${darkMode ? "text-white" : "text-gray-900"}`}>
+                {flightLog.rin || "N/A"}
               </p>
             </div>
           </div>
@@ -291,27 +355,34 @@ const FlightDetailsModal = ({
         </div>
 
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={() => setIsEditModalOpen(true)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              darkMode
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            Editar Vuelo
-          </button>
-          <button
-            onClick={onClose}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              darkMode
-                ? "bg-gray-600 hover:bg-gray-700 text-white"
-                : "bg-gray-600 hover:bg-gray-700 text-white"
-            }`}
-          >
-            Cerrar
-          </button>
+        <div className="flex justify-between">
+          {onDeleteFlight && (
+            <button
+              onClick={() => onDeleteFlight(flightLog)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-red-600 hover:bg-red-700 text-white"
+            >
+              <Trash2 size={16} />
+              Eliminar
+            </button>
+          )}
+          <div className="flex space-x-3 ml-auto">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Editar Vuelo
+            </button>
+            <button
+              onClick={onClose}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                darkMode
+                  ? "bg-gray-600 hover:bg-gray-700 text-white"
+                  : "bg-gray-600 hover:bg-gray-700 text-white"
+              }`}
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
 

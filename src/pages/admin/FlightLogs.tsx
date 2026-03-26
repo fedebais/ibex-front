@@ -724,6 +724,17 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
         onClose={() => setIsDetailsModalOpen(false)}
         flightLog={selectedFlightLog}
         darkMode={darkMode}
+        onUpdateFlight={() => {
+          if (accessToken) {
+            getFlightLogs(accessToken).then((data) => {
+              setAllFlights(data)
+            })
+          }
+        }}
+        onDeleteFlight={(flight) => {
+          setIsDetailsModalOpen(false)
+          handleDeleteFlight(flight)
+        }}
       />
 
       {/* Modal para agregar nuevo vuelo */}

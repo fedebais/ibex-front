@@ -208,6 +208,15 @@ export interface FlightLog {
   remarks?: string
   odometerPhotoUrl?: string
 
+  blockTime?: number
+  flightTime?: number
+  flightNumber?: string
+  landings?: number
+  launches?: number
+  hookTime?: number
+  loadCount?: number
+  rin?: string
+
   createdAt?: string
   updatedAt?: string
 
