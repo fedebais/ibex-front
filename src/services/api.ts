@@ -46,8 +46,30 @@ export class ApiService {
       })
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as ErrorResponse
-        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
+        const errorData = (await response.json().catch(() => ({}))) as any
+        const extractMessage = (data: any): string => {
+          if (!data) return ""
+          if (typeof data === "string") return data
+          if (typeof data.message === "string") return data.message
+          if (typeof data.error === "string") return data.error
+          if (data.error && typeof data.error === "object") {
+            if (typeof data.error.message === "string") return data.error.message
+            if (typeof data.error.error === "string") return data.error.error
+          }
+          if (Array.isArray(data.errors) && data.errors.length) {
+            const first = data.errors[0]
+            if (typeof first === "string") return first
+            if (first?.message) return first.message
+          }
+          try {
+            return JSON.stringify(data)
+          } catch {
+            return ""
+          }
+        }
+        const message = extractMessage(errorData) || `HTTP error! status: ${response.status}`
+        console.error(`API Error ${response.status} (${endpoint}):`, errorData)
+        throw new Error(message)
       }
 
       // Para respuestas 204 (No Content), no intentar parsear JSON
