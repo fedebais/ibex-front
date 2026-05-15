@@ -202,6 +202,7 @@ export interface FlightLog {
   startTime?: string
   landingTime?: string
   odometer?: number
+  odometerStart?: number
   fuelStart?: number
   fuelEnd?: number
   hookUsed?: boolean

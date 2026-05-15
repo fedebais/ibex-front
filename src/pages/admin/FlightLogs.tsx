@@ -333,21 +333,33 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
   // Exportar bitácoras de vuelo a Excel
   const handleExportToExcel = () => {
     // Preparar los datos para el Excel
-    const excelData = filteredFlights.map((flight) => ({
-      'Fecha': formatDate(flight.date),
-      'Piloto': flight.pilot?.user ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}` : `Piloto ${flight.pilotId}`,
-      'Origen': flight.origin?.name || 'N/A',
-      'Destino': flight.destination?.name || `Destino ${flight.destinationId}`,
-      'Helicóptero': flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`,
-      'Modelo': flight.helicopter?.model?.name || 'N/A',
-      'Cliente': flight.client?.name || 'N/A',
-      'Hora Inicio': flight.startTime ? formatTimeFromUTC(flight.startTime) : 'N/A',
-      'Hora Aterrizaje': flight.landingTime ? formatTimeFromUTC(flight.landingTime) : 'N/A',
-      'Duración (min)': flight.duration,
-      'Estado': getStatusText(flight.status),
-      'Estado de Facturación': getPaymentStatusText(flight.paymentStatus),
-      'Observaciones': flight.remarks || 'N/A',
-    }))
+    const excelData = filteredFlights.map((flight) => {
+      const odoStart = flight.odometerStart
+      const odoEnd = flight.odometer
+      const flightTimeHs =
+        odoStart != null && odoEnd != null
+          ? Math.round((odoEnd - odoStart) * 100) / 100
+          : null
+
+      return {
+        'Fecha': formatDate(flight.date),
+        'Piloto': flight.pilot?.user ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}` : `Piloto ${flight.pilotId}`,
+        'Origen': flight.origin?.name || 'N/A',
+        'Destino': flight.destination?.name || `Destino ${flight.destinationId}`,
+        'Helicóptero': flight.helicopter?.registration || `Helicóptero ${flight.helicopterId}`,
+        'Modelo': flight.helicopter?.model?.name || 'N/A',
+        'Cliente': flight.client?.name || 'N/A',
+        'Hora Inicio': flight.startTime ? formatTimeFromUTC(flight.startTime) : 'N/A',
+        'Hora Aterrizaje': flight.landingTime ? formatTimeFromUTC(flight.landingTime) : 'N/A',
+        'Odómetro Inicio': odoStart ?? 'N/A',
+        'Odómetro Final': odoEnd ?? 'N/A',
+        'Tiempo de Vuelo (hs)': flightTimeHs ?? 'N/A',
+        'Duración (min)': flight.duration,
+        'Estado': getStatusText(flight.status),
+        'Estado de Facturación': getPaymentStatusText(flight.paymentStatus),
+        'Observaciones': flight.remarks || 'N/A',
+      }
+    })
 
     // Crear el libro de trabajo (workbook)
     const ws = XLSX.utils.json_to_sheet(excelData)
@@ -365,6 +377,9 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
       { wch: 25 }, // Cliente
       { wch: 12 }, // Hora Inicio
       { wch: 15 }, // Hora Aterrizaje
+      { wch: 15 }, // Odómetro Inicio
+      { wch: 15 }, // Odómetro Final
+      { wch: 18 }, // Tiempo de Vuelo (hs)
       { wch: 15 }, // Duración
       { wch: 15 }, // Estado
       { wch: 22 }, // Estado de Facturación
