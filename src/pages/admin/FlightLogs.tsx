@@ -334,13 +334,6 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
   const handleExportToExcel = () => {
     // Preparar los datos para el Excel
     const excelData = filteredFlights.map((flight) => {
-      const odoStart = flight.odometerStart
-      const odoEnd = flight.odometer
-      const flightTimeHs =
-        odoStart != null && odoEnd != null
-          ? Math.round((odoEnd - odoStart) * 100) / 100
-          : null
-
       return {
         'Fecha': formatDate(flight.date),
         'Piloto': flight.pilot?.user ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}` : `Piloto ${flight.pilotId}`,
@@ -351,9 +344,9 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
         'Cliente': flight.client?.name || 'N/A',
         'Hora Inicio': flight.startTime ? formatTimeFromUTC(flight.startTime) : 'N/A',
         'Hora Aterrizaje': flight.landingTime ? formatTimeFromUTC(flight.landingTime) : 'N/A',
-        'Odómetro Inicio': odoStart ?? 'N/A',
-        'Odómetro Final': odoEnd ?? 'N/A',
-        'Tiempo de Vuelo (hs)': flightTimeHs ?? 'N/A',
+        'Odómetro Inicial': flight.fuelStart ?? 'N/A',
+        'Odómetro Final': flight.fuelEnd ?? 'N/A',
+        'Tiempo de Vuelo (hs)': flight.odometer ?? 'N/A',
         'Duración (min)': flight.duration,
         'Estado': getStatusText(flight.status),
         'Estado de Facturación': getPaymentStatusText(flight.paymentStatus),
@@ -377,7 +370,7 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
       { wch: 25 }, // Cliente
       { wch: 12 }, // Hora Inicio
       { wch: 15 }, // Hora Aterrizaje
-      { wch: 15 }, // Odómetro Inicio
+      { wch: 15 }, // Odómetro Inicial
       { wch: 15 }, // Odómetro Final
       { wch: 18 }, // Tiempo de Vuelo (hs)
       { wch: 15 }, // Duración
