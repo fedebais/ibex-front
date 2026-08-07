@@ -301,6 +301,13 @@ export class ApiService {
     })
   }
 
+  async getFlightLogById(id: number, token: string): Promise<FlightLog> {
+    return this.makeRequest<FlightLog>(`/flightlogs/${id}`, {
+      method: "GET",
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
   async createFlightLog(data: Partial<FlightLog>, token: string): Promise<FlightLog> {
     return this.makeRequest<FlightLog>("/flightlogs", {
       method: "POST",
@@ -691,6 +698,7 @@ export const updatePilot = api.updatePilot.bind(api)
 export const deletePilot = api.deletePilot.bind(api)
 export const getFlightLogs = api.getFlightLogs.bind(api)
 export const getFlightLogsByPilotId = api.getFlightLogsByPilotId.bind(api)
+export const getFlightLogById = api.getFlightLogById.bind(api)
 export const createFlightLog = api.createFlightLog.bind(api)
 export const updateFlightLog = api.updateFlightLog.bind(api)
 export const deleteFlightLog = api.deleteFlightLog.bind(api)

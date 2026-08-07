@@ -4,6 +4,7 @@ import PasswordRecovery from "./pages/PasswordRecovery"
 import ResetPassword from "./pages/ResetPassword"
 import PilotDashboard from "./pages/pilot/PilotDashboard"
 import AdminDashboard from "./pages/admin/AdminDashboard"
+import FlightTechnicalLog from "./pages/admin/FlightTechnicalLog"
 import TechnicianDashboard from "./pages/technician/TechnicianDashboard"
 import GroundSupportDashboard from "./pages/groundSupport/GroundSupportDashboard"
 import { UserProvider } from "./context/UserContext"
@@ -34,6 +35,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["PILOT"]}>
                   <PilotDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bitacora/:id"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <FlightTechnicalLog />
                 </ProtectedRoute>
               }
             />
