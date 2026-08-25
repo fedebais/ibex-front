@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { Printer, ArrowLeft } from "lucide-react"
 import { DateTime } from "luxon"
 import { useUser } from "../../context/UserContext"
-import { getBitacora } from "../../services/api"
+import { getFlightLogById } from "../../services/api"
 import type { FlightLog } from "../../types/api"
 import { formatTimeFromUTC } from "../../utils/dateUtils"
 
@@ -17,12 +17,6 @@ const formatDateShort = (isoDate?: string) => {
   return dt.isValid ? dt.toFormat("dd/MM/yy") : ""
 }
 
-const formatDateFromYmd = (ymd?: string) => {
-  if (!ymd) return ""
-  const dt = DateTime.fromISO(ymd, { zone: ARGENTINA_ZONE })
-  return dt.isValid ? dt.toFormat("dd/MM/yy") : ymd
-}
-
 const num = (v?: number | null, digits = 2) =>
   v == null || Number.isNaN(v) ? "" : v.toFixed(digits)
 
@@ -32,26 +26,21 @@ const pilotName = (flight: FlightLog) =>
   flight.pilot?.user ? `${flight.pilot.user.firstName} ${flight.pilot.user.lastName}` : ""
 
 export default function FlightTechnicalLog() {
-  const { helicopterId, date } = useParams<{ helicopterId: string; date: string }>()
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { accessToken } = useUser()
-  const [data, setData] = useState<{
-    helicopter: any
-    date: string
-    formNumber: number
-    flights: FlightLog[]
-  } | null>(null)
+  const [flight, setFlight] = useState<FlightLog | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!helicopterId || !date || !accessToken) return
+    if (!id || !accessToken) return
     let cancelled = false
     setLoading(true)
     ;(async () => {
       try {
-        const res = await getBitacora(Number(helicopterId), date, accessToken)
-        if (!cancelled) setData(res)
+        const data = await getFlightLogById(Number(id), accessToken)
+        if (!cancelled) setFlight(data)
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Error cargando la bitácora")
       } finally {
@@ -59,18 +48,18 @@ export default function FlightTechnicalLog() {
       }
     })()
     return () => { cancelled = true }
-  }, [helicopterId, date, accessToken])
+  }, [id, accessToken])
 
   if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Cargando bitácora...</div>
   if (error) return <div style={{ padding: 40, textAlign: "center", color: "#dc2626" }}>{error}</div>
-  if (!data) return <div style={{ padding: 40, textAlign: "center" }}>Bitácora no encontrada</div>
+  if (!flight) return <div style={{ padding: 40, textAlign: "center" }}>Vuelo no encontrado</div>
 
-  const { helicopter, date: dateYmd, formNumber, flights } = data
-  const formNo = `${String(helicopter.id).padStart(2, "0")}-${String(formNumber).padStart(5, "0")}`
-  const dateFmt = formatDateFromYmd(dateYmd)
-  const model = helicopter?.model?.name || ""
-  const registration = helicopter?.registration || ""
+  const formNo = String(flight.id).padStart(5, "0")
+  const dateFmt = formatDateShort(flight.date)
+  const model = flight.helicopter?.model?.name || ""
+  const registration = flight.helicopter?.registration || ""
 
+  const flights: FlightLog[] = [flight]
   const filledCount = flights.length
   const emptyRows = Math.max(0, MIN_FLIGHT_ROWS - filledCount)
 
