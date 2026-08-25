@@ -8,8 +8,9 @@ import type { FlightLog } from "../../types/api"
 import { formatTimeFromUTC } from "../../utils/dateUtils"
 
 const ARGENTINA_ZONE = "America/Argentina/Buenos_Aires"
-const MIN_FLIGHT_ROWS = 10
+const MIN_FLIGHT_ROWS = 7
 const MIN_DEFECT_ROWS = 6
+const NEXT_MAINT_ROWS = 7
 
 const formatDateShort = (isoDate?: string) => {
   if (!isoDate) return ""
@@ -142,6 +143,21 @@ export default function FlightTechnicalLog() {
         .btc .foot .fno { font-weight: bold; font-size: 12px; letter-spacing: 0.5px; }
         .btc .foot .btit { font-weight: bold; font-size: 12px; letter-spacing: 6px; text-align: center; }
         .btc .disclaimer { font-size: 6px; padding: 2px 8px 4px; line-height: 1.2; }
+        .btc .bff-row { display: flex; align-items: stretch; }
+        .btc .bff-row > table { flex-shrink: 0; }
+        .btc .sig-row { display: flex; align-items: stretch; }
+        .btc .sig-row .sig-left {
+          width: 33%;
+          display: flex;
+          align-items: center;
+          padding: 4px 6px;
+          border: 1px solid #000;
+          border-top: none;
+          gap: 20px;
+        }
+        .btc .sig-row .sig-left .fno { font-weight: bold; font-size: 11px; letter-spacing: 0.5px; }
+        .btc .sig-row .sig-left .btit { font-weight: bold; font-size: 11px; letter-spacing: 5px; }
+        .btc .sig-row > table { width: 67%; }
       `}</style>
 
       <div className="btc-wrapper">
@@ -384,72 +400,94 @@ export default function FlightTechnicalLog() {
             </tbody>
           </table>
 
-          {/* ============ BFF ACCORDING TO AFM + ACCUMULATED / FUEL & OIL + NEXT MAINT ============
-              21 cols: BFF(1) + 3sets*4(12) + Accum(1) + FUEL/OIL(4:T,FUEL,#1OIL,#2OIL) + NextMaint(3:Type,Hours,Cycles/Date) */}
-          <table>
-            <colgroup>
-              <col style={{ width: "5%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "3%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "5%" }} />
-              <col style={{ width: "5%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "4%" }} />
-            </colgroup>
-            <tbody>
-              <tr>
-                <td className="lbl-sm" colSpan={13}>* Performed in accordance with WO ________________________________________________</td>
-                <td className="lbl-c">Accumulated:</td>
-                <td className="lbl-sm" colSpan={4} style={{ textAlign: "center" }}>FUEL &amp; OIL QUANTITY FILLED UP</td>
-                <td className="lbl-sm" colSpan={3} style={{ textAlign: "center" }}>Next Maintenance</td>
-              </tr>
-              <tr>
-                <td className="lbl-sm" rowSpan={2}>BFF<br/>according to<br/>AFM</td>
-                <th>DATE:<br/>(dd/mm)</th>
-                <th>UTC:</th>
-                <th>Signature</th>
-                <th>Pilot name</th>
-                <th>DATE:<br/>(dd/mm)</th>
-                <th>UTC:</th>
-                <th>Signature</th>
-                <th>Pilot name</th>
-                <th>DATE:<br/>(dd/mm)</th>
-                <th>UTC:</th>
-                <th>Signature</th>
-                <th>Pilot name</th>
-                <td rowSpan={2} className="data"></td>
-                <th>T</th>
-                <th>FUEL</th>
-                <th>ENG.#1 OIL</th>
-                <th>ENG.#2 OIL</th>
-                <th>Type</th>
-                <th>Hours</th>
-                <th>Cycles/Date</th>
-              </tr>
-              <tr>
-                <td className="data">{dateFmt}</td>
-                <td></td><td></td><td></td>
-                <td></td><td></td><td></td><td></td>
-                <td></td><td></td><td></td><td></td>
-                <td className="tall"></td><td></td><td></td><td></td>
-                <td></td><td></td><td></td>
-              </tr>
-            </tbody>
-          </table>
+          {/* ============ BFF ACCORDING TO AFM + ACCUMULATED / FUEL & OIL ============
+              12 cols: BFF(1) + 3sets*2(6) + Accum(1) + FUEL/OIL(4:T,FUEL,#1OIL,#2OIL)
+              Cada set = 2 cols x 3 rows: [DATE:] [UTC:] / [(dd/mm)] [Signature] / [Pilot name] [ ] */}
+          <div className="bff-row">
+            <table style={{ width: "78%" }}>
+              <colgroup>
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "6%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "7%" }} />
+                <col style={{ width: "7%" }} />
+                <col style={{ width: "7%" }} />
+              </colgroup>
+              <tbody>
+                <tr>
+                  <td className="lbl-sm" colSpan={7}>* Performed in accordance with WO ________________________________________________</td>
+                  <td className="lbl-c">Accumulated:</td>
+                  <td className="lbl-sm" colSpan={4} style={{ textAlign: "center" }}>FUEL &amp; OIL QUANTITY FILLED UP</td>
+                </tr>
+                <tr>
+                  <td className="lbl-sm" rowSpan={3}>BFF<br/>according to<br/>AFM</td>
+                  <th>DATE:</th>
+                  <th>UTC:</th>
+                  <th>DATE:</th>
+                  <th>UTC:</th>
+                  <th>DATE:</th>
+                  <th>UTC:</th>
+                  <td rowSpan={3} className="data"></td>
+                  <th>T</th>
+                  <th>FUEL</th>
+                  <th>ENG.#1 OIL</th>
+                  <th>ENG.#2 OIL</th>
+                </tr>
+                <tr>
+                  <td className="lbl-sm">(dd/mm)</td>
+                  <td className="lbl-sm">Signature</td>
+                  <td className="lbl-sm">(dd/mm)</td>
+                  <td className="lbl-sm">Signature</td>
+                  <td className="lbl-sm">(dd/mm)</td>
+                  <td className="lbl-sm">Signature</td>
+                  <td className="data">{dateFmt}</td>
+                  <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                  <td className="lbl-sm">Pilot name</td>
+                  <td></td>
+                  <td className="lbl-sm">Pilot name</td>
+                  <td></td>
+                  <td className="lbl-sm">Pilot name</td>
+                  <td></td>
+                  <td className="tall"></td>
+                  <td></td><td></td><td></td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* ============ NEXT MAINTENANCE (tabla separada, 3 cols x 8 rows) ============ */}
+            <table style={{ width: "22%" }}>
+              <colgroup>
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "40%" }} />
+              </colgroup>
+              <tbody>
+                <tr>
+                  <td className="lbl-sm" colSpan={3} style={{ textAlign: "center" }}>Next Maintenance</td>
+                </tr>
+                <tr>
+                  <th>Type</th>
+                  <th>Hours</th>
+                  <th>Cycles/Date</th>
+                </tr>
+                {Array.from({ length: NEXT_MAINT_ROWS }).map((_, i) => (
+                  <tr key={`nm-${i}`}>
+                    <td className="tall"></td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* ============ HOIST + ENGINE POWER CHECK ============
               19 cols: Hoist section(6: S/N, Cal, Cyc, Op.h, Cyc, Op.h) + Engine power(13) */}
@@ -574,70 +612,69 @@ export default function FlightTechnicalLog() {
             </tbody>
           </table>
 
-          {/* ============ SIGNATURES ============
-              16 cols: 4 sets × {label, Sign./Stamp*, Date, LT} */}
-          <table>
-            <colgroup>
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "3%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "3%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "3%" }} />
-              <col style={{ width: "4%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "6%" }} />
-              <col style={{ width: "3%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>BFF<sup>(0)</sup></th>
-                <th>Sign./Stamp*</th>
-                <th>Date</th>
-                <th>LT</th>
-                <th>BFF<sup>(1)</sup></th>
-                <th>Sign./Stamp*</th>
-                <th>Date</th>
-                <th>LT</th>
-                <th>BFF<sup>(2)</sup></th>
-                <th>Sign./Stamp*</th>
-                <th>Date</th>
-                <th>LT</th>
-                <th>ALF<sup>(3)</sup></th>
-                <th>Sign./Stamp*</th>
-                <th>Date</th>
-                <th>LT</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="tall"></td>
-                <td></td><td></td><td></td>
-                <td></td><td></td><td></td><td></td>
-                <td></td><td></td><td></td><td></td>
-                <td></td><td></td><td></td><td></td>
-              </tr>
-            </tbody>
-          </table>
+          {/* ============ SIGNATURES + N° + BITACORA (inline) ============
+              Izquierda (33%): N° y BITACORA. Derecha (67%): 4 sets × {label, Sign./Stamp*, Date, LT} */}
+          <div className="sig-row">
+            <div className="sig-left">
+              <div className="fno">N° {formNo}</div>
+              <div className="btit">BITÁCORA</div>
+            </div>
+            <table>
+              <colgroup>
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "2%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "2%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "2%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "2%" }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>BFF<sup>(0)</sup></th>
+                  <th>Sign./Stamp*</th>
+                  <th>Date</th>
+                  <th>LT</th>
+                  <th>BFF<sup>(1)</sup></th>
+                  <th>Sign./Stamp*</th>
+                  <th>Date</th>
+                  <th>LT</th>
+                  <th>BFF<sup>(2)</sup></th>
+                  <th>Sign./Stamp*</th>
+                  <th>Date</th>
+                  <th>LT</th>
+                  <th>ALF<sup>(3)</sup></th>
+                  <th>Sign./Stamp*</th>
+                  <th>Date</th>
+                  <th>LT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="tall"></td>
+                  <td></td><td></td><td></td>
+                  <td></td><td></td><td></td><td></td>
+                  <td></td><td></td><td></td><td></td>
+                  <td></td><td></td><td></td><td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           <div className="disclaimer">
             <b><sup>(2)</sup></b> Performed i.a.w. WO ________________________________________________
             &nbsp;&nbsp;&nbsp;&nbsp;
             <b><sup>(3)</sup></b> Performed i.a.w. WO ________________________________________________
             <br /><b>*</b> Certifies that work specified, except as otherwise specified, was carried out in accordance with DAR-145 and in respect to this work, the aircraft is considered ready for release to service.
-          </div>
-
-          {/* ============ N° 00083 / BITACORA (footer) ============ */}
-          <div className="foot">
-            <div className="fno">N° {formNo}</div>
-            <div className="btit">BITÁCORA</div>
-            <div>&nbsp;</div>
           </div>
         </div>
       </div>
