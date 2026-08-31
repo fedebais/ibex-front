@@ -16,6 +16,7 @@ import AdminSettings from "./AdminSettings"
 import UserManagement from "./UserManagement"
 import Calendar from "./Calendar"
 import Library from "./Library"
+import RTVList from "./RTVList"
 import {
   LayoutDashboard,
   Users,
@@ -104,6 +105,11 @@ const AdminDashboard = () => {
     {
       path: "/admin/flights",
       label: "Bitácoras de Vuelo",
+      icon: <FileText className="w-5 h-5" />,
+    },
+    {
+      path: "/admin/rtvs",
+      label: "RTVs",
       icon: <FileText className="w-5 h-5" />,
     },
     {
@@ -226,6 +232,7 @@ const AdminDashboard = () => {
               <Route path="/qualifications" element={<Qualifications darkMode={darkMode} />} />
               <Route path="/training-courses" element={<TrainingCourses darkMode={darkMode} />} />
               <Route path="/practical-training" element={<PracticalTraining darkMode={darkMode} />} />
+              <Route path="/rtvs" element={<RTVList darkMode={darkMode} />} />
             </Routes>
           </main>
 

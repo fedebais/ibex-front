@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { getFlightLogs, deleteFlightLog } from "../../services/api"
 import FlightDetailsModal from "../../components/modals/FlightDetailsModal"
-import { Search, Trash2, Download, FileText } from "lucide-react"
+import { Search, Trash2, Download } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import AddFlightLogModal from "../../components/modals/AddFlightLogModal"
 import { useUser } from "../../context/UserContext"
@@ -636,19 +636,6 @@ const FlightLogs = ({ darkMode, selectedMonth, selectedYear }: FlightLogsProps) 
                         >
                           Ver detalles
                         </button>
-                        {user?.role === 'ADMIN' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/bitacora/${flight.id}`)
-                            }}
-                            className="text-blue-600 hover:text-blue-900 font-medium inline-flex items-center gap-1"
-                            title="Generar bitácora"
-                          >
-                            <FileText size={16} />
-                            Bitácora
-                          </button>
-                        )}
                         {user?.role === 'ADMIN' && (
                           <button
                             onClick={(e) => {

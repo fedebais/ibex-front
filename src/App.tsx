@@ -39,7 +39,7 @@ function App() {
               }
             />
             <Route
-              path="/bitacora/:id"
+              path="/bitacora/:helicopterId/:date"
               element={
                 <ProtectedRoute allowedRoles={["ADMIN"]}>
                   <FlightTechnicalLog />

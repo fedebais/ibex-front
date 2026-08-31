@@ -308,6 +308,22 @@ export class ApiService {
     })
   }
 
+  async getBitacora(
+    helicopterId: number,
+    date: string,
+    token: string,
+  ): Promise<{
+    helicopter: any
+    date: string
+    formNumber: number
+    flights: FlightLog[]
+  }> {
+    return this.makeRequest(`/flightlogs/bitacora?helicopterId=${helicopterId}&date=${date}`, {
+      method: "GET",
+      headers: this.getAuthHeaders(token),
+    })
+  }
+
   async createFlightLog(data: Partial<FlightLog>, token: string): Promise<FlightLog> {
     return this.makeRequest<FlightLog>("/flightlogs", {
       method: "POST",
@@ -699,6 +715,7 @@ export const deletePilot = api.deletePilot.bind(api)
 export const getFlightLogs = api.getFlightLogs.bind(api)
 export const getFlightLogsByPilotId = api.getFlightLogsByPilotId.bind(api)
 export const getFlightLogById = api.getFlightLogById.bind(api)
+export const getBitacora = api.getBitacora.bind(api)
 export const createFlightLog = api.createFlightLog.bind(api)
 export const updateFlightLog = api.updateFlightLog.bind(api)
 export const deleteFlightLog = api.deleteFlightLog.bind(api)
